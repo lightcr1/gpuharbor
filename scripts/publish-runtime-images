@@ -75,6 +75,14 @@ def main() -> int:
         print(f"  {digest}")
 
     if not args.dry_run:
+        print(
+            "\nReminder: a newly pushed GHCR container package is PRIVATE by default."
+            "\nRunPod pulls without credentials, so set each package to Public under "
+            "\nhttps://github.com/users/<owner>/packages/container/<name>/settings"
+            "\n(the REST API cannot change container visibility)."
+        )
+
+    if not args.dry_run:
         Path(args.digests_out).write_text(
             "\n".join(f"{name}={digest}" for name, digest in sorted(digests.items())) + "\n",
             encoding="utf-8",

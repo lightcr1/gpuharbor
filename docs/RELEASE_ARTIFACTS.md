@@ -32,6 +32,27 @@ These digests are baked into `.env.example`, so a normal install works without
 building anything. They are published images, not yet GPU-verified; see
 [CURRENT_STATUS.md](CURRENT_STATUS.md).
 
+### Package visibility (required)
+
+GHCR container packages are **private** by default. RunPod pulls images without
+credentials, so public runtime images must be switched to public once, in the web
+UI (the REST API cannot change container visibility):
+
+1. Open `https://github.com/users/<owner>/packages/container/gpuharbor-runtime-vllm/settings`
+   (replace the name for `-llama-cpp` and `-bonsai`).
+2. Scroll to **Danger Zone** → **Change visibility** → **Public**.
+3. Confirm the package name.
+
+Verify an anonymous pull works:
+
+```bash
+docker logout ghcr.io
+docker pull ghcr.io/<owner>/gpuharbor-runtime-llama-cpp:0.1.0
+```
+
+If you deliberately keep images private, RunPod needs registry credentials for
+the pod; that flow is not implemented yet.
+
 These images are pulled by RunPod, not by the machine running the controller.
 Maintainers build them once and publish with
 `./scripts/publish-runtime-images --owner <owner> --tag <version>`, which also
