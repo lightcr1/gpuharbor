@@ -1,35 +1,38 @@
 # Contributing
 
-## License of contributions
+## License of your contribution
 
-By contributing you agree that your contribution is licensed under the
-Apache-2.0 license of this repository. Sign off every commit
-(`git commit -s`) to certify the Developer Certificate of Origin. Substantial
-contributions additionally require a Contributor License Agreement so the
-project can keep offering a separate closed Pro component. Do not contribute
-code you cannot license this way.
+By contributing you agree your work is licensed under Apache-2.0. Sign off your
+commits (`git commit -s`) to certify the Developer Certificate of Origin. Larger
+contributions also need a Contributor License Agreement, so the separate closed
+component stays possible. Do not contribute code you cannot license this way.
 
-GPUHarbor is public. These rules define the contribution flow.
+## Ground rules
 
 1. Never commit `.env`, TLS private keys, tokens, controller state or chat data.
 2. Keep `RUNPOD_ALLOW_BILLABLE_ACTIONS=false` in tests and examples.
-3. Use mocked RunPod responses unless the owner explicitly approves a paid canary.
-4. Add tests for lifecycle, authentication and registry changes.
-5. Run:
+3. Mock RunPod in tests. Only run a real pod when the maintainer approves the
+   cost.
+4. Add tests for lifecycle, auth and registry changes.
+5. Runtime image changes are security sensitive: pin a digest and document where
+   the image comes from.
+6. Do not widen the OpenHands workspace boundary or expose services publicly by
+   default.
+7. Keep business and roadmap-of-paid-features material out of this repository.
+
+## Before you push
 
 ```bash
 pytest
 ./scripts/check-compose
 ```
 
-6. Treat runtime-image changes as security-sensitive. Pin immutable digests and
-   document upstream source/license details.
-7. Do not weaken the OpenHands workspace boundary or expose services publicly by
-   default.
-8. Report security issues privately once a contact channel exists.
-9. Do not add Pro or business-strategy material to this public repository; it
-   belongs in the separate private project.
+Or everything at once:
 
-The local owner workflow also blocks commits and pushes Monday-Friday
-07:00-18:00 Europe/Zurich. This scheduling policy is operational rather than a
-requirement for future external contributors.
+```bash
+./scripts/check-local-release
+```
+
+The maintainer's local workflow also blocks commits and pushes Monday to Friday
+from 07:00 to 18:00 Europe/Zurich. That is an operational habit, not a rule for
+other contributors.

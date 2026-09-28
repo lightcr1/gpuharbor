@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPUHarbor · Dokumentation</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--card:#151d31;--line:#2b3855;--text:#edf3ff;--muted:#9cabc7;--accent:#68a6ff;--warn:#ffd479;--danger:#ff6b79;--ok:#54d69a}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(145deg,#08101e,#121a2d);color:var(--text);font:16px/1.6 system-ui,sans-serif}
+.wrap{display:grid;grid-template-columns:260px 1fr;gap:26px;max-width:1200px;margin:auto;padding:26px}
+nav{position:sticky;top:26px;align-self:start;background:rgba(21,29,49,.94);border:1px solid var(--line);border-radius:14px;padding:16px}
+nav h1{font-size:19px;margin:0 0 10px}
+nav a{display:block;color:var(--muted);text-decoration:none;padding:5px 8px;border-radius:7px;font-size:14px}
+nav a:hover{background:#22304d;color:var(--text)}
+main{min-width:0}
+section{background:rgba(21,29,49,.94);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
+h2{margin-top:0;font-size:21px;border-bottom:1px solid var(--line);padding-bottom:10px}
+code{background:#0d1526;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:14px}
+pre{white-space:pre-wrap;background:#090f1d;border-radius:9px;padding:14px;overflow:auto}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+th,td{text-align:left;border-bottom:1px solid var(--line);padding:8px 6px;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}.warn{color:var(--warn)}.danger{color:var(--danger)}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:#24314e;color:#bdd2f3}
+.required{background:#5a2530;color:#ffc9d0}.optional{background:#1f3a2c;color:#b6f0cf}
+.lang{display:flex;gap:8px;margin-top:12px}
+.lang a{color:var(--accent);text-decoration:none;font-weight:600}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}nav{position:static}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <h1>GPUHarbor</h1>
+  <a href="/">← Dashboard</a>
+  <a href="#ueberblick">Überblick</a>
+  <a href="#start">Erste Schritte</a>
+  <a href="#modelle">Modelle</a>
+  <a href="#felder">Felder im Editor</a>
+  <a href="#gpus">GPUs</a>
+  <a href="#regionen">Regionen</a>
+  <a href="#startoptionen">Startoptionen</a>
+  <a href="#pod">Pod-Aktionen</a>
+  <a href="#kosten">Kosten</a>
+  <a href="#katalog">Katalog &amp; Updates</a>
+  <a href="#runtimes">Runtimes erweitern</a>
+  <a href="#integrationen">Integrationen</a>
+  <a href="#https">HTTPS</a>
+  <a href="#sicherheit">Sicherheit</a>
+  <a href="#api">API</a>
+  <a href="#fehler">Fehlermeldungen</a>
+  <div class="lang"><a href="/docs">English</a></div>
+</nav>
+<main>
+
+<section id="ueberblick">
+<h2>Überblick</h2>
+<p>GPUHarbor ist eine selbst gehostete Steuerzentrale für KI-Modelle auf RunPod.
+Es verwaltet <strong>einen</strong> Pod, lädt ein Modell und stellt es über eine
+OpenAI-kompatible API bereit.</p>
+<pre>Browser → GPUHarbor → RunPod-Pod → Runtime-Image → Modell</pre>
+<p>Der Controller braucht keine GPU. Er läuft auf einem kleinen Server; nur der
+Pod kostet Geld.</p>
+</section>
+
+<section id="start">
+<h2>Erste Schritte</h2>
+<pre>./scripts/install                          # lokal, nur HTTP
+./scripts/install --bind-ip 10.10.40.100   # im LAN/VPN erreichbar
+./scripts/setup                            # interaktiv mit Häkchen</pre>
+<p>Danach <code>http://&lt;ip&gt;:8080</code> öffnen. Benutzer <code>admin</code>,
+Passwort aus <code>GPUHARBOR_ADMIN_PASSWORD</code> in <code>.env</code>.</p>
+<p><strong>Kostenpflichtige Aktionen sind standardmäßig gesperrt.</strong> Erst mit
+<code>RUNPOD_ALLOW_BILLABLE_ACTIONS=true</code> erreicht etwas RunPod.</p>
+</section>
+
+<section id="modelle">
+<h2>Modelle</h2>
+<p>Ein „Modell" ist hier ein <em>Profil</em>: es beschreibt, welches
+Hugging-Face-Repository geladen wird, mit welcher Runtime, welchen Standardwerten
+und auf welchen GPUs. Die Gewichte sind nicht Teil von GPUHarbor; der Pod lädt sie
+beim ersten Start und legt sie auf seinem Volume ab.</p>
+<table>
+<tr><th>Quelle</th><th>Bedeutung</th><th>Bei einem Update</th></tr>
+<tr><td><span class="tag">builtin</span></td><td>Mitgeliefert</td><td>wird ersetzt; deine Änderung wird zum Override</td></tr>
+<tr><td><span class="tag">override</span></td><td>Deine Änderung an einem Built-in</td><td>bleibt; „Zurücksetzen" stellt den Standard her</td></tr>
+<tr><td><span class="tag">custom</span></td><td>Eigenes Profil</td><td>bleibt immer</td></tr>
+<tr><td><span class="tag">orphaned-override</span></td><td>Änderung zu einem entfernten Profil</td><td>bleibt, bitte prüfen</td></tr>
+</table>
+</section>
+
+<section id="felder">
+<h2>Felder im Modell-Editor</h2>
+<table>
+<tr><th>Feld</th><th></th><th>Bedeutung</th></tr>
+<tr><td>ID</td><td><span class="tag required">Pflicht</span></td><td>Interner Name aus Kleinbuchstaben, Zahlen und <code>-</code>. Später nicht änderbar.</td></tr>
+<tr><td>Name</td><td><span class="tag required">Pflicht</span></td><td>Anzeigename.</td></tr>
+<tr><td>Beschreibung</td><td><span class="tag optional">Optional</span></td><td>Freitext.</td></tr>
+<tr><td>Hugging-Face-Repository</td><td><span class="tag required">Pflicht</span></td><td><code>owner/repository</code>, z. B. <code>Qwen/Qwen3.8-27B-FP8</code>.</td></tr>
+<tr><td>Runtime</td><td><span class="tag required">Pflicht</span></td><td>Welcher Server lädt: <code>vllm</code>, <code>llama-cpp</code> oder <code>bonsai</code>.</td></tr>
+<tr><td>GGUF-Datei</td><td>nur GGUF</td><td>Exakter Dateiname im Repository, ohne Pfad.</td></tr>
+<tr><td>API-Namen</td><td><span class="tag required">Pflicht</span></td><td>Namen der API, kommagetrennt, z. B. <code>default, chat</code>.</td></tr>
+<tr><td>Fähigkeiten</td><td><span class="tag optional">Optional</span></td><td>Nur Beschriftung: chat, code, tools, vision.</td></tr>
+<tr><td>Kontext</td><td><span class="tag required">Pflicht</span></td><td>Max. Token pro Anfrage. Mehr = mehr VRAM.</td></tr>
+<tr><td>Sequenzen</td><td><span class="tag required">Pflicht</span></td><td>Gleichzeitige Anfragen. Bei GGUF wird der Kontext aufgeteilt.</td></tr>
+<tr><td>GPU-Nutzung</td><td><span class="tag required">Pflicht</span></td><td>Anteil des VRAM (0,5–0,99). 0,9 ist ein guter Standard.</td></tr>
+<tr><td>Volume GB</td><td><span class="tag required">Pflicht</span></td><td>Speicher für den Modell-Cache. Muss größer als das Modell sein.</td></tr>
+<tr><td>Erlaubte GPUs</td><td><span class="tag required">Pflicht</span></td><td>GPUs, auf denen das Profil starten darf.</td></tr>
+<tr><td>Lizenz</td><td><span class="tag optional">Optional</span></td><td>Nur Anzeige, z. B. <code>Apache-2.0</code>.</td></tr>
+<tr><td>Zugriff eingeschränkt</td><td><span class="tag optional">Optional</span></td><td>Modell ist „gated" und braucht <code>HUGGINGFACE_TOKEN</code> plus Freigabe.</td></tr>
+<tr><td>Auf echter GPU geprüft</td><td><span class="tag optional">Optional</span></td><td>Erst ankreuzen, wenn das Profil wirklich lief.</td></tr>
+<tr><td>Remote-Code vertrauen</td><td><span class="tag optional">Optional</span></td><td><strong>Sicherheitsrelevant.</strong> Führt <code>modeling_*.py</code> aus dem Repository auf dem Pod aus. Nur bei geprüften Repos. Nur vLLM.</td></tr>
+<tr><td>Qwen3 Reasoning-Parser</td><td><span class="tag optional">Optional</span></td><td>Trennt die Denk-Ausgabe ins Feld <code>reasoning</code>. Nur vLLM.</td></tr>
+<tr><td>Qwen3 Tool-Parser + Auto-Tool-Wahl</td><td><span class="tag optional">Optional</span></td><td>Erlaubt Tool-Aufrufe im OpenAI-Format, nötig für Agenten. Nur vLLM.</td></tr>
+<tr><td>Status</td><td><span class="tag required">Pflicht</span></td><td><code>stable</code>, <code>experimental</code> oder <code>disabled</code> (nicht startbar).</td></tr>
+</table>
+<p class="muted">vLLM-Optionen werden bei anderen Runtimes abgelehnt.</p>
+</section>
+
+<section id="gpus">
+<h2>GPUs</h2>
+<p>Das Dashboard lädt den echten RunPod-Katalog mit Verfügbarkeit und Preis. Ist
+die API nicht erreichbar, erscheint eine feste Liste.</p>
+<table>
+<tr><th>Wert</th><th>Bedeutung</th></tr>
+<tr><td><code>NONE</code></td><td>Aktuell nirgends verfügbar; ein Start scheitert.</td></tr>
+<tr><td><code>LOW</code></td><td>Wenig Kapazität, kann sich ständig ändern.</td></tr>
+<tr><td><code>MEDIUM</code> / <code>HIGH</code></td><td>Gute Chancen.</td></tr>
+</table>
+<p><strong>Faustregel:</strong> FP8 oder BF16 brauchen etwa 1,3× der Modellgröße.
+Ein 27B-FP8-Modell ist rund 31 GB und passt auf 48 GB.</p>
+<p class="muted">CUDA beachten: Images auf CUDA 12.x laufen nicht zuverlässig auf
+Karten, die CUDA 13 erwarten (z. B. Blackwell).</p>
+</section>
+
+<section id="regionen">
+<h2>Regionen und Rechenzentren</h2>
+<p>Statt einen Standort zu wählen, wähle eine <strong>Region</strong> wie Europa
+oder Nordamerika. GPUHarbor fragt RunPod, welche Rechenzentren dazugehören, und
+weist automatisch eines zu. Ein konkretes Rechenzentrum bleibt im erweiterten Feld
+möglich.</p>
+<p>Feste Liste in <code>.env</code>: <code>RUNPOD_DATACENTER_IDS=EU-SE-1,CA-MTL-1</code>.</p>
+<p class="muted">Das Volume hängt am Rechenzentrum. Ein Standortwechsel bedeutet
+neuen Pod und neues Volume, der Modell-Cache wird also neu geladen.</p>
+</section>
+
+<section id="startoptionen">
+<h2>Startoptionen</h2>
+<p>Beim Start überschreibbar, ohne das Profil zu ändern: Kontext, Sequenzen,
+GPU-Nutzung, GPU, Region bzw. Rechenzentrum und Volume.</p>
+<p>Bei einem bestehenden Pod lassen sich nur Kontext, Sequenzen und GPU-Nutzung
+gefahrlos ändern. GPU, Rechenzentrum und Volume sind fest; dafür Pod löschen und
+neu erstellen. GPUHarbor merkt sich einen Profil-Fingerprint und verhindert
+stille Änderungen.</p>
+</section>
+
+<section id="pod">
+<h2>Pod-Aktionen</h2>
+<table>
+<tr><th>Aktion</th><th>Was passiert</th><th>Kosten</th></tr>
+<tr><td>Startplan prüfen</td><td>Zeigt die genaue RunPod-Anfrage ohne Geheimnisse</td><td>keine</td></tr>
+<tr><td>Verfügbarkeit prüfen</td><td>Nur lesend: Key, Pods, GPU-Katalog</td><td>keine</td></tr>
+<tr><td>Pod starten</td><td>Erstellt oder startet den Pod; erster Start lädt das Modell</td><td class="warn">GPU-Stunden</td></tr>
+<tr><td>Stoppen</td><td>Beendet die GPU-Abrechnung, Volume bleibt</td><td>Volume</td></tr>
+<tr><td>Pod &amp; Volume löschen</td><td>Entfernt alles inkl. Modell-Cache</td><td>keine</td></tr>
+</table>
+<p class="danger">Löschen ist endgültig. Es ist die einzige Aktion, die alle laufenden Kosten beendet.</p>
+</section>
+
+<section id="kosten">
+<h2>Kosten</h2>
+<ul>
+<li><strong>GPU</strong> pro Stunde, je nach Karte (A40 ca. 0,49 USD/h).</li>
+<li><strong>Volume</strong> kostet weiter, auch wenn der Pod gestoppt ist. Das wird oft vergessen.</li>
+<li><strong>Download</strong>: der erste Start kostet mehrere Minuten bezahlte GPU-Zeit.</li>
+</ul>
+<p>Der Idle-Stop beendet die GPU nach <code>RUNPOD_IDLE_STOP_MINUTES</code> ohne
+Verkehr. Die Volume-Kosten beendet er <strong>nicht</strong>.</p>
+</section>
+
+<section id="katalog">
+<h2>Katalog &amp; Updates</h2>
+<ul>
+<li>Mitgelieferte Profile sind schreibgeschützt; Änderungen werden Overrides.</li>
+<li>Neue Built-ins erscheinen nach einem Update automatisch.</li>
+<li>Eigene Profile bleiben unberührt. Export/Import als JSON im Dashboard.</li>
+<li>Schreiben erfolgt atomar, die vorige Datei bleibt als <code>.bak</code>.</li>
+</ul>
+</section>
+
+<section id="runtimes">
+<h2>Runtimes erweitern</h2>
+<p>Eine Runtime besteht aus drei Teilen:</p>
+<ol>
+<li>Eintrag in <code>registry/runtimes.json</code> (ID, Label, Backend, GGUF).</li>
+<li>Dockerfile unter <code>runtime/</code>, das das Gateway auf Port 8000 bereitstellt.</li>
+<li>Unveränderlicher Image-Digest in <code>.env</code> (<code>RUNTIME_IMAGE_*</code>).</li>
+</ol>
+<p>Ein wirklich neues Backend (nicht vLLM, llama.cpp oder Bonsai) braucht zusätzlich
+Code in <code>runtime/gateway.py</code>. Neue Modelle brauchen das nicht.</p>
+<p>Runtime-Images sind absichtlich nicht im Browser änderbar: ein frei wählbares
+Image wäre beliebige Codeausführung.</p>
+</section>
+
+<section id="integrationen">
+<h2>Integrationen</h2>
+<p>Open WebUI und OpenHands sind optional und nutzen dieselbe OpenAI-kompatible
+API. Sie bekommen nur das <code>MODEL_ACCESS_TOKEN</code>, nie den RunPod-Key.</p>
+<pre>docker compose -f compose.yml -f compose.openwebui.yml up -d --build
+docker compose -f compose.yml -f compose.openhands.yml up -d --build</pre>
+<p class="muted">OpenHands kann Code ausführen und Dateien ändern. Nur mit einem
+leeren, eigenen Arbeitsverzeichnis verwenden.</p>
+</section>
+
+<section id="https">
+<h2>HTTPS</h2>
+<pre>./scripts/setup
+./scripts/install --bind-ip 0.0.0.0 --https 10.10.40.100 --tls-port 9443</pre>
+<p>Erzeugt eine lokale Zertifizierungsstelle in <code>tls/</code> und einen
+TLS-Proxy. <code>tls/local-ca.crt</code> auf den Geräten importieren, dann
+<code>https://10.10.40.100:9443/</code> öffnen. Setzt zusätzlich
+<code>GPUHARBOR_COOKIE_SECURE=true</code>.</p>
+<p class="danger">Nicht ins Internet stellen. Nur LAN oder VPN.</p>
+</section>
+
+<section id="sicherheit">
+<h2>Sicherheit</h2>
+<ul>
+<li>Kostenpflichtige Aktionen standardmäßig gesperrt.</li>
+<li>Getrennte Geheimnisse für Steuerung, Inferenz und Runtime-Gateway.</li>
+<li>Session-Änderungen brauchen CSRF; fehlgeschlagene Logins werden begrenzt.</li>
+<li>RunPod-Antworten werden um Token- und Key-Felder bereinigt.</li>
+<li>Runtime-Images müssen unveränderliche Digests sein.</li>
+</ul>
+</section>
+
+<section id="api">
+<h2>API</h2>
+<p>Steuerungs-Endpunkte akzeptieren eine Browser-Session <em>oder</em> das
+<code>CONTROL_TOKEN</code> in <code>X-Control-Token</code> bzw.
+<code>Authorization: Bearer</code>.</p>
+<table>
+<tr><th>Methode</th><th>Pfad</th><th>Zweck</th></tr>
+<tr><td>GET</td><td><code>/api/models</code></td><td>Modellkatalog</td></tr>
+<tr><td>PUT</td><td><code>/api/models/{id}</code></td><td>Modell speichern</td></tr>
+<tr><td>DELETE</td><td><code>/api/models/{id}</code></td><td>Eigenes Modell löschen</td></tr>
+<tr><td>POST</td><td><code>/api/models/{id}/reset</code></td><td>Override zurücksetzen</td></tr>
+<tr><td>GET</td><td><code>/api/gpu-options</code></td><td>GPU-Katalog</td></tr>
+<tr><td>GET</td><td><code>/api/regions</code></td><td>Regionen und Rechenzentren</td></tr>
+<tr><td>GET</td><td><code>/api/model-presets</code></td><td>Vorlagen</td></tr>
+<tr><td>GET</td><td><code>/api/model/ready</code></td><td>Modell geladen?</td></tr>
+<tr><td>POST</td><td><code>/api/pod/plan</code></td><td>Startplan (kostenlos)</td></tr>
+<tr><td>POST</td><td><code>/api/runpod/preflight</code></td><td>Verfügbarkeit (kostenlos)</td></tr>
+<tr><td>GET</td><td><code>/api/status</code></td><td>Pod-Status</td></tr>
+<tr><td>POST</td><td><code>/api/pod/start</code></td><td>Pod starten (kostenpflichtig)</td></tr>
+<tr><td>POST</td><td><code>/api/pod/stop</code></td><td>Pod stoppen</td></tr>
+<tr><td>DELETE</td><td><code>/api/pod</code></td><td>Pod und Volume löschen</td></tr>
+<tr><td>GET</td><td><code>/health</code></td><td>Healthcheck (ohne Auth)</td></tr>
+<tr><td>POST</td><td><code>/v1/chat/completions</code></td><td>Inferenz mit <code>MODEL_ACCESS_TOKEN</code></td></tr>
+</table>
+</section>
+
+<section id="fehler">
+<h2>Fehlermeldungen</h2>
+<table>
+<tr><th>Meldung</th><th>Ursache und Lösung</th></tr>
+<tr><td>401 Subject token is invalid or expired</td><td>RunPod-Key falsch, abgelaufen oder rotiert. Neuen Key in <code>.env</code>, Controller neu erzeugen.</td></tr>
+<tr><td>403 Billable actions are disabled</td><td><code>RUNPOD_ALLOW_BILLABLE_ACTIONS=true</code> setzen, wenn du wirklich zahlen willst.</td></tr>
+<tr><td>412 Runtime image … must use an immutable sha256 digest</td><td><code>RUNTIME_IMAGE_*</code> fehlt oder ist kein Digest.</td></tr>
+<tr><td>409 Another pod operation is running</td><td>Andere Aktion abwarten.</td></tr>
+<tr><td>Invalid host header</td><td>Adresse fehlt in <code>GPUHARBOR_TRUSTED_HOSTS</code>.</td></tr>
+<tr><td>No configured placement was available</td><td>GPU nicht verfügbar. Andere GPU, Region oder Zeitpunkt.</td></tr>
+<tr><td>Model unavailable: All connection attempts failed</td><td>Pod läuft, Modell lädt noch oder Runtime ist abgestürzt.</td></tr>
+<tr><td>429 Too many failed login attempts</td><td>Zeitfenster abwarten.</td></tr>
+</table>
+</section>
+
+</main>
+</div>
+</body>
+</html>

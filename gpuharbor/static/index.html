@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>GPUHarbor</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1020;--card:#151d31;--line:#2b3855;--text:#edf3ff;--muted:#9cabc7;--accent:#68a6ff;--danger:#ff6b79;--ok:#54d69a;--warn:#ffd479}
+:root{color-scheme:dark;--card:#151d31;--line:#2b3855;--text:#edf3ff;--muted:#9cabc7;--accent:#68a6ff;--danger:#ff6b79;--ok:#54d69a;--warn:#ffd479}
 *{box-sizing:border-box}
 body{margin:0;background:linear-gradient(145deg,#08101e,#121a2d);color:var(--text);font:15px/1.5 system-ui,sans-serif}
 .shell{max-width:1220px;margin:auto;padding:26px}
@@ -47,134 +47,241 @@ dialog::backdrop{background:#000a}
 <body>
 
 <div id="login" class="login card">
-<h1><span class="brand">GPU</span>Harbor</h1><p class="hint">Melde dich am lokalen Controller an.</p>
+<h1><span class="brand">GPU</span>Harbor</h1><p class="hint" data-i18n="login.subtitle">Sign in to the local controller.</p>
 <form id="login-form">
-<div class="field"><label>Benutzername</label><input id="username" autocomplete="username" required></div><br>
-<div class="field"><label>Passwort</label><input id="password" type="password" autocomplete="current-password" required></div><br>
-<button>Anmelden</button></form><p id="login-error" class="warn"></p>
+<div class="field"><label for="username" data-i18n="login.username">Username</label><input id="username" autocomplete="username" required></div><br>
+<div class="field"><label for="password" data-i18n="login.password">Password</label><input id="password" type="password" autocomplete="current-password" required></div><br>
+<button data-i18n="login.button">Sign in</button></form><p id="login-error" class="warn"></p>
 </div>
 
 <div id="app" class="shell hidden">
 <header>
-  <div><h1><span class="brand">GPU</span>Harbor</h1><div class="hint">RunPod-Modellsteuerung</div></div>
+  <div><h1><span class="brand">GPU</span>Harbor</h1><div class="hint" data-i18n="app.subtitle">RunPod model control</div></div>
   <div class="nav">
-    <a class="link" href="/docs" target="_blank" rel="noopener">Dokumentation</a>
-    <span id="billable-pill" class="pill">Kostensperre</span>
-    <button class="secondary" onclick="logout()">Abmelden</button>
+    <select id="lang-switch" onchange="setLang(this.value)" aria-label="Language">
+      <option value="en">English</option>
+      <option value="de">Deutsch</option>
+    </select>
+    <a class="link" href="/docs" target="_blank" rel="noopener" data-i18n="nav.docs">Documentation</a>
+    <span id="billable-pill" class="pill"></span>
+    <button class="secondary" onclick="logout()" data-i18n="nav.logout">Sign out</button>
   </div>
 </header>
 
 <div class="grid"><main>
 
-<section class="card"><h2>Modell starten</h2>
+<section class="card"><h2 data-i18n="start.title">Start a model</h2>
 <div class="row">
-  <div class="field" style="flex:2"><label for="model">Modellprofil</label><select id="model" onchange="selectModel()"></select></div>
-  <div class="field"><label for="region">Region</label><select id="region" onchange="regionChanged()"></select></div>
-  <div class="field"><label for="datacenter">Rechenzentrum (erweitert)</label><select id="datacenter"></select></div>
+  <div class="field" style="flex:2"><label for="model" data-i18n="start.model">Model profile</label><select id="model" onchange="selectModel()"></select></div>
+  <div class="field"><label for="region" data-i18n="start.region">Region</label><select id="region" onchange="regionChanged()"></select></div>
+  <div class="field"><label for="datacenter" data-i18n="start.datacenter">Datacenter (advanced)</label><select id="datacenter"></select></div>
 </div>
 <p id="model-description" class="hint"></p><div id="badges"></div><br>
 <div class="row">
-  <div class="field"><label for="context">Kontext (Token)</label><input id="context" type="number" min="1024" max="262144" step="1024"><span class="hint">Max. Länge einer Anfrage. Mehr = mehr VRAM.</span></div>
-  <div class="field"><label for="sequences">Parallele Sequenzen</label><input id="sequences" type="number" min="1" max="32"><span class="hint">Gleichzeitige Anfragen.</span></div>
-  <div class="field"><label for="memory">GPU-Nutzung (0–1)</label><input id="memory" type="number" min="0.5" max="0.99" step="0.01"><span class="hint">Anteil des VRAM für die Runtime.</span></div>
-  <div class="field"><label for="volume">Volume (GB)</label><input id="volume" type="number" min="10" max="1000"><span class="hint">Speicher für den Modell-Cache.</span></div>
+  <div class="field"><label for="context" data-i18n="field.context">Context (tokens)</label><input id="context" type="number" min="1024" max="262144" step="1024"><span class="hint" data-i18n="hint.context">Maximum length of one request. More uses more VRAM.</span></div>
+  <div class="field"><label for="sequences" data-i18n="field.sequences">Parallel sequences</label><input id="sequences" type="number" min="1" max="32"><span class="hint" data-i18n="hint.sequences">Requests handled at the same time.</span></div>
+  <div class="field"><label for="memory" data-i18n="field.memory">GPU utilisation (0–1)</label><input id="memory" type="number" min="0.5" max="0.99" step="0.01"><span class="hint" data-i18n="hint.memory">Share of VRAM the runtime may use.</span></div>
+  <div class="field"><label for="volume" data-i18n="field.volume">Volume (GB)</label><input id="volume" type="number" min="10" max="1000"><span class="hint" data-i18n="hint.volume">Space for the model cache.</span></div>
 </div><br>
 <div class="row">
-  <div class="field"><label for="gpu">GPU</label><select id="gpu"></select><span class="hint">Nur GPUs, die im Profil erlaubt sind.</span></div>
+  <div class="field"><label for="gpu" data-i18n="field.gpu">GPU</label><select id="gpu"></select><span class="hint" data-i18n="hint.gpu">Only GPUs allowed by this profile.</span></div>
 </div><br>
 <div class="row">
-  <button onclick="plan()">Startplan prüfen</button>
-  <button class="secondary" onclick="preflight()">Verfügbarkeit prüfen</button>
-  <button onclick="startPod()">Pod starten</button>
-  <button class="secondary" onclick="stopPod()">Stoppen</button>
-  <button class="danger" onclick="deletePod()">Pod &amp; Volume löschen</button>
+  <button onclick="plan()" data-i18n="btn.plan">Check launch plan</button>
+  <button class="secondary" onclick="preflight()" data-i18n="btn.preflight">Check availability</button>
+  <button onclick="startPod()" data-i18n="btn.start">Start pod</button>
+  <button class="secondary" onclick="stopPod()" data-i18n="btn.stop">Stop</button>
+  <button class="danger" onclick="deletePod()" data-i18n="btn.delete">Delete pod and volume</button>
 </div>
 </section>
 
 <section class="card">
 <div class="row" style="justify-content:space-between">
-  <h2 style="margin:0">Ausgabe</h2>
+  <h2 style="margin:0" data-i18n="output.title">Output</h2>
   <div class="mode-switch">
-    <button id="mode-simple" onclick="setMode('simple')">Einfach</button>
-    <button id="mode-pretty" class="active" onclick="setMode('pretty')">Schön</button>
-    <button id="mode-raw" onclick="setMode('raw')">Roh</button>
+    <button id="mode-simple" onclick="setMode('simple')" data-i18n="output.simple">Simple</button>
+    <button id="mode-pretty" class="active" onclick="setMode('pretty')" data-i18n="output.pretty">Pretty</button>
+    <button id="mode-raw" onclick="setMode('raw')" data-i18n="output.raw">Raw</button>
   </div>
 </div>
-<pre id="output">Bereit. Kostenpflichtige Aktionen sind standardmäßig gesperrt.</pre>
+<pre id="output"></pre>
 </section>
 
 </main><aside>
 
-<section class="card"><h2>Status</h2>
-<div id="status"><span class="dot"></span>Wird geladen …</div>
-<div id="ready" class="small" style="margin-top:8px"><span class="dot"></span><span>Modellstatus unbekannt</span></div>
-<br><button class="secondary" onclick="refreshStatus()">Aktualisieren</button></section>
+<section class="card"><h2 data-i18n="status.title">Status</h2>
+<div id="status"><span class="dot"></span><span data-i18n="status.loading">Loading …</span></div>
+<div id="ready" class="small" style="margin-top:8px"><span class="dot"></span><span data-i18n="ready.unknown">Model status unknown</span></div>
+<br><button class="secondary" onclick="refreshStatus()" data-i18n="status.refresh">Refresh</button></section>
 
-<section class="card"><h2>Modellkatalog</h2>
-<p class="hint">Built-ins bleiben bei Updates erhalten; eigene Profile und Anpassungen werden getrennt gespeichert.</p>
-<button onclick="newModel()">Neues Modell</button>
-<button class="secondary" onclick="editModel()">Gewähltes bearbeiten</button><br><br>
-<button class="secondary" onclick="exportModels()">Exportieren</button>
-<button class="secondary" onclick="$('import-file').click()">Importieren</button>
+<section class="card"><h2 data-i18n="catalog.title">Model catalog</h2>
+<p class="hint" data-i18n="catalog.hint">Shipped profiles survive upgrades; your profiles and overrides are stored separately.</p>
+<button onclick="newModel()" data-i18n="catalog.new">New model</button>
+<button class="secondary" onclick="editModel()" data-i18n="catalog.edit">Edit selected</button><br><br>
+<button class="secondary" onclick="exportModels()" data-i18n="catalog.export">Export</button>
+<button class="secondary" onclick="$('import-file').click()" data-i18n="catalog.import">Import</button>
 <input id="import-file" class="hidden" type="file" accept="application/json" onchange="importModels(this.files[0])"></section>
 
-<section class="card"><h2>Optionale Integrationen</h2>
+<section class="card"><h2 data-i18n="runtimes.title">Runtime images</h2><div id="runtime-list" class="small"><span class="hint" data-i18n="status.loading">Loading …</span></div></section>
+
+<section class="card"><h2 data-i18n="integrations.title">Optional integrations</h2>
 <p><span class="pill">Open WebUI</span><span class="pill">OpenHands</span></p>
-<p class="hint">Über getrennte Compose-Dateien aktivierbar. Details in der <a class="link" href="/docs#integrationen" target="_blank" rel="noopener">Dokumentation</a>.</p></section>
+<p class="hint" data-i18n="integrations.hint">Enabled through separate Compose files. Details are in the documentation.</p></section>
 
 </aside></div></div>
 
 <dialog id="editor"><form id="model-form">
-<h2 id="editor-title">Modellprofil</h2>
-<div class="field"><label for="e-preset">Vorlage</label><select id="e-preset" onchange="applyPreset()"></select><span class="hint">Setzt sinnvolle Startwerte. Danach frei anpassbar.</span></div><br>
+<h2 id="editor-title" data-i18n="editor.new_title">Model profile</h2>
+<div class="field"><label for="e-preset" data-i18n="editor.preset">Template</label><select id="e-preset" onchange="applyPreset()"></select><span class="hint" data-i18n="hint.preset">Fills in sensible starting values. Everything stays editable.</span></div><br>
 <div class="row">
-  <div class="field"><label for="e-id">ID</label><input id="e-id" pattern="[a-z0-9][a-z0-9-]{1,62}[a-z0-9]" required><span class="hint">Nur Kleinbuchstaben, Zahlen, Bindestrich. Nicht nachträglich änderbar.</span></div>
-  <div class="field"><label for="e-name">Name</label><input id="e-name" required><span class="hint">Anzeigename.</span></div>
+  <div class="field"><label for="e-id" data-i18n="field.id">ID</label><input id="e-id" pattern="[a-z0-9][a-z0-9-]{1,62}[a-z0-9]" required><span class="hint" data-i18n="hint.id">Lowercase letters, digits and hyphen. Cannot be changed later.</span></div>
+  <div class="field"><label for="e-name" data-i18n="field.name">Name</label><input id="e-name" required><span class="hint" data-i18n="hint.name">Display name.</span></div>
 </div><br>
-<div class="field"><label for="e-description">Beschreibung</label><textarea id="e-description" rows="2"></textarea></div><br>
+<div class="field"><label for="e-description" data-i18n="field.description">Description</label><textarea id="e-description" rows="2"></textarea></div><br>
 <div class="row">
-  <div class="field"><label for="e-model-id">Hugging-Face Repository</label><input id="e-model-id" placeholder="owner/repository" required><span class="hint">Zum Beispiel <code>Qwen/Qwen3.8-27B-FP8</code>.</span></div>
-  <div class="field"><label for="e-runtime">Runtime</label><select id="e-runtime" onchange="runtimeChanged()"></select><span class="hint">vLLM = FP8/BF16, llama.cpp = GGUF.</span></div>
+  <div class="field"><label for="e-model-id" data-i18n="field.model_id">Hugging Face repository</label><input id="e-model-id" placeholder="owner/repository" required><span class="hint" data-i18n="hint.model_id">For example Qwen/Qwen3.8-27B-FP8.</span></div>
+  <div class="field"><label for="e-runtime" data-i18n="field.runtime">Runtime</label><select id="e-runtime" onchange="runtimeChanged()"></select><span class="hint" data-i18n="hint.runtime">vLLM for FP8/BF16, llama.cpp for GGUF.</span></div>
 </div><br>
-<div class="field"><label for="e-gguf">GGUF-Datei</label><input id="e-gguf"><span class="hint">Nur bei GGUF-Runtimes: exakter Dateiname aus dem Repository.</span></div><br>
+<div class="field"><label for="e-gguf" data-i18n="field.gguf">GGUF file</label><input id="e-gguf"><span class="hint" data-i18n="hint.gguf">GGUF runtimes only: the exact filename from the repository.</span></div><br>
 <div class="row">
-  <div class="field"><label for="e-aliases">API-Namen (Komma)</label><input id="e-aliases" required><span class="hint">Zum Beispiel <code>default, chat, code</code>.</span></div>
-  <div class="field"><label for="e-capabilities">Fähigkeiten (Komma)</label><input id="e-capabilities"><span class="hint">chat, code, tools, vision — nur Beschriftung.</span></div>
+  <div class="field"><label for="e-aliases" data-i18n="field.aliases">Served names (comma)</label><input id="e-aliases" required><span class="hint" data-i18n="hint.aliases">For example default, chat, code.</span></div>
+  <div class="field"><label for="e-capabilities" data-i18n="field.capabilities">Capabilities (comma)</label><input id="e-capabilities"><span class="hint" data-i18n="hint.capabilities">chat, code, tools, vision — labels only.</span></div>
 </div><br>
 <div class="row">
-  <div class="field"><label for="e-context">Kontext</label><input id="e-context" type="number" min="1024" max="262144" required></div>
-  <div class="field"><label for="e-sequences">Sequenzen</label><input id="e-sequences" type="number" min="1" max="32" required></div>
-  <div class="field"><label for="e-memory">GPU-Nutzung</label><input id="e-memory" type="number" min="0.5" max="0.99" step="0.01" required></div>
-  <div class="field"><label for="e-volume">Volume GB</label><input id="e-volume" type="number" min="10" max="1000" required></div>
+  <div class="field"><label for="e-context" data-i18n="field.context">Context</label><input id="e-context" type="number" min="1024" max="262144" required></div>
+  <div class="field"><label for="e-sequences" data-i18n="field.sequences">Sequences</label><input id="e-sequences" type="number" min="1" max="32" required></div>
+  <div class="field"><label for="e-memory" data-i18n="field.memory">GPU utilisation</label><input id="e-memory" type="number" min="0.5" max="0.99" step="0.01" required></div>
+  <div class="field"><label for="e-volume" data-i18n="field.volume_gb">Volume GB</label><input id="e-volume" type="number" min="10" max="1000" required></div>
 </div><br>
-<div class="field"><label>Erlaubte GPUs</label><div id="e-gpu-list" class="gpu-list"><span class="hint">Katalog wird geladen …</span></div>
-<span class="hint">Nur diese GPUs darf das Modell verwenden. Verfügbarkeit stammt aus dem RunPod-Katalog.</span></div><br>
-<div class="field"><label for="e-gpus">Weitere GPUs (eine pro Zeile)</label><textarea id="e-gpus" rows="2"></textarea><span class="hint">Für GPUs, die nicht im Katalog stehen (exakter RunPod-Name).</span></div><br>
+<div class="field"><label data-i18n="field.gpus">Allowed GPUs</label><div id="e-gpu-list" class="gpu-list"><span class="hint" data-i18n="gpu.loading">Loading catalog …</span></div>
+<span class="hint" data-i18n="hint.gpus">Only these GPUs may run the profile. Availability comes from the RunPod catalog.</span></div><br>
+<div class="field"><label for="e-gpus" data-i18n="field.gpus_extra">Other GPUs (one per line)</label><textarea id="e-gpus" rows="2"></textarea><span class="hint" data-i18n="hint.gpus_extra">For GPUs missing from the catalog, use the exact RunPod name.</span></div><br>
 <div class="row">
-  <div class="field"><label for="e-license">Lizenz</label><input id="e-license" value="unknown"><span class="hint">Nur Anzeige, z. B. Apache-2.0.</span></div>
-  <div class="field"><label for="e-status">Status</label><select id="e-status"><option>stable</option><option>experimental</option><option>disabled</option></select><span class="hint">disabled = nicht startbar.</span></div>
+  <div class="field"><label for="e-license" data-i18n="field.license">License</label><input id="e-license" value="unknown"><span class="hint" data-i18n="hint.license">Display only, for example Apache-2.0.</span></div>
+  <div class="field"><label for="e-status" data-i18n="field.status">Status</label><select id="e-status"><option>stable</option><option>experimental</option><option>disabled</option></select><span class="hint" data-i18n="hint.status">disabled means it cannot start.</span></div>
 </div>
 <div class="row" style="margin-top:8px">
-  <label class="small"><input id="e-gated" type="checkbox"> Zugriff eingeschränkt (gated)</label>
-  <label class="small"><input id="e-verified" type="checkbox"> Auf echter GPU geprüft</label>
+  <label class="small"><input id="e-gated" type="checkbox"> <span data-i18n="field.gated">Restricted access (gated)</span></label>
+  <label class="small"><input id="e-verified" type="checkbox"> <span data-i18n="field.verified">Verified on a real GPU</span></label>
 </div><br>
 <div id="vllm-options">
-<h3 class="small" style="margin:0 0 6px">vLLM-Optionen</h3>
+<h3 class="small" style="margin:0 0 6px" data-i18n="vllm.title">vLLM options</h3>
 <div class="row">
-  <label class="small" title="Führt modelleigenen Python-Code auf dem Pod aus"><input id="e-trust-remote-code" type="checkbox"> Hugging-Face Remote-Code vertrauen</label>
-  <label class="small" title="Trennt die Denk-Ausgabe vom Text"><input id="e-reasoning" type="checkbox"> Qwen3 Reasoning-Parser</label>
-  <label class="small" title="Erlaubt Tool-/Funktionsaufrufe"><input id="e-tools" type="checkbox"> Qwen3 Tool-Parser + Auto-Tool-Wahl</label>
+  <label class="small" data-i18n-title="tip.trust"><input id="e-trust-remote-code" type="checkbox"> <span data-i18n="field.trust">Trust Hugging Face remote code</span></label>
+  <label class="small" data-i18n-title="tip.reasoning"><input id="e-reasoning" type="checkbox"> <span data-i18n="field.reasoning">Qwen3 reasoning parser</span></label>
+  <label class="small" data-i18n-title="tip.tools"><input id="e-tools" type="checkbox"> <span data-i18n="field.tools">Qwen3 tool parser and auto tool choice</span></label>
 </div>
-<p class="hint">„Remote-Code vertrauen" führt Python aus dem Modell-Repository aus — nur bei geprüften Repos aktivieren.</p>
+<p class="hint" data-i18n="hint.vllm">"Trust remote code" runs Python shipped inside the model repository. Only enable it for repositories you trust.</p>
 </div><br>
 <div class="row">
-  <button>Speichern</button>
-  <button id="remove-model" type="button" class="danger" onclick="removeModel()">Profil löschen</button>
-  <button type="button" class="secondary" onclick="editor.close()">Abbrechen</button>
+  <button data-i18n="btn.save">Save</button>
+  <button id="remove-model" type="button" class="danger" onclick="removeModel()" data-i18n="btn.delete_profile">Delete profile</button>
+  <button type="button" class="secondary" onclick="editor.close()" data-i18n="btn.cancel">Cancel</button>
 </div>
 <p id="editor-error" class="warn"></p></form></dialog>
 
 <script>
+const I18N={
+en:{
+ "app.subtitle":"RunPod model control","nav.docs":"Documentation","nav.logout":"Sign out",
+ "pill.billable_on":"Billable actions ENABLED","pill.billable_off":"Cost lock active",
+ "login.subtitle":"Sign in to the local controller.","login.username":"Username","login.password":"Password","login.button":"Sign in","login.failed":"Sign-in failed.",
+ "start.title":"Start a model","start.model":"Model profile","start.region":"Region","start.datacenter":"Datacenter (advanced)",
+ "start.auto_region":"Automatic (configured locations)","start.auto_dc":"Automatic","start.auto_gpu":"Automatic by priority",
+ "field.context":"Context (tokens)","field.sequences":"Parallel sequences","field.memory":"GPU utilisation (0–1)","field.volume":"Volume (GB)","field.gpu":"GPU",
+ "hint.context":"Maximum length of one request. More uses more VRAM.","hint.sequences":"Requests handled at the same time.",
+ "hint.memory":"Share of VRAM the runtime may use.","hint.volume":"Space for the model cache.","hint.gpu":"Only GPUs allowed by this profile.",
+ "btn.plan":"Check launch plan","btn.preflight":"Check availability","btn.start":"Start pod","btn.stop":"Stop","btn.delete":"Delete pod and volume",
+ "btn.save":"Save","btn.cancel":"Cancel","btn.delete_profile":"Delete profile","btn.reset":"Reset to default",
+ "output.title":"Output","output.simple":"Simple","output.pretty":"Pretty","output.raw":"Raw","output.ready":"Ready. Billable actions are locked by default.","output.wait":"Please wait …",
+ "status.title":"Status","status.loading":"Loading …","status.refresh":"Refresh","status.none":"No managed pod","status.error":"Error: ",
+ "ready.unknown":"Model status unknown","ready.none":"No pod — model status n/a","ready.loaded":"Model loaded","ready.loading":"Model loading …","ready.label":"Model status",
+ "catalog.title":"Model catalog","catalog.hint":"Shipped profiles survive upgrades; your profiles and overrides are stored separately.",
+ "catalog.new":"New model","catalog.edit":"Edit selected","catalog.export":"Export","catalog.import":"Import",
+ "integrations.title":"Optional integrations","integrations.hint":"Enabled through separate Compose files. Details are in the documentation.",
+ "runtimes.title":"Runtime images","runtimes.ready":"ready","runtimes.missing":"no digest configured",
+ "editor.new_title":"New model profile","editor.edit_title":"Edit model","editor.preset":"Template","editor.error":"",
+ "gpu.loading":"Loading catalog …","gpu.none":"No GPU catalog available — use the text field below.",
+ "field.id":"ID","field.name":"Name","field.description":"Description","field.model_id":"Hugging Face repository","field.runtime":"Runtime",
+ "field.gguf":"GGUF file","field.aliases":"Served names (comma)","field.capabilities":"Capabilities (comma)","field.gpus":"Allowed GPUs",
+ "field.gpus_extra":"Other GPUs (one per line)","field.license":"License","field.status":"Status","field.gated":"Restricted access (gated)",
+ "field.verified":"Verified on a real GPU","field.trust":"Trust Hugging Face remote code","field.reasoning":"Qwen3 reasoning parser","field.tools":"Qwen3 tool parser and auto tool choice",
+ "hint.id":"Lowercase letters, digits and hyphen. Cannot be changed later.","hint.name":"Display name.",
+ "hint.model_id":"For example Qwen/Qwen3.8-27B-FP8.","hint.runtime":"vLLM for FP8/BF16, llama.cpp for GGUF.",
+ "hint.gguf":"GGUF runtimes only: the exact filename from the repository.","hint.aliases":"For example default, chat, code.",
+ "hint.capabilities":"chat, code, tools, vision — labels only.","hint.gpus":"Only these GPUs may run the profile. Availability comes from the RunPod catalog.",
+ "hint.gpus_extra":"For GPUs missing from the catalog, use the exact RunPod name.","hint.license":"Display only, for example Apache-2.0.",
+ "hint.status":"disabled means it cannot start.","hint.preset":"Fills in sensible starting values. Everything stays editable.",
+ "hint.vllm":"\"Trust remote code\" runs Python shipped inside the model repository. Only enable it for repositories you trust.",
+ "tip.trust":"Runs model-supplied Python on the pod","tip.reasoning":"Splits thinking into the reasoning field","tip.tools":"Lets the model emit tool calls",
+ "confirm.start":"Start the pod? Depending on your settings this begins GPU billing immediately.",
+ "confirm.delete":"Delete the pod and its volume? The model cache is lost, but all costs stop.",
+ "confirm.remove":"Delete profile {id}?","confirm.reset":"Discard your changes to {id} and restore the shipped default?",
+ "confirm.import":"Merge profiles and overrides from this file?",
+ "msg.imported":"Model catalog imported.","msg.export_error":"Export failed: ","msg.import_error":"Import failed: ","msg.error":"Error: ",
+ "sum.plan":"Launch plan","sum.billable":"Billable actions: ","sum.allowed":"allowed","sum.locked":"locked","sum.candidates":"Candidates: ",
+ "sum.first":"First choice: ","sum.config_errors":"Configuration errors: ","sum.none":"none",
+ "sum.preflight":"Availability (free, nothing started)","sum.pods":"Pods in the account: ",
+ "sum.ready":"Model ready: ","sum.yes":"yes","sum.no":"no","sum.pod":"Pod: ","sum.status":"Status: ","sum.model":"Model: ",
+ "sum.no_pod":"No managed pod."
+},
+de:{
+ "app.subtitle":"RunPod-Modellsteuerung","nav.docs":"Dokumentation","nav.logout":"Abmelden",
+ "pill.billable_on":"Kostenpflichtig AKTIV","pill.billable_off":"Kostensperre aktiv",
+ "login.subtitle":"Am lokalen Controller anmelden.","login.username":"Benutzername","login.password":"Passwort","login.button":"Anmelden","login.failed":"Anmeldung fehlgeschlagen.",
+ "start.title":"Modell starten","start.model":"Modellprofil","start.region":"Region","start.datacenter":"Rechenzentrum (erweitert)",
+ "start.auto_region":"Automatisch (konfigurierte Standorte)","start.auto_dc":"Automatisch","start.auto_gpu":"Automatisch nach Priorität",
+ "field.context":"Kontext (Token)","field.sequences":"Parallele Sequenzen","field.memory":"GPU-Nutzung (0–1)","field.volume":"Volume (GB)","field.gpu":"GPU",
+ "hint.context":"Maximale Länge einer Anfrage. Mehr braucht mehr VRAM.","hint.sequences":"Gleichzeitig bearbeitete Anfragen.",
+ "hint.memory":"Anteil des VRAM, den die Runtime nutzen darf.","hint.volume":"Speicher für den Modell-Cache.","hint.gpu":"Nur GPUs, die dieses Profil erlaubt.",
+ "btn.plan":"Startplan prüfen","btn.preflight":"Verfügbarkeit prüfen","btn.start":"Pod starten","btn.stop":"Stoppen","btn.delete":"Pod &amp; Volume löschen",
+ "btn.save":"Speichern","btn.cancel":"Abbrechen","btn.delete_profile":"Profil löschen","btn.reset":"Auf Standard zurücksetzen",
+ "output.title":"Ausgabe","output.simple":"Einfach","output.pretty":"Schön","output.raw":"Roh","output.ready":"Bereit. Kostenpflichtige Aktionen sind standardmäßig gesperrt.","output.wait":"Bitte warten …",
+ "status.title":"Status","status.loading":"Wird geladen …","status.refresh":"Aktualisieren","status.none":"Kein Pod verwaltet","status.error":"Fehler: ",
+ "ready.unknown":"Modellstatus unbekannt","ready.none":"Kein Pod — Modellstatus n/a","ready.loaded":"Modell geladen","ready.loading":"Modell lädt …","ready.label":"Modellstatus",
+ "catalog.title":"Modellkatalog","catalog.hint":"Mitgelieferte Profile überleben Updates; eigene Profile und Anpassungen liegen getrennt.",
+ "catalog.new":"Neues Modell","catalog.edit":"Gewähltes bearbeiten","catalog.export":"Exportieren","catalog.import":"Importieren",
+ "integrations.title":"Optionale Integrationen","integrations.hint":"Über getrennte Compose-Dateien aktivierbar. Details stehen in der Dokumentation.",
+ "runtimes.title":"Runtime-Images","runtimes.ready":"bereit","runtimes.missing":"kein Digest konfiguriert",
+ "editor.new_title":"Neues Modellprofil","editor.edit_title":"Modell bearbeiten","editor.preset":"Vorlage",
+ "gpu.loading":"Katalog wird geladen …","gpu.none":"Kein GPU-Katalog verfügbar — nutze das Textfeld unten.",
+ "field.id":"ID","field.name":"Name","field.description":"Beschreibung","field.model_id":"Hugging-Face-Repository","field.runtime":"Runtime",
+ "field.gguf":"GGUF-Datei","field.aliases":"API-Namen (Komma)","field.capabilities":"Fähigkeiten (Komma)","field.gpus":"Erlaubte GPUs",
+ "field.gpus_extra":"Weitere GPUs (eine pro Zeile)","field.license":"Lizenz","field.status":"Status","field.gated":"Zugriff eingeschränkt (gated)",
+ "field.verified":"Auf echter GPU geprüft","field.trust":"Hugging-Face Remote-Code vertrauen","field.reasoning":"Qwen3 Reasoning-Parser","field.tools":"Qwen3 Tool-Parser + Auto-Tool-Wahl",
+ "hint.id":"Kleinbuchstaben, Zahlen und Bindestrich. Später nicht änderbar.","hint.name":"Anzeigename.",
+ "hint.model_id":"Zum Beispiel Qwen/Qwen3.8-27B-FP8.","hint.runtime":"vLLM für FP8/BF16, llama.cpp für GGUF.",
+ "hint.gguf":"Nur bei GGUF-Runtimes: exakter Dateiname aus dem Repository.","hint.aliases":"Zum Beispiel default, chat, code.",
+ "hint.capabilities":"chat, code, tools, vision — nur Beschriftung.","hint.gpus":"Nur diese GPUs dürfen das Profil starten. Verfügbarkeit kommt aus dem RunPod-Katalog.",
+ "hint.gpus_extra":"Für GPUs, die nicht im Katalog stehen: exakter RunPod-Name.","hint.license":"Nur Anzeige, zum Beispiel Apache-2.0.",
+ "hint.status":"disabled bedeutet: nicht startbar.","hint.preset":"Setzt sinnvolle Startwerte. Danach frei anpassbar.",
+ "hint.vllm":"„Remote-Code vertrauen“ führt Python aus dem Modell-Repository aus. Nur bei geprüften Repos aktivieren.",
+ "tip.trust":"Führt modell-eigenen Python-Code auf dem Pod aus","tip.reasoning":"Trennt die Denk-Ausgabe ins Feld reasoning","tip.tools":"Erlaubt Tool-Aufrufe",
+ "confirm.start":"Pod starten? Je nach Einstellung beginnt sofort die GPU-Abrechnung.",
+ "confirm.delete":"Pod und Volume löschen? Der Modell-Cache geht verloren, alle Kosten enden.",
+ "confirm.remove":"Profil {id} löschen?","confirm.reset":"Anpassungen an {id} verwerfen und Standard wiederherstellen?",
+ "confirm.import":"Profile und Overrides aus dieser Datei zusammenführen?",
+ "msg.imported":"Modellkatalog importiert.","msg.export_error":"Exportfehler: ","msg.import_error":"Importfehler: ","msg.error":"Fehler: ",
+ "sum.plan":"Startplan","sum.billable":"Kosten erlaubt: ","sum.allowed":"ja","sum.locked":"nein (gesperrt)","sum.candidates":"Kandidaten: ",
+ "sum.first":"Erste Wahl: ","sum.config_errors":"Konfigurationsfehler: ","sum.none":"keine",
+ "sum.preflight":"Verfügbarkeit (kostenlos, nichts gestartet)","sum.pods":"Pods im Konto: ",
+ "sum.ready":"Modell bereit: ","sum.yes":"ja","sum.no":"nein","sum.pod":"Pod: ","sum.status":"Status: ","sum.model":"Modell: ",
+ "sum.no_pod":"Kein Pod verwaltet."
+}};
+
+let lang=localStorage.getItem('gh-lang');
+if(!lang)lang=(navigator.language||'en').toLowerCase().startsWith('de')?'de':'en';
+function t(key){const table=I18N[lang]||I18N.en;return table[key]||I18N.en[key]||key}
+function setLang(value){lang=I18N[value]?value:'en';localStorage.setItem('gh-lang',lang);applyLang();render(lastRaw);refreshStatus()}
+function applyLang(){
+  document.documentElement.lang=lang;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n)});
+  document.querySelectorAll('[data-i18n-title]').forEach(el=>{el.title=t(el.dataset.i18nTitle)});
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{el.placeholder=t(el.dataset.i18nPlaceholder)});
+  $('lang-switch').value=lang;
+  updateBillablePill();
+}
+
 let models={},runtimes={},settingsData={},gpuOptions=[],regions=[],presets={},csrfToken='',podActive=false,lastRaw='';
 let mode='pretty';
 const $=id=>document.getElementById(id), output=$('output'), editor=$('editor');
@@ -188,51 +295,53 @@ async function api(path,options={}){
   if(!r.ok)throw new Error(typeof data==='object'?JSON.stringify(data.detail??data):data);
   return data;
 }
-
-function setMode(m){mode=m;for(const n of ['simple','pretty','raw'])$('mode-'+n).classList.toggle('active',n===m);render(lastRaw);}
+function updateBillablePill(){
+  const on=!!settingsData.billable_actions_enabled;
+  $('billable-pill').textContent=on?t('pill.billable_on'):t('pill.billable_off');
+  $('billable-pill').className='pill '+(on?'danger-text':'ok');
+}
+function setMode(m){mode=m;for(const n of ['simple','pretty','raw'])$('mode-'+n).classList.toggle('active',n===m);render(lastRaw)}
 function render(text){
   lastRaw=text;
-  if(mode==='raw'||!text){output.textContent=text;return}
-  if(mode==='pretty'){
-    try{output.textContent=JSON.stringify(JSON.parse(text),null,2)}catch{output.textContent=text}
-    return;
-  }
+  if(mode==='raw'){output.textContent=text;return}
+  if(mode==='pretty'){try{output.textContent=JSON.stringify(JSON.parse(text),null,2)}catch{output.textContent=text}return}
   output.textContent=summarize(text);
 }
 function summarize(text){
   let d;try{d=JSON.parse(text)}catch{return text}
-  if(d&&typeof d==='object'){
-    if(d.pod_id)return `Pod ${d.pod_id}\nStatus: ${d.status||'?'}\nModell: ${d.model_id||'?'}`;
-    if(d.candidates){
-      const c=d.candidates[0]||{};
-      return `Startplan\nKosten erlaubt: ${d.billable_actions_enabled?'ja':'nein (gesperrt)'}\nKandidaten: ${d.candidates.length}\nErste Wahl: ${c.gpu_type_id||'?'} / ${c.data_center_id||'?'}\nKonfigurationsfehler: ${(d.configuration_errors||[]).join('; ')||'keine'}`;
-    }
-    if(d.gpu_catalog){
-      const rows=d.gpu_catalog.map(g=>`${g.id||g.name}: ${g.availability||'?'}`);
-      return `Verfügbarkeit (kostenlos, nichts gestartet)\nPods im Konto: ${d.pods_total??'-'}\n${rows.join('\n')}`;
-    }
-    if('ready' in d)return `Modell bereit: ${d.ready?'ja':'nein'}\n${d.detail||''}`;
-    if(d.pod)return `Pod: ${d.pod.id||'?'}\nStatus: ${d.pod.status||'?'}\nModell: ${d.model_id||'?'}`;
-    if(d.pod===null)return 'Kein Pod verwaltet.';
-    if(d.ok!==undefined)return d.ok?'Erledigt.':JSON.stringify(d);
+  if(!d||typeof d!=='object')return text;
+  if(d.pod_id)return t('sum.pod')+(d.pod_id||'?')+"\n"+t('sum.status')+(d.status||'?')+"\n"+t('sum.model')+(d.model_id||'?');
+  if(d.candidates){
+    const c=d.candidates[0]||{};
+    return t('sum.plan')+"\n"+t('sum.billable')+(d.billable_actions_enabled?t('sum.allowed'):t('sum.locked'))+
+      "\n"+t('sum.candidates')+d.candidates.length+"\n"+t('sum.first')+(c.gpu_type_id||'?')+" / "+(c.datacenter_id||'?')+
+      "\n"+t('sum.config_errors')+(((d.configuration_errors||[]).join('; '))||t('sum.none'));
   }
+  if(d.gpu_catalog){
+    const rows=d.gpu_catalog.map(g=>(g.id||g.name)+": "+(g.availability||'?'));
+    return t('sum.preflight')+"\n"+t('sum.pods')+(d.pods_total??'-')+"\n"+rows.join("\n");
+  }
+  if('ready' in d)return t('sum.ready')+(d.ready?t('sum.yes'):t('sum.no'))+"\n"+(d.detail||'');
+  if(d.pod)return t('sum.pod')+(d.pod.id||'?')+"\n"+t('sum.status')+(d.pod.status||'?')+"\n"+t('sum.model')+(d.model_id||'?');
+  if(d.pod===null)return t('sum.no_pod');
+  if(d.ok!==undefined)return d.ok?t('msg.imported'):JSON.stringify(d);
   return text;
 }
 async function action(path,method='POST',body=null){
-  output.textContent='Bitte warten …';
+  render(t('output.wait'));
   try{
     const data=await api(path,{method,body:body?JSON.stringify(body):undefined});
     render(typeof data==='string'?data:JSON.stringify(data));
     await refreshStatus();
     return data;
-  }catch(err){render('Fehler: '+err.message);return null}
+  }catch(err){render(t('msg.error')+err.message);return null}
 }
-
 $('login-form').onsubmit=async e=>{e.preventDefault();
   try{await api('/api/login',{method:'POST',body:JSON.stringify({username:$('username').value,password:$('password').value})});await boot()}
-  catch(err){$('login-error').textContent=err.message}};
-
+  catch(err){$('login-error').textContent=t('login.failed')+' '+err.message}};
 async function boot(){
+  applyLang();
+  render(t('output.ready'));
   const me=await api('/api/me');
   if(!me.authenticated)return;
   csrfToken=me.csrf_token;
@@ -247,74 +356,75 @@ async function loadCatalog(){
     api('/api/models'),api('/api/runtimes'),api('/api/controller-settings'),
     api('/api/gpu-options'),api('/api/regions'),api('/api/model-presets')]);
   models=m;runtimes=r;settingsData=s;gpuOptions=g.gpus||[];regions=reg.regions||[];presets=p;
-
   const old=$('model').value;
   $('model').replaceChildren();
   for(const [id,mm] of Object.entries(models)){
     const o=document.createElement('option');o.value=id;
-    o.textContent=`${mm.name} · ${runtimes[mm.runtime]?.label||mm.runtime}${mm.verified?' ✓':''}`;
+    o.textContent=mm.name+' · '+(runtimes[mm.runtime]?.label||mm.runtime)+(mm.verified?' ✓':'');
     $('model').append(o);
   }
   $('model').value=models[old]?old:(Object.keys(models).find(id=>models[id].active)||Object.keys(models)[0]||'');
-
-  $('region').replaceChildren(new Option('Automatisch (konfigurierte Standorte)',''));
-  for(const reg2 of regions){const o=document.createElement('option');o.value=reg2.id;o.textContent=reg2.label;$('region').append(o)}
-
+  $('region').replaceChildren(new Option(t('start.auto_region'),''));
+  for(const item of regions){const o=document.createElement('option');o.value=item.id;o.textContent=item.label;$('region').append(o)}
   $('e-runtime').replaceChildren();
   for(const [id,rr] of Object.entries(runtimes)){const o=document.createElement('option');o.value=id;o.textContent=rr.label;$('e-runtime').append(o)}
-
-  $('e-preset').replaceChildren(new Option('— keine Vorlage —',''));
+  $('e-preset').replaceChildren(new Option('— '+t('editor.preset')+' —',''));
   for(const [id,pp] of Object.entries(presets)){const o=document.createElement('option');o.value=id;o.textContent=pp.label;$('e-preset').append(o)}
-
-  $('billable-pill').textContent=settingsData.billable_actions_enabled?'Kostenpflichtig AKTIV':'Kostensperre aktiv';
-  $('billable-pill').className='pill'+(settingsData.billable_actions_enabled?' danger-text':' ok');
-
+  updateBillablePill();
+  renderRuntimes();
   renderGpuOptions();
   regionChanged();
   selectModel();
 }
-
 function renderGpuOptions(selected){
   const list=$('e-gpu-list');list.replaceChildren();
   const chosen=new Set(selected||[]);
-  if(!gpuOptions.length){list.innerHTML='<span class="hint">Kein GPU-Katalog verfügbar — nutze das Textfeld unten.</span>';return}
+  if(!gpuOptions.length){const span=document.createElement('span');span.className='hint';span.textContent=t('gpu.none');list.append(span);return}
   for(const g of gpuOptions){
     const id=g.id||g.name;if(!id)continue;
     const label=document.createElement('label');
     const cb=document.createElement('input');cb.type='checkbox';cb.value=id;cb.checked=chosen.has(id);
-    const avail=g.availability?` · ${g.availability}`:'';
-    const price=g.secure_price!=null?` · ${g.secure_price} $/h`:'';
-    const mem=g.memory?`${g.memory} GB`:'';
-    label.append(cb,document.createTextNode(` ${g.name||id} (${mem}${price}${avail})`));
+    const mem=g.memory?g.memory+' GB':'';
+    const price=g.secure_price!=null?' · '+g.secure_price+' $/h':'';
+    const avail=g.availability?' · '+g.availability:'';
+    label.append(cb,document.createTextNode(' '+(g.name||id)+' ('+mem+price+avail+')'));
     list.append(label);
   }
 }
-
+function renderRuntimes(){
+  const list=$('runtime-list');list.replaceChildren();
+  for(const [id,rt] of Object.entries(runtimes)){
+    const line=document.createElement('div');
+    line.style.margin='3px 0';
+    const short=rt.image?rt.image.split('@')[1]?.slice(0,19)+'…':'';
+    line.innerHTML='<span class="dot '+(rt.ready?'ok':'bad')+'"></span>'+rt.label+
+      ' <span class="hint">'+(rt.ready?t('runtimes.ready'):t('runtimes.missing'))+(short?' · '+short:'')+'</span>';
+    list.append(line);
+  }
+}
 function regionChanged(){
   const selected=$('region').value;
-  $('datacenter').replaceChildren(new Option('Automatisch',''));
+  $('datacenter').replaceChildren(new Option(t('start.auto_dc'),''));
   const source=selected?regions.find(r=>r.id===selected):null;
-  const dcs=source?source.datacenters:settingsData.datacenter_ids||[];
+  const dcs=source?source.datacenters:(settingsData.datacenter_ids||[]);
   for(const dc of dcs)$('datacenter').append(new Option(dc,dc));
-  $('datacenter').disabled=!selected&&!(settingsData.datacenter_ids||[]).length;
+  $('datacenter').disabled=!dcs.length;
 }
-
 function selectModel(){
   const m=models[$('model').value];
   if(!m)return;
   $('model-description').textContent=m.description||'';
   $('badges').replaceChildren();
-  [m.status,m.license,m.source,m.overridden?'angepasst':null,m.gated?'Zugriff eingeschränkt':null,
-   m.verified?'GPU-geprüft':'noch nicht GPU-geprüft',runtimes[m.runtime]?.label]
+  [m.status,m.license,m.source,m.overridden?'override':null,m.gated?'gated':null,
+   m.verified?'verified':'not verified',runtimes[m.runtime]?.label]
    .filter(Boolean).forEach(x=>{const s=document.createElement('span');s.className='pill';s.textContent=x;$('badges').append(s)});
   $('context').value=m.context_length;
   $('sequences').value=m.max_sequences;
   $('memory').value=m.gpu_memory_utilization;
   $('volume').value=m.volume_gb;
-  $('gpu').replaceChildren(new Option('Automatisch nach Priorität',''));
+  $('gpu').replaceChildren(new Option(t('start.auto_gpu'),''));
   (m.gpu_type_ids||[]).forEach(g=>$('gpu').append(new Option(g,g)));
 }
-
 function launch(){
   return {
     model_id:$('model').value,
@@ -329,38 +439,29 @@ function launch(){
 }
 const plan=()=>action('/api/pod/plan','POST',launch());
 const preflight=()=>action('/api/runpod/preflight','POST',launch());
-async function startPod(){
-  if(!confirm('Pod starten? Abhängig von deiner Konfiguration entstehen sofort GPU-Kosten.'))return;
-  await action('/api/pod/start','POST',launch());
-}
+async function startPod(){if(!confirm(t('confirm.start')))return;await action('/api/pod/start','POST',launch())}
 const stopPod=()=>action('/api/pod/stop');
-async function deletePod(){
-  if(confirm('Pod UND Volume unwiderruflich löschen? Der Modell-Cache geht verloren, dafür enden alle Kosten.'))
-    await action('/api/pod','DELETE');
-}
-
+async function deletePod(){if(confirm(t('confirm.delete')))await action('/api/pod','DELETE')}
 async function loadStatus(){
   try{
     const s=await api('/api/status');
     podActive=!!s.pod;
-    const st=s.pod?(s.pod.status||'UNKNOWN'):'Kein Pod verwaltet';
-    $('status').innerHTML=`<span class="dot ${s.pod?'ok':''}"></span>${st}${s.pod?' · '+(s.model_id||''):''}`;
-    $('ready').classList.toggle('hidden',!podActive);
+    const label=s.pod?((s.pod.status||'UNKNOWN')+(s.model_id?' · '+s.model_id:'')):t('status.none');
+    $('status').innerHTML='<span class="dot '+(s.pod?'ok':'')+'"></span>'+label;
     return s;
-  }catch(err){$('status').innerHTML='<span class="dot bad"></span>Fehler: '+err.message}
+  }catch(err){$('status').innerHTML='<span class="dot bad"></span>'+t('status.error')+err.message}
 }
 async function loadReady(){
-  if(!podActive){$('ready').innerHTML='<span class="dot"></span><span>Kein Pod — Modellstatus n/a</span>';return}
+  if(!podActive){ $('ready').innerHTML='<span class="dot"></span>'+t('ready.none'); return }
   try{
     const d=await api('/api/model/ready');
-    $('ready').innerHTML=`<span class="dot ${d.ready?'ok':'wait'}"></span><span>${d.ready?'Modell geladen':'Modell lädt …'} — ${d.detail||''}</span>`;
-  }catch(err){$('ready').innerHTML='<span class="dot bad"></span>Modellstatus: '+err.message}
+    $('ready').innerHTML='<span class="dot '+(d.ready?'ok':'wait')+'"></span>'+(d.ready?t('ready.loaded'):t('ready.loading'))+' — '+(d.detail||'');
+  }catch(err){$('ready').innerHTML='<span class="dot bad"></span>'+t('ready.unknown')+': '+err.message}
 }
-async function refreshStatus(){await loadStatus();await loadReady();}
-
+async function refreshStatus(){await loadStatus();await loadReady()}
 function fillEditor(id,m){
   $('editor-error').textContent='';
-  $('editor-title').textContent=m?`Modell bearbeiten: ${m.name||id}`:'Neues Modellprofil';
+  $('editor-title').textContent=m?(t('editor.edit_title')+': '+(m.name||id)):t('editor.new_title');
   $('e-id').value=id||'';$('e-id').disabled=!!id;
   $('e-name').value=m?.name||'';
   $('e-description').value=m?.description||'';
@@ -387,13 +488,12 @@ function fillEditor(id,m){
   $('e-gpus').value=allowed.filter(g=>!known.has(g)).join('\n');
   const removable=!!m&&(m.source==='custom'||m.source==='orphaned-override'||m.overridden);
   $('remove-model').disabled=!removable;
-  $('remove-model').textContent=m?.overridden?'Auf Standard zurücksetzen':'Profil löschen';
+  $('remove-model').textContent=m?.overridden?t('btn.reset'):t('btn.delete_profile');
   runtimeChanged();
   editor.showModal();
 }
 const newModel=()=>fillEditor('',null);
 function editModel(){const id=$('model').value;if(id)fillEditor(id,models[id])}
-
 function applyPreset(){
   const p=presets[$('e-preset').value];if(!p)return;
   $('e-runtime').value=p.runtime;
@@ -409,11 +509,8 @@ function runtimeChanged(){
   $('e-gguf').disabled=!rt?.supports_gguf;
   if(!rt?.supports_gguf)$('e-gguf').value='';
   $('vllm-options').classList.toggle('hidden',$('e-runtime').value!=='vllm');
-  if($('e-runtime').value!=='vllm'){
-    $('e-trust-remote-code').checked=false;$('e-reasoning').checked=false;$('e-tools').checked=false;
-  }
+  if($('e-runtime').value!=='vllm'){$('e-trust-remote-code').checked=false;$('e-reasoning').checked=false;$('e-tools').checked=false}
 }
-
 $('model-form').onsubmit=async e=>{
   e.preventDefault();
   const id=$('e-id').value;
@@ -442,7 +539,8 @@ $('model-form').onsubmit=async e=>{
 async function removeModel(){
   const id=$('e-id').value,m=models[id];if(!id)return;
   const reset=!!m?.overridden;
-  if(!confirm(reset?`Anpassungen für ${id} verwerfen und Built-in-Standard wiederherstellen?`:`Profil ${id} löschen?`))return;
+  const question=(reset?t('confirm.reset'):t('confirm.remove')).replace('{id}',id);
+  if(!confirm(question))return;
   try{await api('/api/models/'+encodeURIComponent(id)+(reset?'/reset':''),{method:reset?'POST':'DELETE'});editor.close();await loadCatalog()}
   catch(err){$('editor-error').textContent=err.message}
 }
@@ -451,18 +549,17 @@ async function exportModels(){
     const data=await api('/api/models-export');
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gpuharbor-user-models.json';a.click();URL.revokeObjectURL(a.href);
-  }catch(err){render('Exportfehler: '+err.message)}
+  }catch(err){render(t('msg.export_error')+err.message)}
 }
 async function importModels(file){
   if(!file)return;
   try{
     const catalog=JSON.parse(await file.text());
-    if(!confirm('Eigene Profile und Overrides aus dieser Datei zusammenführen?'))return;
+    if(!confirm(t('confirm.import')))return;
     await api('/api/models-import',{method:'POST',body:JSON.stringify({catalog,replace:false})});
-    await loadCatalog();render('Modellkatalog erfolgreich importiert.');
-  }catch(err){render('Importfehler: '+err.message)}finally{$('import-file').value=''}
+    await loadCatalog();render(t('msg.imported'));
+  }catch(err){render(t('msg.import_error')+err.message)}finally{$('import-file').value=''}
 }
-
 boot().catch(()=>{});
 setInterval(()=>{if(!$('app').classList.contains('hidden'))refreshStatus()},30000);
 </script></body></html>

@@ -20,7 +20,8 @@ if not scripts:
     raise SystemExit('Dashboard JavaScript not found')
 Path('/tmp/gpuharbor-ui.js').write_text('\n'.join(scripts), encoding='utf-8')
 missing = []
-for doc in [Path('README.md'), *Path('docs').rglob('*.md')]:
+markdown = sorted(path for path in Path('.').rglob('*.md') if '.git' not in path.parts)
+for doc in markdown:
     for target in re.findall(r'\[[^]]+\]\(([^)]+)\)', doc.read_text(encoding='utf-8')):
         if '://' in target or target.startswith('#'):
             continue

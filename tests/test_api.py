@@ -31,6 +31,8 @@ def app_client(tmp_path, monkeypatch):
         "GPUHARBOR_TRUSTED_HOSTS": "testserver,localhost,127.0.0.1",
         "RUNPOD_ALLOW_BILLABLE_ACTIONS": "false",
         "RUNTIME_IMAGE_VLLM": "ghcr.io/example/vllm@sha256:" + "a" * 64,
+        "RUNTIME_IMAGE_LLAMA_CPP": "",
+        "RUNTIME_IMAGE_BONSAI": "",
         "MODELS_PATH": str(tmp_path / "data" / "models.json"),
         "USER_CATALOG_PATH": str(tmp_path / "data" / "user-models.json"),
         "BUNDLED_MODELS_PATH": str(models),
@@ -257,12 +259,24 @@ def test_model_proxy_rejects_oversized_request_before_upstream(app_client):
     assert response.status_code == 413
 
 
+def test_runtimes_report_image_status(app_client):
+    client, _ = app_client
+    login(client)
+    data = client.get("/api/runtimes").json()
+    assert data["vllm"]["ready"] is True
+    assert data["vllm"]["image"].startswith("ghcr.io/example/vllm@sha256:")
+    assert data["bonsai"]["ready"] is False
+
+
 def test_docs_favicon_and_presets_are_available(app_client):
     client, _ = app_client
     docs = client.get("/docs")
     assert docs.status_code == 200
-    assert "Dokumentation" in docs.text
-    assert "Hugging-Face Remote-Code" in docs.text
+    assert "Documentation" in docs.text
+    assert "Trust Hugging Face remote code" in docs.text
+    german = client.get("/docs/de")
+    assert german.status_code == 200
+    assert "Dokumentation" in german.text
     icon = client.get("/favicon.svg")
     assert icon.status_code == 200
     assert icon.headers["content-type"].startswith("image/svg+xml")

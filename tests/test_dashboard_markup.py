@@ -26,17 +26,39 @@ def test_dashboard_links_favicon_and_docs():
     assert 'href="/docs"' in html
 
 
+def test_dashboard_has_both_languages():
+    html = read("index.html")
+    assert 'id="lang-switch"' in html
+    assert '<option value="en">' in html and '<option value="de">' in html
+    assert "const I18N=" in html
+    for key in ("nav.docs", "btn.start", "field.trust"):
+        assert html.count(f'"{key}"') >= 2, f"{key} is not translated in both languages"
+
+
 def test_docs_page_covers_key_topics():
-    html = read("docs.html")
+    english = read("docs.html")
     for topic in (
-        "Hugging-Face Remote-Code",
-        "Regionen",
+        "Trust Hugging Face remote code",
+        "Regions and datacenters",
+        "Pod actions",
+        "Adding runtimes",
+        "Error messages",
+        "Model catalog",
+    ):
+        assert topic in english, f"/docs is missing the topic: {topic}"
+
+    german = read("docs.de.html")
+    for topic in (
+        "Remote-Code vertrauen",
+        "Regionen und Rechenzentren",
         "Pod-Aktionen",
         "Runtimes erweitern",
         "Fehlermeldungen",
         "Modellkatalog",
     ):
-        assert topic in html, f"/docs is missing the topic: {topic}"
+        assert topic in german, f"/docs/de is missing the topic: {topic}"
+    assert 'href="/docs"' in german
+    assert 'href="/docs/de"' in english
 
 
 def test_favicon_is_svg():

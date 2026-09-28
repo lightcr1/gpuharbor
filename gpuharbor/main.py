@@ -147,6 +147,11 @@ async def documentation() -> FileResponse:
     return FileResponse(STATIC_DIR / "docs.html")
 
 
+@app.get("/docs/de", include_in_schema=False)
+async def documentation_de() -> FileResponse:
+    return FileResponse(STATIC_DIR / "docs.de.html")
+
+
 @app.get("/favicon.svg", include_in_schema=False)
 async def favicon() -> FileResponse:
     return FileResponse(STATIC_DIR / "favicon.svg", media_type="image/svg+xml")
@@ -195,7 +200,15 @@ async def me(request: Request) -> dict[str, str | bool]:
 
 @app.get("/api/runtimes", dependencies=[Depends(require_control)])
 async def runtimes() -> dict:
-    return {key: value.model_dump() for key, value in registry.runtimes().items()}
+    """Runtime definitions plus the configured image and whether it is usable."""
+    return {
+        key: {
+            **value.model_dump(),
+            "image": settings.runtime_image(key),
+            "ready": settings.runtime_image_ready(key),
+        }
+        for key, value in registry.runtimes().items()
+    }
 
 
 @app.get("/api/controller-settings", dependencies=[Depends(require_control)])
