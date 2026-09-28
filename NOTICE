@@ -1,0 +1,11 @@
+GPUHarbor
+Copyright 2026 GPUHarbor contributors
+
+This product includes software developed as part of the GPUHarbor project.
+
+The GPUHarbor core is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full license text.
+
+Third-party components referenced or bundled by container images retain
+their own licenses and notices. See docs/THIRD_PARTY.md for the current
+inventory. GPUHarbor does not redistribute model weights.

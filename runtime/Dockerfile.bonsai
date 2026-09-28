@@ -1,0 +1,22 @@
+# EXPERIMENTAL: review the third-party fork and its license before building.
+FROM nvidia/cuda@sha256:4b9ed5fa8361736996499f64ecebf25d4ec37ff56e4d11323ccde10aa36e0c43 AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends git cmake build-essential libcurl4-openssl-dev libssl-dev ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+RUN git clone https://github.com/PrismML-Eng/llama.cpp.git /opt/llama.cpp \
+ && cd /opt/llama.cpp && git checkout bdc23b56b4458b9f1655aec5287f3ab56ee8daaa \
+ && cmake -S . -B build -DGGML_CUDA=ON -DGGML_NATIVE=OFF -DCMAKE_CUDA_ARCHITECTURES=86 -DLLAMA_BUILD_TESTS=OFF -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined \
+ && cmake --build build --config Release -j 4 --target llama-server \
+ && mkdir /opt/llama-libs && find build -name '*.so*' -exec cp -P {} /opt/llama-libs/ \;
+
+FROM ghcr.io/ggml-org/llama.cpp@sha256:c85ff65cf7b379b9962186fc4bf02b2be5bf4245c6806016aae60396cf953e3c
+COPY --from=builder /opt/llama.cpp/build/bin/llama-server /app/llama-server
+COPY --from=builder /opt/llama-libs/ /app/
+COPY requirements.lock /tmp/requirements.lock
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && python3 -m venv /opt/venv \
+ && /opt/venv/bin/pip install --no-cache-dir --requirement /tmp/requirements.lock
+COPY gateway.py /opt/gpuharbor/gateway.py
+ENV PATH="/opt/venv/bin:$PATH"
+EXPOSE 8000
+ENTRYPOINT ["python3", "/opt/gpuharbor/gateway.py"]

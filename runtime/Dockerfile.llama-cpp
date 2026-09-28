@@ -1,0 +1,11 @@
+ARG LLAMA_IMAGE=ghcr.io/ggml-org/llama.cpp@sha256:c85ff65cf7b379b9962186fc4bf02b2be5bf4245c6806016aae60396cf953e3c
+FROM ${LLAMA_IMAGE}
+COPY requirements.lock /tmp/requirements.lock
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && python3 -m venv /opt/venv \
+ && /opt/venv/bin/pip install --no-cache-dir --requirement /tmp/requirements.lock
+COPY gateway.py /opt/gpuharbor/gateway.py
+ENV PATH="/opt/venv/bin:$PATH"
+EXPOSE 8000
+ENTRYPOINT ["python3", "/opt/gpuharbor/gateway.py"]

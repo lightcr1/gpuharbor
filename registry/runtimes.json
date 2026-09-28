@@ -1,0 +1,23 @@
+{
+  "vllm": {
+    "label": "vLLM (FP8/BF16)",
+    "image_env": "RUNTIME_IMAGE_VLLM",
+    "backend": "vllm",
+    "supports_gguf": false,
+    "status": "stable"
+  },
+  "llama-cpp": {
+    "label": "llama.cpp (GGUF)",
+    "image_env": "RUNTIME_IMAGE_LLAMA_CPP",
+    "backend": "llama",
+    "supports_gguf": true,
+    "status": "stable"
+  },
+  "bonsai": {
+    "label": "Bonsai special runtime",
+    "image_env": "RUNTIME_IMAGE_BONSAI",
+    "backend": "bonsai",
+    "supports_gguf": true,
+    "status": "experimental"
+  }
+}

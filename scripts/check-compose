@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+export OPEN_WEBUI_IMAGE=${OPEN_WEBUI_IMAGE:-example.invalid/open-webui@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
+export MODEL_ACCESS_TOKEN=${MODEL_ACCESS_TOKEN:-integration-contract-only}
+export WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-integration-contract-only}
+export OPENHANDS_IMAGE=${OPENHANDS_IMAGE:-example.invalid/openhands@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb}
+export OPENHANDS_BACKEND_API_KEY=${OPENHANDS_BACKEND_API_KEY:-integration-contract-only}
+
+docker compose -f compose.yml config --quiet
+docker compose -f compose.yml -f compose.tls.yml config --quiet
+docker compose -f compose.yml -f compose.openwebui.yml config --quiet
+docker compose -f compose.yml -f compose.openhands.yml config --quiet
+docker compose -f compose.yml -f compose.tls.yml -f compose.openwebui.yml -f compose.openhands.yml config --quiet
+printf 'All GPUHarbor Compose combinations are valid.\n'

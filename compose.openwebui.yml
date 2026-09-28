@@ -1,0 +1,21 @@
+services:
+  open-webui:
+    image: ${OPEN_WEBUI_IMAGE:?Set OPEN_WEBUI_IMAGE to a reviewed version or digest}
+    restart: unless-stopped
+    depends_on:
+      controller:
+        condition: service_healthy
+    environment:
+      OPENAI_API_BASE_URL: http://controller:8080/v1
+      OPENAI_API_KEY: ${MODEL_ACCESS_TOKEN:?Set MODEL_ACCESS_TOKEN}
+      ENABLE_OLLAMA_API: "false"
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?Set WEBUI_SECRET_KEY}
+    volumes:
+      - open-webui-data:/app/backend/data
+    ports:
+      - "${HOST_BIND_IP:-127.0.0.1}:3000:8080"
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  open-webui-data:

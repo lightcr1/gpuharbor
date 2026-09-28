@@ -1,0 +1,2 @@
+# The vLLM base image is immutable; pin the only added gateway dependency.
+httpx==0.28.1

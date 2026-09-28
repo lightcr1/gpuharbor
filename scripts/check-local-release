@@ -1,0 +1,46 @@
+#!/bin/sh
+set -eu
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+python_bin=${PYTHON:-python3}
+
+PYTHONPATH=. "$python_bin" -m pytest -q
+"$python_bin" -m compileall -q gpuharbor runtime tests
+"$python_bin" - <<'PY'
+from pathlib import Path
+import json
+import re
+
+for path in Path('.').rglob('*.json'):
+    json.loads(path.read_text(encoding='utf-8'))
+html = Path('gpuharbor/static/index.html').read_text(encoding='utf-8')
+scripts = re.findall(r'<script>(.*?)</script>', html, re.S)
+if not scripts:
+    raise SystemExit('Dashboard JavaScript not found')
+Path('/tmp/gpuharbor-ui.js').write_text('\n'.join(scripts), encoding='utf-8')
+missing = []
+for doc in [Path('README.md'), *Path('docs').rglob('*.md')]:
+    for target in re.findall(r'\[[^]]+\]\(([^)]+)\)', doc.read_text(encoding='utf-8')):
+        if '://' in target or target.startswith('#'):
+            continue
+        clean = target.split('#', 1)[0]
+        if clean and not (doc.parent / clean).exists():
+            missing.append((str(doc), target))
+if missing:
+    raise SystemExit(f'Missing documentation links: {missing}')
+PY
+node --check /tmp/gpuharbor-ui.js
+./scripts/check-compose
+
+if rg -n --hidden --glob '!*.pyc' --glob '!__pycache__/**' \
+  --glob '!.pytest_cache/**' --glob '!tls/**' \
+  '(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|rp_[A-Za-z0-9]{20,}|hf_[A-Za-z0-9]{20,})' .; then
+  echo 'Potential secret found.' >&2
+  exit 1
+fi
+if rg -n -i --hidden --glob '!*.pyc' --glob '!.pytest_cache/**' 'pod''deck|pod'' deck' .; then
+  echo 'Stale project name found.' >&2
+  exit 1
+fi
+printf 'GPUHarbor local release checks passed.\n'

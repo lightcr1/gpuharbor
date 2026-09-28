@@ -1,0 +1,21 @@
+# OpenHands Agent Canvas is optional and can execute generated code inside the
+# mounted projects directory. Use a dedicated workspace without secrets.
+services:
+  openhands:
+    image: ${OPENHANDS_IMAGE:?Set OPENHANDS_IMAGE to the reviewed Agent Canvas digest}
+    restart: unless-stopped
+    depends_on:
+      controller:
+        condition: service_healthy
+    environment:
+      LOCAL_BACKEND_API_KEY: ${OPENHANDS_BACKEND_API_KEY:?Set a separate random OpenHands backend key}
+    volumes:
+      - ${OPENHANDS_PROJECTS_PATH:-./workspace}:/projects
+      - openhands-state:/home/openhands/.openhands
+    ports:
+      - "${HOST_BIND_IP:-127.0.0.1}:3001:8000"
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  openhands-state:

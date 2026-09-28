@@ -1,0 +1,44 @@
+#!/bin/sh
+set -eu
+
+host=${1:-localhost}
+out=${2:-tls}
+umask 077
+mkdir -p "$out"
+
+tmp=$(mktemp -d)
+cleanup() { rm -rf "$tmp"; }
+trap cleanup EXIT INT TERM
+
+if printf '%s' "$host" | grep -Eq '^[0-9a-fA-F:.]+$'; then
+  san="IP:$host"
+else
+  san="DNS:$host"
+fi
+
+cat >"$tmp/server.cnf" <<EOF
+[req]
+distinguished_name = dn
+prompt = no
+req_extensions = req_ext
+[dn]
+CN = $host
+[req_ext]
+subjectAltName = $san
+extendedKeyUsage = serverAuth
+keyUsage = digitalSignature,keyEncipherment
+EOF
+
+openssl req -x509 -newkey rsa:3072 -sha256 -nodes \
+  -keyout "$out/local-ca.key" -out "$out/local-ca.crt" -days 3650 \
+  -subj "/CN=GPUHarbor Local CA" >/dev/null 2>&1
+openssl req -new -newkey rsa:3072 -nodes -sha256 \
+  -keyout "$out/server.key" -out "$tmp/server.csr" \
+  -config "$tmp/server.cnf" >/dev/null 2>&1
+openssl x509 -req -sha256 -days 825 \
+  -in "$tmp/server.csr" -CA "$out/local-ca.crt" -CAkey "$out/local-ca.key" \
+  -CAcreateserial -out "$out/server.crt" \
+  -extfile "$tmp/server.cnf" -extensions req_ext >/dev/null 2>&1
+chmod 600 "$out"/*.key
+chmod 644 "$out"/*.crt
+printf 'Created local TLS certificate for %s in %s. Trust only %s/local-ca.crt on your clients.\n' "$host" "$out" "$out"
