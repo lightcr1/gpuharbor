@@ -1,16 +1,38 @@
 # Screenshots
 
-Images used by the README live here.
+Images used by the README and the docs live here.
 
-To add one from a Windows machine:
+| File | What it shows |
+|---|---|
+| `dashboard.png` | dashboard in English, cost lock active |
+| `dashboard.de.png` | dashboard in German |
+| `model-editor.de.png` | model editor with the Hugging Face lookup |
 
-```powershell
-scp "C:\path\to\Screenshot.png" media@10.10.40.100:/home/media/gpuharbor/docs/screenshots/dashboard.png
+## Replacing one
+
+Take a fresh screenshot with a window of about 1280x820 and a device scale factor
+of 2, so the text stays sharp.
+
+The committed images were captured with Playwright against a local instance:
+
+```bash
+npm install playwright
+node -e "
+const { chromium } = require('playwright');
+(async () => {
+  const browser = await chromium.launch({ executablePath: process.env.CHROME });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 820 }, deviceScaleFactor: 2 });
+  await page.goto('http://127.0.0.1:8080/');
+  await page.fill('#username', 'admin');
+  await page.fill('#password', process.env.GPUHARBOR_ADMIN_PASSWORD);
+  await page.click('#login-form button');
+  await page.waitForSelector('#app:not(.hidden)');
+  await page.selectOption('#lang-switch', 'en');
+  await page.screenshot({ path: 'docs/screenshots/dashboard.png' });
+  await browser.close();
+})();
+"
 ```
 
-Then reference it in the READMEs, as an image line with the path
-`docs/screenshots/dashboard.png`. Keep that path in a code block when writing
-documentation so the link checker does not treat the example as a real file.
-
-Keep screenshots free of API keys, tokens, IP addresses and account details. Crop
-the browser chrome and hide anything private before committing.
+Keep screenshots free of API keys, tokens, IP addresses and account details, and
+leave the cost lock in its default state so the badge shows "Cost lock active".

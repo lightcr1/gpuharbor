@@ -14,6 +14,8 @@ Browser -> GPUHarbor -> RunPod pod -> runtime image -> model
 The controller runs anywhere Docker runs and needs no GPU. Only the pod costs
 money.
 
+![GPUHarbor dashboard](docs/screenshots/dashboard.png)
+
 Not affiliated with RunPod.
 
 ## What it does

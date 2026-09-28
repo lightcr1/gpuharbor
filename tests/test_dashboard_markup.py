@@ -11,6 +11,30 @@ def read(name: str) -> str:
     return (STATIC / name).read_text(encoding="utf-8")
 
 
+def _translation_keys() -> tuple[set[str], set[str], set[str]]:
+    import re
+
+    html = read("index.html")
+    used = set(re.findall(r'data-i18n(?:-title)?="([^"]+)"', html))
+    body = html.split("const I18N=", 1)[1].split("let lang=", 1)[0]
+    english_block, german_block = body.split("de:{", 1)
+    english = set(re.findall(r'"([a-z][a-z0-9_.]+)":', english_block))
+    german = set(re.findall(r'"([a-z][a-z0-9_.]+)":', german_block))
+    return used, english, german
+
+
+def test_every_visible_string_is_translated_in_both_languages():
+    used, english, german = _translation_keys()
+    assert used, "no data-i18n attributes found"
+    assert not (used - english), f"missing English translations: {sorted(used - english)}"
+    assert not (used - german), f"missing German translations: {sorted(used - german)}"
+
+
+def test_both_dictionaries_define_the_same_keys():
+    _, english, german = _translation_keys()
+    assert english == german, f"only in English: {sorted(english - german)}, only in German: {sorted(german - english)}"
+
+
 def test_dashboard_element_references_resolve():
     html = read("index.html")
     ids = set(re.findall(r'\bid="([^"]+)"', html))

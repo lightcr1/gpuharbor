@@ -139,7 +139,7 @@ dialog::backdrop{background:#000a}
 </div><br>
 <div class="field"><label for="e-description" data-i18n="field.description">Description</label><textarea id="e-description" rows="2"></textarea></div><br>
 <div class="row">
-  <div class="field"><label for="e-model-id" data-i18n="field.model_id">Hugging Face repository</label><input id="e-model-id" placeholder="owner/repository" required><button type="button" class="secondary" onclick="lookupModel()" data-i18n="btn.lookup">Look up on Hugging Face</button><span class="hint" data-i18n="hint.model_id">For example Qwen/Qwen3.8-27B-FP8.</span><span id="lookup-result" class="hint"></span></div>
+  <div class="field"><label for="e-model-id" data-i18n="field.model_id">Hugging Face repository</label><input id="e-model-id" placeholder="owner/repository" required><button type="button" class="secondary" onclick="lookupModel()" data-i18n="lookup.button">Look up on Hugging Face</button><span class="hint" data-i18n="hint.model_id">For example Qwen/Qwen3.8-27B-FP8.</span><span id="lookup-result" class="hint"></span></div>
   <div class="field"><label for="e-runtime" data-i18n="field.runtime">Runtime</label><select id="e-runtime" onchange="runtimeChanged()"></select><span class="hint" data-i18n="hint.runtime">vLLM for FP8/BF16, llama.cpp for GGUF.</span></div>
 </div><br>
 <div class="field"><label for="e-gguf" data-i18n="field.gguf">GGUF file</label><input id="e-gguf"><span class="hint" data-i18n="hint.gguf">GGUF runtimes only: the exact filename from the repository.</span></div><br>
@@ -201,10 +201,10 @@ en:{
  "catalog.new":"New model","catalog.edit":"Edit selected","catalog.export":"Export","catalog.import":"Import",
  "integrations.title":"Optional integrations","integrations.hint":"Enabled through separate Compose files. Details are in the documentation.",
  "runtimes.title":"Runtime images","runtimes.ready":"ready","runtimes.missing":"no digest configured",
- "editor.new_title":"New model profile","editor.edit_title":"Edit model","editor.preset":"Template","editor.error":"",
+ "editor.new_title":"New model profile","editor.edit_title":"Edit model","editor.preset":"Template",
  "gpu.loading":"Loading catalog …","gpu.none":"No GPU catalog available — use the text field below.",
  "field.id":"ID","field.name":"Name","field.description":"Description","field.model_id":"Hugging Face repository","field.runtime":"Runtime",
- "field.gguf":"GGUF file","field.aliases":"Served names (comma)","field.capabilities":"Capabilities (comma)","field.gpus":"Allowed GPUs",
+ "field.gguf":"GGUF file","field.aliases":"Served names (comma)","field.capabilities":"Capabilities (comma)","field.gpus":"Allowed GPUs","field.volume_gb":"Volume GB",
  "field.gpus_extra":"Other GPUs (one per line)","field.license":"License","field.status":"Status","field.gated":"Restricted access (gated)",
  "field.verified":"Verified on a real GPU","field.trust":"Trust Hugging Face remote code","field.reasoning":"Qwen3 reasoning parser","field.tools":"Qwen3 tool parser and auto tool choice",
  "hint.id":"Lowercase letters, digits and hyphen. Cannot be changed later.","hint.name":"Display name.",
@@ -214,6 +214,7 @@ en:{
  "hint.gpus_extra":"For GPUs missing from the catalog, use the exact RunPod name.","hint.license":"Display only, for example Apache-2.0.",
  "hint.status":"disabled means it cannot start.","hint.preset":"Fills in sensible starting values. Everything stays editable.",
  "hint.vllm":"\"Trust remote code\" runs Python shipped inside the model repository. Only enable it for repositories you trust.",
+ "vllm.title":"vLLM options",
  "tip.trust":"Runs model-supplied Python on the pod","tip.reasoning":"Splits thinking into the reasoning field","tip.tools":"Lets the model emit tool calls",
  "confirm.start":"Start the pod? Depending on your settings this begins GPU billing immediately.",
  "confirm.delete":"Delete the pod and its volume? The model cache is lost, but all costs stop.",
@@ -248,7 +249,7 @@ de:{
  "editor.new_title":"Neues Modellprofil","editor.edit_title":"Modell bearbeiten","editor.preset":"Vorlage",
  "gpu.loading":"Katalog wird geladen …","gpu.none":"Kein GPU-Katalog verfügbar — nutze das Textfeld unten.",
  "field.id":"ID","field.name":"Name","field.description":"Beschreibung","field.model_id":"Hugging-Face-Repository","field.runtime":"Runtime",
- "field.gguf":"GGUF-Datei","field.aliases":"API-Namen (Komma)","field.capabilities":"Fähigkeiten (Komma)","field.gpus":"Erlaubte GPUs",
+ "field.gguf":"GGUF-Datei","field.aliases":"API-Namen (Komma)","field.capabilities":"Fähigkeiten (Komma)","field.gpus":"Erlaubte GPUs","field.volume_gb":"Volume GB",
  "field.gpus_extra":"Weitere GPUs (eine pro Zeile)","field.license":"Lizenz","field.status":"Status","field.gated":"Zugriff eingeschränkt (gated)",
  "field.verified":"Auf echter GPU geprüft","field.trust":"Hugging-Face Remote-Code vertrauen","field.reasoning":"Qwen3 Reasoning-Parser","field.tools":"Qwen3 Tool-Parser + Auto-Tool-Wahl",
  "hint.id":"Kleinbuchstaben, Zahlen und Bindestrich. Später nicht änderbar.","hint.name":"Anzeigename.",
@@ -258,6 +259,7 @@ de:{
  "hint.gpus_extra":"Für GPUs, die nicht im Katalog stehen: exakter RunPod-Name.","hint.license":"Nur Anzeige, zum Beispiel Apache-2.0.",
  "hint.status":"disabled bedeutet: nicht startbar.","hint.preset":"Setzt sinnvolle Startwerte. Danach frei anpassbar.",
  "hint.vllm":"„Remote-Code vertrauen“ führt Python aus dem Modell-Repository aus. Nur bei geprüften Repos aktivieren.",
+ "vllm.title":"vLLM-Optionen",
  "tip.trust":"Führt modell-eigenen Python-Code auf dem Pod aus","tip.reasoning":"Trennt die Denk-Ausgabe ins Feld reasoning","tip.tools":"Erlaubt Tool-Aufrufe",
  "confirm.start":"Pod starten? Je nach Einstellung beginnt sofort die GPU-Abrechnung.",
  "confirm.delete":"Pod und Volume löschen? Der Modell-Cache geht verloren, alle Kosten enden.",
