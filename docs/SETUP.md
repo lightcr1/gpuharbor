@@ -31,6 +31,19 @@ Open `http://127.0.0.1:8080`. User is `admin`; the password is
 
 Stop with `docker compose down`.
 
+## Set the RunPod API key
+
+Create a key in the RunPod console under **Settings → API Keys**, then:
+
+```bash
+./scripts/set-runpod-key
+```
+
+The input is hidden, so the key stays out of your shell history, and only that
+one line in `.env` is replaced. The controller is restarted afterwards. Press
+**Check availability** in the dashboard to confirm it works; that call is free
+and read-only.
+
 ## Reach it from another device
 
 Only `127.0.0.1` is bound by default. To use the dashboard from a laptop or
