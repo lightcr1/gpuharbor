@@ -1,5 +1,8 @@
 # GPUHarbor
 
+[![CI](https://github.com/lightcr1/gpuharbor/actions/workflows/ci.yml/badge.svg)](https://github.com/lightcr1/gpuharbor/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 **A self-hosted control plane for curated AI models on RunPod.**
 
 GPUHarbor starts, stops and configures a single GPU pod, exposes its model through
