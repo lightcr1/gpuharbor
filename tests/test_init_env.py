@@ -53,6 +53,23 @@ def test_init_env_is_idempotent(tmp_path):
     assert target.read_text(encoding="utf-8") == first
 
 
+def test_init_env_https_flags_enable_secure_cookie(tmp_path):
+    example = tmp_path / ".env.example"
+    example.write_text((ROOT / ".env.example").read_text(encoding="utf-8"), encoding="utf-8")
+    target = tmp_path / ".env"
+
+    run(
+        "--env", str(target), "--example", str(example),
+        "--bind-ip", "0.0.0.0", "--https-host", "10.10.40.100", "--tls-port", "9443",
+    )
+    values = read_values(target)
+    assert values["GPUHARBOR_COOKIE_SECURE"] == "true"
+    assert values["TLS_BIND_IP"] == "10.10.40.100"
+    assert values["TLS_PORT"] == "9443"
+    assert values["HOST_BIND_IP"] == "0.0.0.0"
+    assert "10.10.40.100" in values["GPUHARBOR_TRUSTED_HOSTS"]
+
+
 def test_init_env_secrets_are_distinct(tmp_path):
     example = tmp_path / ".env.example"
     example.write_text((ROOT / ".env.example").read_text(encoding="utf-8"), encoding="utf-8")

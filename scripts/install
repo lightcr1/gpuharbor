@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""One-command GPUHarbor setup for a single machine or a small LAN/VPN host.
+
+Examples:
+    ./scripts/install                              # localhost, HTTP only
+    ./scripts/install --bind-ip 10.10.40.100       # reachable in the LAN
+    ./scripts/install --bind-ip 0.0.0.0 --https 10.10.40.100 --tls-port 9443
+    ./scripts/install --no-start                   # only prepare files
+
+It generates secrets, optionally creates a local TLS certificate and starts the
+container stack. Nothing here touches RunPod or spends money.
+"""
+from __future__ import annotations
+
+import argparse
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def run(command: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+    print("+", " ".join(command))
+    return subprocess.run(command, cwd=ROOT, check=check, text=True)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Install and start GPUHarbor")
+    parser.add_argument("--bind-ip", default="127.0.0.1", help="address the controller binds to")
+    parser.add_argument("--https", metavar="HOST", help="also enable the TLS proxy for HOST")
+    parser.add_argument("--tls-port", default="8443", help="host port for the TLS proxy")
+    parser.add_argument("--no-start", action="store_true", help="prepare .env/certs but do not start")
+    parser.add_argument("--pull", action="store_true", help="pull base images before building")
+    args = parser.parse_args()
+
+    if shutil.which("docker") is None:
+        print("Docker is required but was not found in PATH.", file=sys.stderr)
+        return 1
+
+    env_command = [
+        sys.executable,
+        "scripts/init-env",
+        "--bind-ip",
+        args.bind_ip,
+    ]
+    if args.https:
+        env_command += ["--https-host", args.https, "--tls-port", args.tls_port]
+    run(env_command)
+
+    compose = ["docker", "compose", "-f", "compose.yml"]
+    if args.https:
+        run(["./scripts/generate-local-tls", args.https, "tls"])
+        compose += ["-f", "compose.tls.yml"]
+
+    if args.pull:
+        run(["docker", "compose", "pull"], check=False)
+
+    if not args.no_start:
+        run([*compose, "up", "-d", "--build"])
+
+    print()
+    print("GPUHarbor is ready.")
+    if args.https:
+        print(f"  Dashboard (HTTPS): https://{args.https}:{args.tls_port}/")
+        print("  Trust tls/local-ca.crt on the devices that should accept the certificate.")
+    print(f"  Dashboard (HTTP) : http://{args.bind_ip if args.bind_ip != '0.0.0.0' else 'localhost'}:8080/")
+    print("  Login user       : admin")
+    print("  Login password   : see GPUHARBOR_ADMIN_PASSWORD in .env")
+    print()
+    print("Billable RunPod actions stay disabled until you set")
+    print("RUNPOD_ALLOW_BILLABLE_ACTIONS=true in .env and restart.")
+    print()
+    print("Stop:    docker compose down")
+    if args.https:
+        print("Stop:    docker compose -f compose.yml -f compose.tls.yml down")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

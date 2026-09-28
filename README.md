@@ -42,23 +42,108 @@ The repositories, requested files and model-card licenses were checked against
 the public upstream APIs; GPU execution is still unverified. See
 [model management](docs/MODELS.md) and [third-party inventory](docs/THIRD_PARTY.md).
 
-## Local, non-billable start
+## Install
+
+Prerequisites: Docker with the Compose plugin. Nothing here touches RunPod or
+spends money.
+
+One command for a single machine:
+
+```bash
+git clone https://github.com/lightcr1/gpuharbor.git
+cd gpuharbor
+./scripts/install
+```
+
+The installer generates `.env` with independent random secrets, optionally
+creates TLS certificates, builds and starts the stack, and prints the URLs and
+the login user. It is safe to run again: real values are never overwritten.
+
+Common variants:
+
+```bash
+# Reach the dashboard from another device in your LAN/VPN
+./scripts/install --bind-ip 10.10.40.100
+
+# LAN/VPN access plus HTTPS on port 9443
+./scripts/install --bind-ip 0.0.0.0 --https 10.10.40.100 --tls-port 9443
+
+# Only prepare .env and certificates, do not start anything
+./scripts/install --no-start
+
+# Reachable from anywhere on your own network (no public exposure)
+./scripts/install --bind-ip 0.0.0.0
+```
+
+Manual equivalent:
 
 ```bash
 ./scripts/init-env --bind-ip 127.0.0.1
 docker compose up --build -d
 ```
 
-`init-env` copies `.env.example` to `.env` and fills every placeholder with an
-independent random secret. It never overwrites real values, so it is safe to run
-again. Use `--bind-ip 0.0.0.0` (or your LAN/VPN address) if you want to reach the
-dashboard from another device; the bind address is added to the trusted hosts
-automatically.
+Open `http://127.0.0.1:8080`, or `http://<bind-ip>:8080` when you changed the
+bind address. Login user is `admin`; the password is `GPUHARBOR_ADMIN_PASSWORD`
+in `.env`. You can edit profiles and inspect plans without creating a pod. A
+live start remains blocked while the billable-action switch is false or runtime
+images are not configured as immutable digests.
 
-Open `http://127.0.0.1:8080` (or `http://<your-bind-ip>:8080`). You can edit
-profiles and inspect plans without creating a pod. A live start remains blocked
-while the billable-action switch is false or runtime images are not configured
-as immutable digests.
+Stop the stack with `docker compose down`.
+
+## Reach it from another device
+
+By default only `127.0.0.1` is bound, so other devices cannot connect. To reach
+the dashboard from your laptop or phone:
+
+1. Pick the machine's LAN or VPN address, for example `10.10.40.100`.
+2. Run `./scripts/init-env --bind-ip 10.10.40.100` (or re-run `./scripts/install`
+   with `--bind-ip`). The address is added to `GPUHARBOR_TRUSTED_HOSTS`
+   automatically.
+3. Open `http://10.10.40.100:8080`.
+
+`--bind-ip 0.0.0.0` binds every interface. Keep the host on a trusted LAN or a
+VPN such as Tailscale or WireGuard. Do **not** forward this port on your router;
+plain HTTP plus a password is not meant for the public internet.
+
+If a request returns "Invalid host header", the address you used is missing from
+`GPUHARBOR_TRUSTED_HOSTS` in `.env`.
+
+## Enable HTTPS
+
+HTTPS is a Compose overlay and stays optional:
+
+```bash
+./scripts/install --bind-ip 0.0.0.0 --https 10.10.40.100 --tls-port 9443
+```
+
+This creates a local certificate authority in `tls/` and an nginx TLS proxy.
+Import `tls/local-ca.crt` into the devices that should trust it, then open
+`https://10.10.40.100:9443/`. The installer also sets
+`GPUHARBOR_COOKIE_SECURE=true`, which only works over HTTPS.
+
+Alternative manual start once certificates exist:
+
+```bash
+docker compose -f compose.yml -f compose.tls.yml up -d --build
+```
+
+Details, including public-domain setups, are in [docs/TLS.md](docs/TLS.md).
+Never commit the `tls/` directory; it is already gitignored.
+
+## Publish runtime images
+
+A pod start needs runtime images with an immutable `sha256` digest in a
+registry. Build them once on a machine with enough disk, then publish:
+
+```bash
+./scripts/publish-runtime-images --owner <your-ghcr-owner> --tag 0.1.0
+```
+
+The script needs `docker login ghcr.io` with a token that has `write:packages`,
+prints the resulting digests and writes them to `runtime-digests.txt`. Put those
+digests into `.env` (`RUNTIME_IMAGE_VLLM`, `RUNTIME_IMAGE_LLAMA_CPP`,
+`RUNTIME_IMAGE_BONSAI`) before enabling billable actions. See
+[docs/RELEASE_ARTIFACTS.md](docs/RELEASE_ARTIFACTS.md).
 
 ## Optional integrations
 

@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""Tag and push the locally built GPUHarbor runtime images to GHCR.
+
+Building these images needs a lot of disk (the vLLM base image alone is around
+20 GB), which usually exceeds a free GitHub-hosted runner. Building once on a
+machine with disk and pushing the result is the reliable path.
+
+Prerequisites:
+    docker login ghcr.io -u <user>          # token needs write:packages
+    docker build -f runtime/Dockerfile.vllm      -t gpuharbor-runtime:vllm-local      runtime
+    docker build -f runtime/Dockerfile.llama-cpp -t gpuharbor-runtime:llama-local     runtime
+    docker build -f runtime/Dockerfile.bonsai    -t gpuharbor-runtime:bonsai-local    runtime
+
+Then:
+    ./scripts/publish-runtime-images --owner lightcr1 --tag 0.1.0
+
+Use --dry-run to print the plan without pushing. Use --only to limit runtimes.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+RUNNERS = {"vllm": "vllm-local", "llama-cpp": "llama-local", "bonsai": "bonsai-local"}
+
+
+def output(command: list[str]) -> str:
+    return subprocess.run(command, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Publish runtime images to GHCR")
+    parser.add_argument("--owner", default="lightcr1", help="GHCR owner/namespace")
+    parser.add_argument("--tag", default="0.1.0", help="image tag to publish")
+    parser.add_argument(
+        "--only",
+        action="append",
+        choices=sorted(RUNNERS),
+        help="publish only these runtimes (repeatable)",
+    )
+    parser.add_argument("--platform", default="linux/amd64", help="expected image platform")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--digests-out", default="runtime-digests.txt", help="where to write digests")
+    args = parser.parse_args()
+
+    selected = args.only or sorted(RUNNERS)
+    digests: dict[str, str] = {}
+
+    for name in selected:
+        local = f"gpuharbor-runtime:{RUNNERS[name]}"
+        remote = f"ghcr.io/{args.owner}/gpuharbor-runtime-{name}:{args.tag}"
+        print(f"\n=== {name} ===")
+        print(f"  local : {local}")
+        print(f"  remote: {remote}")
+
+        if not output(["docker", "image", "inspect", "-f", "{{.Id}}", local]):
+            print(f"  missing local image {local}; build it first", file=sys.stderr)
+            return 1
+
+        arch = output(["docker", "image", "inspect", "-f", "{{.Architecture}}", local])
+        if arch and arch != "amd64":
+            print(f"  warning: image architecture is {arch}, expected amd64", file=sys.stderr)
+
+        if args.dry_run:
+            digests[name] = "<dry-run>"
+            continue
+
+        subprocess.run(["docker", "tag", local, remote], check=True)
+        subprocess.run(["docker", "push", remote], check=True)
+        digest = output(["docker", "image", "inspect", "-f", "{{index .RepoDigests 0}}", remote])
+        digests[name] = digest
+        print(f"  {digest}")
+
+    if not args.dry_run:
+        Path(args.digests_out).write_text(
+            "\n".join(f"{name}={digest}" for name, digest in sorted(digests.items())) + "\n",
+            encoding="utf-8",
+        )
+        print(f"\nDigests written to {args.digests_out}")
+        print("Paste them into .env (RUNTIME_IMAGE_*) and docs before enabling billable actions.")
+    print(json.dumps(digests, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

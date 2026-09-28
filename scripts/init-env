@@ -62,8 +62,13 @@ def main() -> int:
     parser.add_argument("--bind-ip", help="set HOST_BIND_IP, e.g. 0.0.0.0 or 10.10.40.100")
     parser.add_argument(
         "--trusted-hosts",
-        help="comma separated GPUHARBOR_TRUSTED_HOSTS value; defaults to localhost plus --bind-ip",
+        help="comma separated GPUHARBOR_TRUSTED_HOSTS value; defaults to localhost plus the bind/https hosts",
     )
+    parser.add_argument(
+        "--https-host",
+        help="host used for the TLS proxy; sets TLS_BIND_IP and GPUHARBOR_COOKIE_SECURE=true",
+    )
+    parser.add_argument("--tls-port", help="host port for the TLS proxy (default 8443)")
     parser.add_argument(
         "--force",
         action="store_true",
@@ -88,10 +93,20 @@ def main() -> int:
 
     if args.bind_ip:
         updates["HOST_BIND_IP"] = args.bind_ip
-        hosts = args.trusted_hosts or f"localhost,127.0.0.1,{args.bind_ip}"
-        updates["GPUHARBOR_TRUSTED_HOSTS"] = hosts
-    elif args.trusted_hosts:
-        updates["GPUHARBOR_TRUSTED_HOSTS"] = args.trusted_hosts
+    if args.https_host:
+        updates["TLS_BIND_IP"] = args.https_host
+        updates["GPUHARBOR_COOKIE_SECURE"] = "true"
+    if args.tls_port:
+        updates["TLS_PORT"] = args.tls_port
+
+    hosts = ["localhost", "127.0.0.1"]
+    for candidate in (args.bind_ip, args.https_host):
+        if candidate and candidate not in hosts:
+            hosts.append(candidate)
+    if args.trusted_hosts:
+        hosts = [part.strip() for part in args.trusted_hosts.split(",") if part.strip()]
+    if args.bind_ip or args.https_host or args.trusted_hosts:
+        updates["GPUHARBOR_TRUSTED_HOSTS"] = ",".join(hosts)
 
     if target.exists():
         backup = target.with_suffix(target.suffix + ".bak")

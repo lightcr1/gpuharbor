@@ -21,9 +21,17 @@ not publish npm packages; the UI has no separate JavaScript package.
 - `ghcr.io/<owner>/gpuharbor-runtime-bonsai:<version>` (experimental)
 
 These images are pulled by RunPod, not by the machine running the controller.
-Maintainers build/test them locally; normal users select the published immutable
-digests. Existing private `lightcr1/runpod-qwen-runtime` images remain separate
-and are not silently retagged as public GPUHarbor releases.
+Maintainers build them once and publish with
+`./scripts/publish-runtime-images --owner <owner> --tag <version>`, which also
+prints the digests to paste into `.env` and documentation.
+
+Building the vLLM image pulls a base image of roughly 20 GB. That normally
+exceeds the free disk of a GitHub-hosted runner, so image builds are not part of
+the default CI workflow; CI runs the test suite instead. Use a larger/self-hosted
+runner if you want image builds in CI.
+
+Existing private `lightcr1/runpod-qwen-runtime` images remain separate and are
+not silently retagged as public GPUHarbor releases.
 
 ## Optional upstream images
 
