@@ -1,28 +1,26 @@
 # Roadmap
 
-## 0.1 foundation
+## Done
 
-- [x] Local controller skeleton and cost lock
-- [x] Versioned, update-safe UI model catalog, overrides and import/export
-- [x] In-app `/docs`, field help, GPU picker, region selection, output modes,
-      favicon and model-ready indicator
-- [x] Curated vLLM, llama.cpp and Bonsai profiles
-- [x] Optional Open WebUI and OpenHands overlays
-- [x] Complete mocked lifecycle and authentication tests
-- [x] Verify controller build and Compose combinations
-- [x] Add reverse-proxy/TLS deployment example
-- [x] Inventory dependency and model licenses (final legal review remains)
-- [x] Project core licensed under Apache-2.0 with a documented open-core boundary
-- [x] Build controller and all three runtime images locally
-- [x] Smoke-test Open WebUI, OpenHands and TLS overlays locally
-- [ ] GPU canary tests and measured VRAM/cost data (owner cost approval required)
+- Controller, dashboard, cost lock, model catalog with overrides.
+- Curated vLLM, llama.cpp and Bonsai profiles.
+- Optional Open WebUI, OpenHands and local HTTPS.
+- Update-safe catalog, import/export, region selection, GPU picker.
+- Published runtime images.
+- CI and 64 tests.
+
+## Next
+
+- Show runtime image status in the dashboard (read-only).
+- Make the model editor easier: paste a Hugging Face repo and get suggestions.
+- Test the remaining profiles on a real GPU and record the numbers.
+- Screenshots for the README.
 
 ## Later
 
-- Provider abstraction beyond RunPod (keep the single-provider core and a
-  separate closed Pro component; do not build a second provider before demand)
-- Trademark policy and Contributor License Agreement signing before public launch
-- Runtime image build/release automation
-- Cost history and budget limits
-- Localization files instead of embedded UI strings
-- Safer remote OpenHands sandbox backend
+- A second provider. Keep the core single-provider and put multi-provider into
+  the separate closed component instead of building a second integration before
+  anyone asks for it.
+- Contributor License Agreement and a trademark policy before any commercial
+  launch.
+- Automated runtime image builds.

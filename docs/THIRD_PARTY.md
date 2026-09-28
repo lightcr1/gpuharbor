@@ -1,40 +1,38 @@
-# Third-party components and model metadata
+# Third-party components
 
-Checked against the public upstream APIs on 2026-09-28. This inventory is a
-technical aid, not legal advice. Recheck immediately before a public release.
-GPUHarbor does not redistribute model weights in its controller repository.
+Checked against public APIs on 2026-09-28. This is a technical inventory, not
+legal advice. Recheck before any release.
 
 ## Bundled model profiles
 
-| Model | Upstream metadata license | Gated | Repository/file check |
+| Model | License (model card) | Gated | Checked |
 |---|---|---:|---|
-| `Qwen/Qwen3.8-27B-FP8` | Apache-2.0 | no | repository and safetensors files found |
-| `Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8` | Apache-2.0 | no | repository, FP8 shards and tool parser found |
-| `HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive` | Apache-2.0 | no | requested `Q6_K_P.gguf` found |
-| `prism-ml/Ternary-Bonsai-2-27B-gguf` | Apache-2.0 | no | requested `PTQ1_0.gguf`, LICENSE and NOTICE found |
+| `Qwen/Qwen3.8-27B-FP8` | Apache-2.0 | no | repo and files exist |
+| `Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8` | Apache-2.0 | no | repo and files exist |
+| `HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive` | Apache-2.0 | no | requested `.gguf` exists |
+| `prism-ml/Ternary-Bonsai-2-27B-gguf` | Apache-2.0 | no | requested `.gguf`, LICENSE, NOTICE exist |
 
-“Found” verifies public metadata and filenames only. It does not mean the model
-has passed a GPU start, quality, safety or compatibility test. The catalog keeps
-`verified: false` until such a test is recorded.
+"Checked" means the repository and filenames were there and the model card lists
+that license. It does not mean the model ran, or that it produces good output.
+GPUHarbor does not ship model weights.
 
-## Runtime and integration source
+## Runtimes and integrations
 
-| Component | Reported license | Notes |
+| Component | License | Notes |
 |---|---|---|
-| vLLM (`vllm-project/vllm`) | Apache-2.0 | Runtime base; image digest still requires GPU validation |
-| llama.cpp (`ggml-org/llama.cpp`) | MIT | GGUF runtime base |
-| PrismML llama.cpp fork | MIT | Bonsai build pins commit `bdc23b56…`; experimental |
-| OpenHands | MIT | Optional integration; Docker socket is a major privilege boundary |
-| Open WebUI | custom license / `NOASSERTION` | Redistribution conditions and branding restriction apply |
+| vLLM | Apache-2.0 | base for the vLLM runtime image |
+| llama.cpp (`ggml-org`) | MIT | base for the GGUF runtime image |
+| PrismML llama.cpp fork | MIT | Bonsai build, pinned to commit `bdc23b56…`; experimental |
+| OpenHands Agent Canvas | MIT | optional; runs generated code |
+| Open WebUI | custom license | optional; branding must stay, see below |
 
-Open WebUI's current license requires preserving notices and generally forbids
-removing or replacing Open WebUI branding above its stated small-deployment
-exception unless separately licensed. GPUHarbor treats Open WebUI as an optional
-upstream image and does not rebrand or redistribute its source.
+Open WebUI's license allows use but forbids removing or replacing its branding
+above a stated small-deployment exception, unless you have permission. GPUHarbor
+uses the upstream image unchanged and does not rebrand it.
 
-## Before release
+## Before releasing
 
-- Read complete upstream license and notice files, not only API metadata.
-- Preserve notices required by runtime images and model distributions.
-- Recheck image tags/digests and the pinned Bonsai commit.
-- Do not imply endorsement by RunPod, model authors, OpenHands or Open WebUI.
+Read the full upstream license and notice files, not just the API metadata. Keep
+the notices the images and models require. Recheck image tags, digests and the
+pinned Bonsai commit. Do not imply that RunPod, the model authors, OpenHands or
+Open WebUI endorse this project.

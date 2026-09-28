@@ -1,63 +1,41 @@
-# Licensing model
+# Licensing
 
-GPUHarbor uses an **open-core** model. This document is the authoritative
-description of the intended boundary. It is not legal advice; read the actual
-`LICENSE` and `NOTICE` files and obtain legal review before a commercial launch.
+GPUHarbor is open core.
 
-## Open core (this repository)
+## This repository
 
-- License: **Apache License 2.0** (`LICENSE`).
-- Scope: controller, dashboard, model/runtime registry, single-provider RunPod
-  integration, runtime gateway definitions, Compose overlays and documentation.
-- You may use, modify and redistribute the core, including commercially, under
-  the terms of Apache-2.0.
-- Apache-2.0 includes an explicit patent grant and requires preserving license
-  and notice information. It does **not** grant rights to the GPUHarbor name or
-  logo.
+Apache-2.0, see [LICENSE](../LICENSE) and [NOTICE](../NOTICE). You can use,
+change and redistribute the core, including commercially.
 
-### Honest trade-off
+Apache-2.0 also gives you a patent grant, and it does not give you the GPUHarbor
+name.
 
-A permissive license means a third party may fork the core, rebrand it, and even
-sell it, as long as they comply with Apache-2.0 and do not use our trademarks.
-That is the deliberate cost of using a widely trusted license for reach and
-adoption. If preventing hosted-service clones becomes more important than
-adoption, the alternative would be a network copyleft license such as
-AGPL-3.0. That decision can only be revisited while the project still has a
-single author or a Contributor License Agreement is in place.
+The honest downside: someone may fork the core, rename it and sell it, as long as
+they follow Apache-2.0 and leave the trademarks alone. That is the trade-off for
+using a license people trust. If preventing hosted clones matters more than
+adoption, a network copyleft license such as AGPL-3.0 would be the alternative,
+and that decision only stays open while there is a single author or a CLA.
 
-## Pro (not in this repository)
+## Not in this repository
 
-- License: **proprietary / commercial**, delivered under a separate agreement.
-- Scope (planned): multiple providers and accounts at once, teams, cost
-  overview, budget limits, alerts, usage history, schedules and pod automation.
-- The Pro code is **not** published here. Planned multi-provider features are
-  designed to live in a separate closed module or service, not behind a flag in
-  the open core.
+Planned paid features, such as several providers and accounts, teams, cost
+overviews, limits, history and schedules, live in a separate closed component
+under a commercial license.
 
-## Why the boundary is code, not a license key
-
-The free tier supports one provider connection at a time. The cleanest way to
-express that is architectural: the open core simply ships single-provider
-orchestration. Multi-provider orchestration is provided by the Pro component.
-This avoids weak "feature unlock" checks that anyone could patch out of an open
-source binary, and it keeps the free tier genuinely useful rather than crippled.
+The split is deliberately code, not a license key. The open core only does
+single-provider orchestration; multi-provider work sits in the closed part. That
+way the free version is genuinely useful instead of artificially limited, and
+there is no flag for anyone to patch out.
 
 ## Contributions
 
-- Contributions to the core are accepted under Apache-2.0.
-- Because the project may later want to offer a closed Pro component or adjust
-  licensing, contributions require a Developer Certificate of Origin sign-off
-  (`git commit -s`) and, for substantial contributions, a Contributor License
-  Agreement. Do not contribute code you cannot license this way.
+Contributions are accepted under Apache-2.0. Sign off your commits
+(`git commit -s`) for the Developer Certificate of Origin. Larger contributions
+also need a Contributor License Agreement so the separate component stays
+possible. Do not contribute code you cannot license this way.
 
-## Trademarks and naming
+## Trademarks
 
-The Apache-2.0 license does not grant permission to use the GPUHarbor name or
-logos. A fork must not imply official endorsement or affiliation. A short
-trademark policy will be added before the first public release.
-
-## Provider integrations
-
-Third-party provider APIs are used under their own terms. The open core includes
-only the RunPod integration. Additional providers are added only when there is
-clear demand, and their terms must be reviewed before integration.
+The license does not grant the right to use the GPUHarbor name or logo. A fork
+must not look official. A short trademark policy will follow before the first
+commercial release.
