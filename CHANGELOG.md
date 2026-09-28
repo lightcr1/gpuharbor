@@ -19,3 +19,5 @@ All notable changes will be documented here once releases begin.
 - Added region-based datacenter selection, GPU checkboxes from the live RunPod
   catalog, field help texts, an output-mode switch and a model-ready indicator.
 - Added a favicon and a `/api/model/ready` endpoint.
+- English dashboard and docs with a German switch; runtime image status shown
+  read-only in the dashboard.

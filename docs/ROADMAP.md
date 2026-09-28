@@ -6,12 +6,13 @@
 - Curated vLLM, llama.cpp and Bonsai profiles.
 - Optional Open WebUI, OpenHands and local HTTPS.
 - Update-safe catalog, import/export, region selection, GPU picker.
+- Bilingual dashboard and docs (English and German).
+- Runtime image status shown read-only.
 - Published runtime images.
-- CI and 64 tests.
+- CI and 66 tests.
 
 ## Next
 
-- Show runtime image status in the dashboard (read-only).
 - Make the model editor easier: paste a Hugging Face repo and get suggestions.
 - Test the remaining profiles on a real GPU and record the numbers.
 - Screenshots for the README.
