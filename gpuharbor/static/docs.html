@@ -99,7 +99,7 @@ caches them on its volume.</p>
 <tr><td>ID</td><td><span class="tag required">required</span></td><td>Internal name: lowercase letters, digits and <code>-</code>. Cannot be changed later.</td></tr>
 <tr><td>Name</td><td><span class="tag required">required</span></td><td>Shown in the dashboard.</td></tr>
 <tr><td>Description</td><td><span class="tag optional">optional</span></td><td>Free text.</td></tr>
-<tr><td>Hugging Face repository</td><td><span class="tag required">required</span></td><td><code>owner/repository</code>, for example <code>Qwen/Qwen3.8-27B-FP8</code>.</td></tr>
+<tr><td>Hugging Face repository</td><td><span class="tag required">required</span></td><td><code>owner/repository</code>, for example <code>Qwen/Qwen3.8-27B-FP8</code>. The button next to it looks the repository up and proposes runtime, context, volume, license and GPUs.</td></tr>
 <tr><td>Runtime</td><td><span class="tag required">required</span></td><td>Which server loads the model: <code>vllm</code>, <code>llama-cpp</code> or <code>bonsai</code>.</td></tr>
 <tr><td>GGUF file</td><td>GGUF only</td><td>The exact filename inside the repository, for example <code>model-Q6_K.gguf</code>. Plain filename, no path.</td></tr>
 <tr><td>Served names</td><td><span class="tag required">required</span></td><td>Names the API answers to, comma separated, for example <code>default, chat</code>.</td></tr>
