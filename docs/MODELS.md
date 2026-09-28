@@ -21,6 +21,10 @@ around as `orphaned-override` instead of deleting it. Details in
 ## Adding a model
 
 In the dashboard: **New model**, pick a template, fill in the repository, save.
+If you paste a repository and press **Look up on Hugging Face**, GPUHarbor reads
+the model card and `config.json` and proposes the runtime, a context length, a
+volume size, the license and suitable GPUs. GGUF repositories also get their
+filename list. Nothing is saved until you press Save.
 
 The important fields:
 

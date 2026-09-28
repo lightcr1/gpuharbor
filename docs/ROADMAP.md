@@ -8,14 +8,14 @@
 - Update-safe catalog, import/export, region selection, GPU picker.
 - Bilingual dashboard and docs (English and German).
 - Runtime image status shown read-only.
+- Model editor can look a repository up on Hugging Face and propose fields.
 - Published runtime images.
-- CI and 66 tests.
+- CI and 78 tests.
 
 ## Next
 
-- Make the model editor easier: paste a Hugging Face repo and get suggestions.
-- Test the remaining profiles on a real GPU and record the numbers.
 - Screenshots for the README.
+- Test the remaining profiles on a real GPU and record the numbers.
 
 ## Later
 

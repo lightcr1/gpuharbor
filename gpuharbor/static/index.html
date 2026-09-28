@@ -139,7 +139,7 @@ dialog::backdrop{background:#000a}
 </div><br>
 <div class="field"><label for="e-description" data-i18n="field.description">Description</label><textarea id="e-description" rows="2"></textarea></div><br>
 <div class="row">
-  <div class="field"><label for="e-model-id" data-i18n="field.model_id">Hugging Face repository</label><input id="e-model-id" placeholder="owner/repository" required><span class="hint" data-i18n="hint.model_id">For example Qwen/Qwen3.8-27B-FP8.</span></div>
+  <div class="field"><label for="e-model-id" data-i18n="field.model_id">Hugging Face repository</label><input id="e-model-id" placeholder="owner/repository" required><button type="button" class="secondary" onclick="lookupModel()" data-i18n="btn.lookup">Look up on Hugging Face</button><span class="hint" data-i18n="hint.model_id">For example Qwen/Qwen3.8-27B-FP8.</span><span id="lookup-result" class="hint"></span></div>
   <div class="field"><label for="e-runtime" data-i18n="field.runtime">Runtime</label><select id="e-runtime" onchange="runtimeChanged()"></select><span class="hint" data-i18n="hint.runtime">vLLM for FP8/BF16, llama.cpp for GGUF.</span></div>
 </div><br>
 <div class="field"><label for="e-gguf" data-i18n="field.gguf">GGUF file</label><input id="e-gguf"><span class="hint" data-i18n="hint.gguf">GGUF runtimes only: the exact filename from the repository.</span></div><br>
@@ -193,6 +193,7 @@ en:{
  "hint.memory":"Share of VRAM the runtime may use.","hint.volume":"Space for the model cache.","hint.gpu":"Only GPUs allowed by this profile.",
  "btn.plan":"Check launch plan","btn.preflight":"Check availability","btn.start":"Start pod","btn.stop":"Stop","btn.delete":"Delete pod and volume",
  "btn.save":"Save","btn.cancel":"Cancel","btn.delete_profile":"Delete profile","btn.reset":"Reset to default",
+ "lookup.button":"Look up on Hugging Face","lookup.busy":"Looking up …","lookup.found":"Found: ","lookup.failed":"Lookup failed: ","lookup.gguf":"GGUF files: ",
  "output.title":"Output","output.simple":"Simple","output.pretty":"Pretty","output.raw":"Raw","output.ready":"Ready. Billable actions are locked by default.","output.wait":"Please wait …",
  "status.title":"Status","status.loading":"Loading …","status.refresh":"Refresh","status.none":"No managed pod","status.error":"Error: ",
  "ready.unknown":"Model status unknown","ready.none":"No pod — model status n/a","ready.loaded":"Model loaded","ready.loading":"Model loading …","ready.label":"Model status",
@@ -236,6 +237,7 @@ de:{
  "hint.memory":"Anteil des VRAM, den die Runtime nutzen darf.","hint.volume":"Speicher für den Modell-Cache.","hint.gpu":"Nur GPUs, die dieses Profil erlaubt.",
  "btn.plan":"Startplan prüfen","btn.preflight":"Verfügbarkeit prüfen","btn.start":"Pod starten","btn.stop":"Stoppen","btn.delete":"Pod &amp; Volume löschen",
  "btn.save":"Speichern","btn.cancel":"Abbrechen","btn.delete_profile":"Profil löschen","btn.reset":"Auf Standard zurücksetzen",
+ "lookup.button":"Bei Hugging Face nachsehen","lookup.busy":"Suche läuft …","lookup.found":"Gefunden: ","lookup.failed":"Suche fehlgeschlagen: ","lookup.gguf":"GGUF-Dateien: ",
  "output.title":"Ausgabe","output.simple":"Einfach","output.pretty":"Schön","output.raw":"Roh","output.ready":"Bereit. Kostenpflichtige Aktionen sind standardmäßig gesperrt.","output.wait":"Bitte warten …",
  "status.title":"Status","status.loading":"Wird geladen …","status.refresh":"Aktualisieren","status.none":"Kein Pod verwaltet","status.error":"Fehler: ",
  "ready.unknown":"Modellstatus unbekannt","ready.none":"Kein Pod — Modellstatus n/a","ready.loaded":"Modell geladen","ready.loading":"Modell lädt …","ready.label":"Modellstatus",
@@ -494,6 +496,31 @@ function fillEditor(id,m){
 }
 const newModel=()=>fillEditor('',null);
 function editModel(){const id=$('model').value;if(id)fillEditor(id,models[id])}
+async function lookupModel(){
+  const repo=$('e-model-id').value.trim();
+  const result=$('lookup-result');
+  if(!repo){result.textContent='';return}
+  result.textContent=t('lookup.busy');
+  try{
+    const d=await api('/api/model-suggest',{method:'POST',body:JSON.stringify({model_id:repo})});
+    if(d.suggested_runtime)$('e-runtime').value=d.suggested_runtime;
+    if(d.context_length)$('e-context').value=d.context_length;
+    if(d.suggested_volume_gb)$('e-volume').value=d.suggested_volume_gb;
+    if(d.license&&d.license!=='unknown')$('e-license').value=d.license;
+    $('e-gated').checked=!!d.gated;
+    if(d.gguf_files&&d.gguf_files.length)$('e-gguf').value=d.gguf_files[0];
+    const known=new Set(gpuOptions.map(g=>g.id));
+    const suggested=d.suggested_gpus||[];
+    $('e-gpu-list').querySelectorAll('input').forEach(cb=>{cb.checked=suggested.includes(cb.value)});
+    $('e-gpus').value=suggested.filter(g=>!known.has(g)).join('\n');
+    runtimeChanged();
+    const parts=[t('lookup.found')+(d.model_id||repo)];
+    if(d.estimated_size_gb)parts.push(d.estimated_size_gb+' GB');
+    if(d.notes&&d.notes.length)parts.push(d.notes.join(' '));
+    if(d.gguf_files&&d.gguf_files.length>1)parts.push(t('lookup.gguf')+d.gguf_files.slice(0,4).join(', '));
+    result.textContent=parts.join(' · ');
+  }catch(err){result.textContent=t('lookup.failed')+err.message}
+}
 function applyPreset(){
   const p=presets[$('e-preset').value];if(!p)return;
   $('e-runtime').value=p.runtime;

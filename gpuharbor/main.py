@@ -17,6 +17,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .catalog import GPU_FALLBACK, MODEL_PRESETS, group_datacenters, region_label
 from .config import Settings
+from .huggingface import LookupError, lookup as hf_lookup
 from .idle import should_stop_for_idle
 from .registry import ModelDefinition, Registry
 from .runpod import LaunchOptions, RunpodClient, RunpodError, pod_status, proxy_url, resolve_launch
@@ -132,6 +133,20 @@ class LoginRequest(BaseModel):
 class CatalogImportRequest(BaseModel):
     catalog: dict
     replace: bool = False
+
+
+class SuggestRequest(BaseModel):
+    model_id: str
+
+
+@app.post("/api/model-suggest", dependencies=[Depends(require_control)])
+async def model_suggest(body: SuggestRequest, request: Request) -> dict:
+    """Look a repository up on Hugging Face and propose profile fields."""
+    token = settings.huggingface_token.get_secret_value() if settings.huggingface_token else None
+    try:
+        return await hf_lookup(request.app.state.proxy, body.model_id, token)
+    except LookupError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
 
 
 STATIC_DIR = Path(__file__).parent / "static"

@@ -21,3 +21,5 @@ All notable changes will be documented here once releases begin.
 - Added a favicon and a `/api/model/ready` endpoint.
 - English dashboard and docs with a German switch; runtime image status shown
   read-only in the dashboard.
+- "Look up on Hugging Face" in the model editor proposes runtime, context,
+  volume, license, GGUF filenames and GPUs for a repository.
