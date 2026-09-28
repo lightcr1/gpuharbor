@@ -28,4 +28,4 @@ testpaths = ["tests"]
 include = ["gpuharbor*"]
 
 [tool.setuptools.package-data]
-gpuharbor = ["static/*.html"]
+gpuharbor = ["static/*.html", "static/*.svg"]

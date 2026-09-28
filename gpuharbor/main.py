@@ -15,6 +15,7 @@ from starlette.background import BackgroundTask
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from .catalog import GPU_FALLBACK, MODEL_PRESETS, group_datacenters, region_label
 from .config import Settings
 from .idle import should_stop_for_idle
 from .registry import ModelDefinition, Registry
@@ -77,7 +78,14 @@ async def idle_stop_loop(application: FastAPI) -> None:
             continue
 
 
-app = FastAPI(title="GPUHarbor", version="0.1.0-dev", lifespan=lifespan)
+app = FastAPI(
+    title="GPUHarbor",
+    version="0.1.0-dev",
+    lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
 app.add_middleware(
@@ -126,9 +134,22 @@ class CatalogImportRequest(BaseModel):
     replace: bool = False
 
 
+STATIC_DIR = Path(__file__).parent / "static"
+
+
 @app.get("/", include_in_schema=False)
 async def dashboard() -> FileResponse:
-    return FileResponse(Path(__file__).parent / "static" / "index.html")
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/docs", include_in_schema=False)
+async def documentation() -> FileResponse:
+    return FileResponse(STATIC_DIR / "docs.html")
+
+
+@app.get("/favicon.svg", include_in_schema=False)
+async def favicon() -> FileResponse:
+    return FileResponse(STATIC_DIR / "favicon.svg", media_type="image/svg+xml")
 
 
 @app.get("/health")
@@ -184,6 +205,87 @@ async def controller_settings() -> dict:
         "datacenter_ids": settings.datacenter_ids,
         "billable_actions_enabled": settings.runpod_allow_billable_actions,
         "idle_stop_minutes": settings.runpod_idle_stop_minutes,
+        "regions_enabled": True,
+    }
+
+
+@app.get("/api/model-presets", dependencies=[Depends(require_control)])
+async def model_presets() -> dict:
+    return MODEL_PRESETS
+
+
+@app.get("/api/gpu-options", dependencies=[Depends(require_control)])
+async def gpu_options(request: Request) -> dict:
+    """Live RunPod GPU catalog when reachable, otherwise a static fallback list."""
+    try:
+        rows = await request.app.state.runpod.list_gpus()
+    except RunpodError as error:
+        return {"source": "fallback", "detail": str(error), "gpus": GPU_FALLBACK}
+    gpus = []
+    for row in rows:
+        datacenters = row.get("dataCenters") or []
+        gpus.append(
+            {
+                "id": row.get("id"),
+                "name": row.get("name") or row.get("id"),
+                "memory": row.get("memory"),
+                "secure_price": (row.get("price") or {}).get("secure"),
+                "availability": row.get("availability"),
+                "datacenters": [
+                    f"{entry.get('id')}:{entry.get('availability')}" for entry in datacenters
+                ],
+            }
+        )
+    gpus.sort(key=lambda item: (item.get("memory") or 0, item.get("secure_price") or 999))
+    return {"source": "live", "gpus": gpus}
+
+
+@app.get("/api/regions", dependencies=[Depends(require_control)])
+async def regions(request: Request) -> dict:
+    """Group RunPod datacenters into regions; fall back to configured IDs."""
+    try:
+        grouped = group_datacenters(await request.app.state.runpod.list_datacenters())
+    except RunpodError as error:
+        grouped = {"CONFIGURED": settings.datacenter_ids}
+        return {
+            "source": "fallback",
+            "detail": str(error),
+            "regions": [
+                {"id": name, "label": name.title(), "datacenters": ids}
+                for name, ids in grouped.items()
+            ],
+        }
+    return {
+        "source": "live",
+        "regions": [
+            {"id": name, "label": region_label(name), "datacenters": ids}
+            for name, ids in sorted(grouped.items())
+        ],
+    }
+
+
+@app.get("/api/model/ready", dependencies=[Depends(require_control)])
+async def model_ready(request: Request) -> dict:
+    """Report whether the runtime gateway in the pod answers `/health`."""
+    state = store.read()
+    if not state.pod_id:
+        return {"ready": False, "detail": "Kein Pod verwaltet", "model_id": state.model_id}
+    try:
+        response = await request.app.state.proxy.get(
+            f"{proxy_url(state.pod_id)}/health",
+            headers={"Authorization": f"Bearer {settings.runtime_gateway_token.get_secret_value()}"},
+            timeout=8,
+        )
+    except httpx.HTTPError as error:
+        return {"ready": False, "detail": f"Gateway nicht erreichbar: {error}", "model_id": state.model_id}
+    if response.status_code == 200:
+        return {"ready": True, "detail": "Modell geladen", "model_id": state.model_id}
+    if response.status_code == 503:
+        return {"ready": False, "detail": "Modell lädt noch", "model_id": state.model_id}
+    return {
+        "ready": False,
+        "detail": f"Gateway HTTP {response.status_code}",
+        "model_id": state.model_id,
     }
 
 
@@ -257,7 +359,7 @@ async def reset_model(model_id: str) -> dict[str, bool]:
     return {"ok": True}
 
 
-def resolved(options: LaunchOptions):
+def resolved(options: LaunchOptions, datacenters: list[str] | None = None):
     models = registry.models()
     if options.model_id not in models:
         raise HTTPException(status_code=404, detail="Model not found")
@@ -266,14 +368,31 @@ def resolved(options: LaunchOptions):
         raise HTTPException(status_code=409, detail="This model profile is disabled")
     runtime = registry.runtimes()[model.runtime]
     try:
-        return resolve_launch(options, model, runtime, settings.datacenter_ids)
+        return resolve_launch(options, model, runtime, datacenters or settings.datacenter_ids)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
+async def datacenters_for(options: LaunchOptions, request: Request) -> list[str]:
+    """Expand a chosen region into concrete datacenters, or use the configured list."""
+    if not options.region or options.datacenter_id:
+        return settings.datacenter_ids
+    wanted = options.region.strip().upper()
+    try:
+        grouped = group_datacenters(await request.app.state.runpod.list_datacenters())
+    except RunpodError as error:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Region konnte nicht aufgelöst werden: {error}. Nutze RUNPOD_DATACENTER_IDS oder eine feste Region.",
+        ) from error
+    if wanted not in grouped:
+        raise HTTPException(status_code=422, detail=f"Unbekannte Region: {options.region}")
+    return grouped[wanted]
+
+
 @app.post("/api/pod/plan", dependencies=[Depends(require_control)])
 async def plan(options: LaunchOptions, request: Request) -> dict:
-    launch = resolved(options)
+    launch = resolved(options, await datacenters_for(options, request))
     candidates = request.app.state.runpod.create_candidates(launch)
     candidates = redact_secrets(candidates)
     return {
@@ -286,7 +405,7 @@ async def plan(options: LaunchOptions, request: Request) -> dict:
 
 @app.post("/api/runpod/preflight", dependencies=[Depends(require_control)])
 async def preflight(options: LaunchOptions, request: Request) -> dict:
-    launch = resolved(options)
+    launch = resolved(options, await datacenters_for(options, request))
     try:
         pods, gpus = await asyncio.gather(
             request.app.state.runpod.list_pods(),
@@ -317,7 +436,7 @@ async def status(request: Request) -> dict:
 async def start(options: LaunchOptions, request: Request) -> dict:
     if not settings.runpod_allow_billable_actions:
         raise HTTPException(status_code=403, detail="Billable actions are disabled")
-    launch = resolved(options)
+    launch = resolved(options, await datacenters_for(options, request))
     profile_revision = registry.records()[options.model_id].revision
     errors = settings.live_errors(launch.profile.runtime)
     if errors:

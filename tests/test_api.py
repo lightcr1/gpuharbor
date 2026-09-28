@@ -257,6 +257,107 @@ def test_model_proxy_rejects_oversized_request_before_upstream(app_client):
     assert response.status_code == 413
 
 
+def test_docs_favicon_and_presets_are_available(app_client):
+    client, _ = app_client
+    docs = client.get("/docs")
+    assert docs.status_code == 200
+    assert "Dokumentation" in docs.text
+    assert "Hugging-Face Remote-Code" in docs.text
+    icon = client.get("/favicon.svg")
+    assert icon.status_code == 200
+    assert icon.headers["content-type"].startswith("image/svg+xml")
+    csrf = login(client)
+    assert csrf
+    presets = client.get("/api/model-presets").json()
+    assert {"vllm-chat", "vllm-coding", "gguf-chat", "bonsai"} <= set(presets)
+    assert client.get("/api/model-presets").status_code == 200
+
+
+def test_gpu_options_and_regions_degrade_when_runpod_fails(app_client):
+    from gpuharbor.runpod import RunpodError
+
+    client, _ = app_client
+    login(client)
+    client.app.state.runpod.list_gpus = AsyncMock(side_effect=RunpodError("no key"))
+    client.app.state.runpod.list_datacenters = AsyncMock(side_effect=RunpodError("no key"))
+
+    gpus = client.get("/api/gpu-options").json()
+    assert gpus["source"] == "fallback"
+    assert any(entry["id"] == "NVIDIA A40" for entry in gpus["gpus"])
+
+    regions = client.get("/api/regions").json()
+    assert regions["source"] == "fallback"
+    assert regions["regions"][0]["datacenters"]
+
+
+def test_gpu_options_and_regions_use_live_catalog(app_client):
+    client, _ = app_client
+    login(client)
+    client.app.state.runpod.list_gpus = AsyncMock(
+        return_value=[
+            {
+                "id": "NVIDIA A40",
+                "name": "A40",
+                "memory": 48,
+                "availability": "LOW",
+                "price": {"secure": 0.49},
+                "dataCenters": [{"id": "EU-SE-1", "availability": "LOW"}],
+            }
+        ]
+    )
+    client.app.state.runpod.list_datacenters = AsyncMock(
+        return_value=[
+            {"id": "EU-SE-1", "region": "EUROPE"},
+            {"id": "US-KS-2", "region": "NORTH_AMERICA"},
+        ]
+    )
+    gpus = client.get("/api/gpu-options").json()
+    assert gpus["source"] == "live"
+    assert gpus["gpus"][0]["secure_price"] == 0.49
+
+    regions = client.get("/api/regions").json()
+    assert regions["source"] == "live"
+    by_id = {entry["id"]: entry for entry in regions["regions"]}
+    assert by_id["EUROPE"]["datacenters"] == ["EU-SE-1"]
+    assert by_id["EUROPE"]["label"] == "Europa"
+
+
+def test_region_choice_expands_to_datacenters(app_client):
+    client, _ = app_client
+    csrf = login(client)
+    client.app.state.runpod.list_datacenters = AsyncMock(
+        return_value=[{"id": "EU-SE-1", "region": "EUROPE"}]
+    )
+    response = client.post(
+        "/api/pod/plan",
+        json={"model_id": "qwen38-27b-fp8", "region": "EUROPE"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert response.status_code == 200
+    candidates = response.json()["candidates"]
+    assert {item["datacenter_id"] for item in candidates} == {"EU-SE-1"}
+
+
+def test_region_and_datacenter_together_are_rejected(app_client):
+    client, _ = app_client
+    csrf = login(client)
+    client.app.state.runpod.list_datacenters = AsyncMock(
+        return_value=[{"id": "EU-SE-1", "region": "EUROPE"}]
+    )
+    response = client.post(
+        "/api/pod/plan",
+        json={"model_id": "qwen38-27b-fp8", "region": "EUROPE", "datacenter_id": "EU-SE-1"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert response.status_code == 422
+
+
+def test_model_ready_reports_no_pod(app_client):
+    client, _ = app_client
+    login(client)
+    assert client.get("/api/model/ready").json()["ready"] is False
+
+
 def test_logout_requires_csrf_and_invalidates_session(app_client):
     client, _ = app_client
     csrf = login(client)

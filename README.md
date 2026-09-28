@@ -24,6 +24,10 @@ trade-offs.
 ## Why GPUHarbor?
 
 - Change models, context size, parallelism, GPU, region and volume in the UI.
+- Pick GPUs from the live RunPod catalog (with availability and price) instead of typing names.
+- Choose a region such as Europe or North America; a datacenter is assigned automatically.
+- Switch the output panel between a short summary, pretty JSON and the raw response.
+- Open the built-in `/docs` page, which explains every field and endpoint.
 - Add, export and import custom model profiles without editing Python code.
 - Receive new built-ins on upgrades without overwriting custom models or overrides.
 - Use curated vLLM, llama.cpp/GGUF and experimental Bonsai runtime presets.
@@ -57,6 +61,15 @@ git clone https://github.com/lightcr1/gpuharbor.git
 cd gpuharbor
 ./scripts/install
 ```
+
+Prefer questions and checkboxes? Use the interactive assistant:
+
+```bash
+./scripts/setup          # asks for bind address, HTTPS, Open WebUI, OpenHands
+```
+
+In-app documentation for every field and endpoint is served at `/docs`
+(for example `http://127.0.0.1:8080/docs`) and linked from the dashboard.
 
 The installer generates `.env` with independent random secrets, optionally
 creates TLS certificates, builds and starts the stack, and prints the URLs and
@@ -116,6 +129,8 @@ If a request returns "Invalid host header", the address you used is missing from
 HTTPS is a Compose overlay and stays optional:
 
 ```bash
+./scripts/setup     # interactive: tick HTTPS and answer the questions
+# or non-interactive:
 ./scripts/install --bind-ip 0.0.0.0 --https 10.10.40.100 --tls-port 9443
 ```
 

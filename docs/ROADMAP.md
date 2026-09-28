@@ -4,6 +4,8 @@
 
 - [x] Local controller skeleton and cost lock
 - [x] Versioned, update-safe UI model catalog, overrides and import/export
+- [x] In-app `/docs`, field help, GPU picker, region selection, output modes,
+      favicon and model-ready indicator
 - [x] Curated vLLM, llama.cpp and Bonsai profiles
 - [x] Optional Open WebUI and OpenHands overlays
 - [x] Complete mocked lifecycle and authentication tests

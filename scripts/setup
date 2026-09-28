@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""Interactive GPUHarbor setup assistant.
+
+Asks a few questions, writes .env, optionally creates TLS certificates and
+starts exactly the services you tick. Every answer can also be given as a flag,
+so it works unattended.
+
+Examples:
+    ./scripts/setup
+    ./scripts/setup --yes
+    ./scripts/setup --bind 0.0.0.0 --https 10.10.40.100 --https-port 9443 --webui --start
+    ./scripts/setup --dry-run --bind 10.10.40.100 --https 10.10.40.100
+"""
+from __future__ import annotations
+
+import argparse
+import ipaddress
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def ask(question: str, default: str = "") -> str:
+    suffix = f" [{default}]" if default else ""
+    try:
+        answer = input(f"{question}{suffix}: ").strip()
+    except EOFError:
+        answer = ""
+    return answer or default
+
+
+def ask_bool(question: str, default: bool = False) -> bool:
+    default_text = "J" if default else "n"
+    answer = ask(f"{question} (j/n)", default_text).lower()
+    return answer.startswith("j") or answer.startswith("y")
+
+
+def valid_host(value: str) -> bool:
+    if not value:
+        return False
+    try:
+        ipaddress.ip_address(value)
+        return True
+    except ValueError:
+        return "." in value and " " not in value
+
+
+def run(command: list[str], *, dry_run: bool) -> None:
+    print("+", " ".join(command))
+    if not dry_run:
+        subprocess.run(command, cwd=ROOT, check=True)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Interactive GPUHarbor setup")
+    parser.add_argument("--yes", action="store_true", help="accept every default")
+    parser.add_argument("--bind", help="bind address (127.0.0.1, 0.0.0.0 or a LAN/VPN IP)")
+    parser.add_argument("--https", metavar="HOST", help="enable HTTPS for this host")
+    parser.add_argument("--https-port", default="8443", help="host port for the HTTPS proxy")
+    parser.add_argument("--webui", action="store_true", help="include Open WebUI")
+    parser.add_argument("--openhands", action="store_true", help="include OpenHands Agent Canvas")
+    parser.add_argument("--start", action="store_true", help="start the stack after setup")
+    parser.add_argument("--dry-run", action="store_true", help="print the commands without running them")
+    args = parser.parse_args()
+
+    interactive = not args.yes and not args.dry_run
+    print("GPUHarbor Setup\n" + "-" * 40)
+
+    bind = args.bind
+    if not bind:
+        bind = ask("Bind-Adresse (127.0.0.1 = nur lokal, 0.0.0.0 = alle, oder LAN/VPN-IP)", "127.0.0.1") if interactive else "127.0.0.1"
+    if not valid_host(bind):
+        print(f"Ungültige Bind-Adresse: {bind}", file=sys.stderr)
+        return 1
+
+    https_host = args.https
+    if https_host is None and interactive:
+        if ask_bool("HTTPS aktivieren?", False):
+            https_host = ask("Hostname oder IP für das Zertifikat",
+                             "localhost" if bind in {"127.0.0.1", "0.0.0.0"} else bind)
+    if https_host is not None and https_host != "" and not valid_host(https_host):
+        print(f"Ungültiger HTTPS-Host: {https_host}", file=sys.stderr)
+        return 1
+
+    webui = args.webui
+    openhands = args.openhands
+    if interactive:
+        webui = ask_bool("Open WebUI mitinstallieren?", webui)
+        openhands = ask_bool("OpenHands mitinstallieren? (führt Code aus)", openhands)
+
+    start = args.start
+    if interactive and not start:
+        start = ask_bool("Jetzt starten?", True)
+
+    print("-" * 40)
+    print(f"Bind-Adresse : {bind}")
+    print(f"HTTPS        : {https_host or 'nein'}" + (f" (Port {args.https_port})" if https_host else ""))
+    print(f"Open WebUI   : {'ja' if webui else 'nein'}")
+    print(f"OpenHands    : {'ja' if openhands else 'nein'}")
+    print(f"Starten      : {'ja' if start else 'nein'}")
+    print("-" * 40)
+
+    if interactive and not ask_bool("So fortfahren?", True):
+        print("Abgebrochen.")
+        return 1
+
+    env_command = [sys.executable, "scripts/init-env", "--bind-ip", bind]
+    if https_host:
+        env_command += ["--https-host", https_host, "--tls-port", args.https_port]
+    run(env_command, dry_run=args.dry_run)
+
+    compose = ["docker", "compose", "-f", "compose.yml"]
+    if https_host:
+        run(["./scripts/generate-local-tls", https_host, "tls"], dry_run=args.dry_run)
+        compose += ["-f", "compose.tls.yml"]
+    if webui:
+        compose += ["-f", "compose.openwebui.yml"]
+    if openhands:
+        compose += ["-f", "compose.openhands.yml"]
+
+    if start:
+        if shutil.which("docker") is None and not args.dry_run:
+            print("Docker nicht gefunden.", file=sys.stderr)
+            return 1
+        run([*compose, "up", "-d", "--build"], dry_run=args.dry_run)
+
+    print()
+    print("Fertig.")
+    shown = bind if bind != "0.0.0.0" else "localhost"
+    if https_host:
+        print(f"  Dashboard: https://{https_host}:{args.https_port}/")
+    print(f"  Dashboard: http://{shown}:8080/")
+    print("  Benutzer : admin")
+    print("  Passwort : GPUHARBOR_ADMIN_PASSWORD in .env")
+    print()
+    print("Kostenpflichtige RunPod-Aktionen bleiben gesperrt, bis du")
+    print("RUNPOD_ALLOW_BILLABLE_ACTIONS=true setzt.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

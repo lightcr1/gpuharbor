@@ -15,7 +15,11 @@ without building images. Full digests: [RELEASE_ARTIFACTS.md](RELEASE_ARTIFACTS.
 
 ## Verified without RunPod cost
 
-- 50 unit/API/security/registry/runtime/installer tests pass.
+- 56 unit/API/security/registry/runtime/installer tests pass.
+- Dashboard offers: in-app `/docs`, GPU checkboxes from the live catalog with
+  static fallback, region-based datacenter assignment, field help, output modes
+  (simple/pretty/raw), favicon and a model-ready indicator.
+- `scripts/setup` interactive assistant and non-interactive `--dry-run` verified.
 - Controller image builds from exact Python dependency locks.
 - vLLM, llama.cpp and experimental Bonsai runtime images build locally.
 - Runtime gateway options reject unsupported argument injection.

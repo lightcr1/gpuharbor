@@ -24,6 +24,7 @@ class LaunchOptions(BaseModel):
     gpu_memory_utilization: float | None = Field(default=None, ge=0.5, le=0.99)
     gpu_type_id: str | None = None
     datacenter_id: str | None = None
+    region: str | None = None
     volume_gb: int | None = Field(default=None, ge=10, le=1000)
 
 
@@ -55,6 +56,8 @@ def resolve_launch(
         raise ValueError("Selected GPU is not allowed by this model profile")
     if options.datacenter_id and options.datacenter_id not in default_datacenters:
         raise ValueError("Selected datacenter is not configured")
+    if options.datacenter_id and options.region:
+        raise ValueError("Choose either a region or a specific datacenter, not both")
     return ResolvedLaunch(
         profile_id=options.model_id,
         profile=model,
@@ -181,6 +184,25 @@ class RunpodClient:
             f"/catalog/gpus/{quote(gpu_type_id, safe='')}",
             params={"include": "AVAILABILITY", "product": "POD", "count": 1},
         )
+
+    async def list_gpus(self) -> list[dict[str, Any]]:
+        """Full GPU catalog with availability, for the dashboard picker."""
+        result = await self.request(
+            "GET",
+            "/catalog/gpus",
+            params={"include": "AVAILABILITY", "product": "POD", "count": 1},
+        )
+        rows = result if isinstance(result, list) else (result or {}).get("gpus")
+        if not isinstance(rows, list):
+            raise RunpodError("Unexpected RunPod GPU catalog response")
+        return [row for row in rows if isinstance(row, dict)]
+
+    async def list_datacenters(self) -> list[dict[str, Any]]:
+        result = await self.request("GET", "/catalog/datacenters")
+        rows = (result or {}).get("dataCenters") if isinstance(result, dict) else result
+        if not isinstance(rows, list):
+            raise RunpodError("Unexpected RunPod datacenter catalog response")
+        return [row for row in rows if isinstance(row, dict)]
 
     async def create_pod(self, launch: ResolvedLaunch) -> dict[str, Any]:
         existing = [
