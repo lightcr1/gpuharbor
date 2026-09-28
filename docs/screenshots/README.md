@@ -7,6 +7,7 @@ Images used by the README and the docs live here.
 | `dashboard.png` | dashboard in English, cost lock active |
 | `dashboard.de.png` | dashboard in German |
 | `model-editor.de.png` | model editor with the Hugging Face lookup |
+| `social-preview.png` | 1280x640 banner for the GitHub repository settings |
 
 ## Replacing one
 
@@ -36,3 +37,9 @@ const { chromium } = require('playwright');
 
 Keep screenshots free of API keys, tokens, IP addresses and account details, and
 leave the cost lock in its default state so the badge shows "Cost lock active".
+
+## Social preview
+
+GitHub has no API for the repository social preview image, so it has to be set by
+hand: **Settings → General → Social preview → Edit → Upload an image** and pick
+`docs/screenshots/social-preview.png` (1280x640).
