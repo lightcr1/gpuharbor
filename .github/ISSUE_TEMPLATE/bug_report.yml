@@ -1,0 +1,41 @@
+name: Bug report
+description: Something does not work
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: GPUHarbor version or commit
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: Run `docker compose logs controller` and paste the relevant part.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Before posting
+      options:
+        - label: I removed API keys, tokens and other secrets from this report.
+          required: true
