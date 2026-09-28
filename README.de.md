@@ -1,6 +1,7 @@
 # GPUHarbor
 
 [![CI](https://github.com/lightcr1/gpuharbor/actions/workflows/ci.yml/badge.svg)](https://github.com/lightcr1/gpuharbor/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/lightcr1/gpuharbor)](https://github.com/lightcr1/gpuharbor/releases)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 Eine kleine Steuerzentrale, um KI-Modelle auf RunPod laufen zu lassen. GPUHarbor
