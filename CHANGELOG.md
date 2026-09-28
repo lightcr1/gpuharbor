@@ -4,6 +4,10 @@ All notable changes will be documented here once releases begin.
 
 ## Unreleased
 
+- Align the numeric fields in the start panel so all four inputs share one line.
+- Fix a literal `&amp;` on the German delete button and re-render option lists
+  when the language changes.
+
 - Added the GPUHarbor controller, authenticated dashboard and OpenAI-compatible proxy.
 - Added versioned, update-safe built-ins, custom profiles, overrides, reset,
   import/export, automatic legacy migration and launch-time resource overrides.

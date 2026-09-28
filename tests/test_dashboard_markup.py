@@ -35,6 +35,16 @@ def test_both_dictionaries_define_the_same_keys():
     assert english == german, f"only in English: {sorted(english - german)}, only in German: {sorted(german - english)}"
 
 
+def test_dictionary_values_contain_no_html_entities():
+    """Values are assigned with textContent, so entities would show up literally."""
+    import re
+
+    html = read("index.html")
+    body = html.split("const I18N=", 1)[1].split("let lang=", 1)[0]
+    bad = re.findall(r'"[a-z][a-z0-9_.]+":"[^"]*&(?:amp|nbsp|lt|gt|quot);[^"]*"', body)
+    assert not bad, f"HTML entities in translation values: {bad}"
+
+
 def test_dashboard_element_references_resolve():
     html = read("index.html")
     ids = set(re.findall(r'\bid="([^"]+)"', html))

@@ -17,6 +17,8 @@ h2{font-size:17px;margin-top:0}
 .grid{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}
 .card{background:rgba(21,29,49,.94);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 14px 50px #0004}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.row.fields{align-items:flex-start}
+.row.fields .field{align-self:flex-start}
 .field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:150px}
 label{color:var(--muted);font-size:13px}
 .hint{color:var(--muted);font-size:12px;line-height:1.35}
@@ -77,7 +79,7 @@ dialog::backdrop{background:#000a}
   <div class="field"><label for="datacenter" data-i18n="start.datacenter">Datacenter (advanced)</label><select id="datacenter"></select></div>
 </div>
 <p id="model-description" class="hint"></p><div id="badges"></div><br>
-<div class="row">
+<div class="row fields">
   <div class="field"><label for="context" data-i18n="field.context">Context (tokens)</label><input id="context" type="number" min="1024" max="262144" step="1024"><span class="hint" data-i18n="hint.context">Maximum length of one request. More uses more VRAM.</span></div>
   <div class="field"><label for="sequences" data-i18n="field.sequences">Parallel sequences</label><input id="sequences" type="number" min="1" max="32"><span class="hint" data-i18n="hint.sequences">Requests handled at the same time.</span></div>
   <div class="field"><label for="memory" data-i18n="field.memory">GPU utilisation (0–1)</label><input id="memory" type="number" min="0.5" max="0.99" step="0.01"><span class="hint" data-i18n="hint.memory">Share of VRAM the runtime may use.</span></div>
@@ -236,7 +238,7 @@ de:{
  "field.context":"Kontext (Token)","field.sequences":"Parallele Sequenzen","field.memory":"GPU-Nutzung (0–1)","field.volume":"Volume (GB)","field.gpu":"GPU",
  "hint.context":"Maximale Länge einer Anfrage. Mehr braucht mehr VRAM.","hint.sequences":"Gleichzeitig bearbeitete Anfragen.",
  "hint.memory":"Anteil des VRAM, den die Runtime nutzen darf.","hint.volume":"Speicher für den Modell-Cache.","hint.gpu":"Nur GPUs, die dieses Profil erlaubt.",
- "btn.plan":"Startplan prüfen","btn.preflight":"Verfügbarkeit prüfen","btn.start":"Pod starten","btn.stop":"Stoppen","btn.delete":"Pod &amp; Volume löschen",
+ "btn.plan":"Startplan prüfen","btn.preflight":"Verfügbarkeit prüfen","btn.start":"Pod starten","btn.stop":"Stoppen","btn.delete":"Pod & Volume löschen",
  "btn.save":"Speichern","btn.cancel":"Abbrechen","btn.delete_profile":"Profil löschen","btn.reset":"Auf Standard zurücksetzen",
  "lookup.button":"Bei Hugging Face nachsehen","lookup.busy":"Suche läuft …","lookup.found":"Gefunden: ","lookup.failed":"Suche fehlgeschlagen: ","lookup.gguf":"GGUF-Dateien: ",
  "output.title":"Ausgabe","output.simple":"Einfach","output.pretty":"Schön","output.raw":"Roh","output.ready":"Bereit. Kostenpflichtige Aktionen sind standardmäßig gesperrt.","output.wait":"Bitte warten …",
@@ -276,7 +278,13 @@ de:{
 let lang=localStorage.getItem('gh-lang');
 if(!lang)lang=(navigator.language||'en').toLowerCase().startsWith('de')?'de':'en';
 function t(key){const table=I18N[lang]||I18N.en;return table[key]||I18N.en[key]||key}
-function setLang(value){lang=I18N[value]?value:'en';localStorage.setItem('gh-lang',lang);applyLang();render(lastRaw);refreshStatus()}
+function setLang(value){
+  lang=I18N[value]?value:'en';
+  localStorage.setItem('gh-lang',lang);
+  applyLang();
+  // Option labels are built from settings, so they have to be rebuilt too.
+  loadCatalog().then(()=>render(lastKey?t(lastKey):lastRaw)).catch(()=>{});
+}
 function applyLang(){
   document.documentElement.lang=lang;
   document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n)});
@@ -286,7 +294,7 @@ function applyLang(){
   updateBillablePill();
 }
 
-let models={},runtimes={},settingsData={},gpuOptions=[],regions=[],presets={},csrfToken='',podActive=false,lastRaw='';
+let models={},runtimes={},settingsData={},gpuOptions=[],regions=[],presets={},csrfToken='',podActive=false,lastRaw='',lastKey=null;
 let mode='pretty';
 const $=id=>document.getElementById(id), output=$('output'), editor=$('editor');
 
@@ -304,6 +312,7 @@ function updateBillablePill(){
   $('billable-pill').textContent=on?t('pill.billable_on'):t('pill.billable_off');
   $('billable-pill').className='pill '+(on?'danger-text':'ok');
 }
+function showMessage(key){lastKey=key;render(t(key))}
 function setMode(m){mode=m;for(const n of ['simple','pretty','raw'])$('mode-'+n).classList.toggle('active',n===m);render(lastRaw)}
 function render(text){
   lastRaw=text;
@@ -332,20 +341,21 @@ function summarize(text){
   return text;
 }
 async function action(path,method='POST',body=null){
-  render(t('output.wait'));
+  showMessage('output.wait');
   try{
     const data=await api(path,{method,body:body?JSON.stringify(body):undefined});
+    lastKey=null;
     render(typeof data==='string'?data:JSON.stringify(data));
     await refreshStatus();
     return data;
-  }catch(err){render(t('msg.error')+err.message);return null}
+  }catch(err){lastKey=null;render(t('msg.error')+err.message);return null}
 }
 $('login-form').onsubmit=async e=>{e.preventDefault();
   try{await api('/api/login',{method:'POST',body:JSON.stringify({username:$('username').value,password:$('password').value})});await boot()}
   catch(err){$('login-error').textContent=t('login.failed')+' '+err.message}};
 async function boot(){
   applyLang();
-  render(t('output.ready'));
+  showMessage('output.ready');
   const me=await api('/api/me');
   if(!me.authenticated)return;
   csrfToken=me.csrf_token;
