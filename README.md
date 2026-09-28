@@ -45,14 +45,20 @@ the public upstream APIs; GPU execution is still unverified. See
 ## Local, non-billable start
 
 ```bash
-cp .env.example .env
-# Replace every secret. Keep RUNPOD_ALLOW_BILLABLE_ACTIONS=false.
+./scripts/init-env --bind-ip 127.0.0.1
 docker compose up --build -d
 ```
 
-Open `http://127.0.0.1:8080`. You can edit profiles and inspect plans without
-creating a pod. A live start remains blocked while the billable-action switch is
-false or runtime images are not configured as immutable digests.
+`init-env` copies `.env.example` to `.env` and fills every placeholder with an
+independent random secret. It never overwrites real values, so it is safe to run
+again. Use `--bind-ip 0.0.0.0` (or your LAN/VPN address) if you want to reach the
+dashboard from another device; the bind address is added to the trusted hosts
+automatically.
+
+Open `http://127.0.0.1:8080` (or `http://<your-bind-ip>:8080`). You can edit
+profiles and inspect plans without creating a pod. A live start remains blocked
+while the billable-action switch is false or runtime images are not configured
+as immutable digests.
 
 ## Optional integrations
 

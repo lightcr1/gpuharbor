@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Create a local .env from .env.example without fragile in-place edits.
+
+Generates independent random secrets for every placeholder and optionally sets
+the bind address and trusted hosts. Existing real values are preserved; running
+the script again never overwrites secrets that no longer contain "replace".
+"""
+from __future__ import annotations
+
+import argparse
+import secrets
+import shutil
+import sys
+from pathlib import Path
+
+SECRET_KEYS = [
+    "RUNPOD_API_KEY",
+    "CONTROL_TOKEN",
+    "MODEL_ACCESS_TOKEN",
+    "RUNTIME_GATEWAY_TOKEN",
+    "GPUHARBOR_ADMIN_PASSWORD",
+    "GPUHARBOR_SESSION_SECRET",
+    "WEBUI_SECRET_KEY",
+    "OPENHANDS_BACKEND_API_KEY",
+]
+
+
+def parse(text: str) -> tuple[list[str], dict[str, str]]:
+    lines = text.splitlines()
+    values: dict[str, str] = {}
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        values[key.strip()] = value
+    return lines, values
+
+
+def render(lines: list[str], updates: dict[str, str]) -> str:
+    seen: set[str] = set()
+    output: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in line:
+            key = line.partition("=")[0].strip()
+            if key in updates:
+                output.append(f"{key}={updates[key]}")
+                seen.add(key)
+                continue
+        output.append(line)
+    for key, value in updates.items():
+        if key not in seen:
+            output.append(f"{key}={value}")
+    return "\n".join(output) + "\n"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Initialise a GPUHarbor .env")
+    parser.add_argument("--env", default=".env", help="target file (default: .env)")
+    parser.add_argument("--example", default=".env.example", help="template file")
+    parser.add_argument("--bind-ip", help="set HOST_BIND_IP, e.g. 0.0.0.0 or 10.10.40.100")
+    parser.add_argument(
+        "--trusted-hosts",
+        help="comma separated GPUHARBOR_TRUSTED_HOSTS value; defaults to localhost plus --bind-ip",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="regenerate every secret even if a real value is already present",
+    )
+    args = parser.parse_args()
+
+    target = Path(args.env)
+    example = Path(args.example)
+    if not example.exists():
+        print(f"Template {example} not found.", file=sys.stderr)
+        return 1
+
+    source = target if target.exists() else example
+    lines, values = parse(source.read_text(encoding="utf-8"))
+
+    updates: dict[str, str] = {}
+    for key in SECRET_KEYS:
+        current = values.get(key, "")
+        if args.force or not current or "replace" in current.lower():
+            updates[key] = secrets.token_hex(32)
+
+    if args.bind_ip:
+        updates["HOST_BIND_IP"] = args.bind_ip
+        hosts = args.trusted_hosts or f"localhost,127.0.0.1,{args.bind_ip}"
+        updates["GPUHARBOR_TRUSTED_HOSTS"] = hosts
+    elif args.trusted_hosts:
+        updates["GPUHARBOR_TRUSTED_HOSTS"] = args.trusted_hosts
+
+    if target.exists():
+        backup = target.with_suffix(target.suffix + ".bak")
+        shutil.copy2(target, backup)
+        print(f"Backup written to {backup}")
+
+    target.write_text(render(lines, updates), encoding="utf-8")
+    target.chmod(0o600)
+    changed = ", ".join(sorted(updates)) or "nothing"
+    print(f"Wrote {target}. Updated: {changed}")
+    print("Keep RUNPOD_ALLOW_BILLABLE_ACTIONS=false until you intend to spend money.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
