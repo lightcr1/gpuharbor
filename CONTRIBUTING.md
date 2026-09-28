@@ -9,7 +9,7 @@ contributions additionally require a Contributor License Agreement so the
 project can keep offering a separate closed Pro component. Do not contribute
 code you cannot license this way.
 
-GPUHarbor is not public yet. These rules define the intended contribution flow.
+GPUHarbor is public. These rules define the contribution flow.
 
 1. Never commit `.env`, TLS private keys, tokens, controller state or chat data.
 2. Keep `RUNPOD_ALLOW_BILLABLE_ACTIONS=false` in tests and examples.

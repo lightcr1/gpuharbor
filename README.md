@@ -7,8 +7,8 @@ an authenticated OpenAI-compatible API, and makes model/runtime choices visible
 in a compact web dashboard. Open WebUI and OpenHands are optional integrations,
 not mandatory parts of the stack.
 
-> Early local prototype. Not yet published. GPUHarbor is an independent community
-> project and is not affiliated with or endorsed by RunPod.
+> Early prototype (`0.1.0-dev`). GPUHarbor is an independent community project and
+> is not affiliated with or endorsed by RunPod.
 
 ## License
 

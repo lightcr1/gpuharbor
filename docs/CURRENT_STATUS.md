@@ -1,7 +1,8 @@
-# Current local status
+# Current status
 
-Checked on 2026-09-28. GPUHarbor remains local under `/home/media/gpuharbor`.
-There is no Git repository, remote, commit or publication.
+Checked on 2026-09-28. GPUHarbor is published at
+<https://github.com/lightcr1/gpuharbor> (public, Apache-2.0, branch `main`).
+No runtime image has been pushed to a registry and no GPU pod has been started.
 
 ## Verified without RunPod cost
 
@@ -40,8 +41,8 @@ There is no Git repository, remote, commit or publication.
   running GPU model.
 - Trademark policy, Contributor License Agreement signing and a final legal
   review before any commercial launch.
-- Public screenshots, repository metadata, release tags and announcements are
-  deferred until publication approval.
+- Screenshots, release tags and announcements are deferred until deliberately
+  prepared.
 
 ## Local image sizes
 
