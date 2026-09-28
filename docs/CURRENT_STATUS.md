@@ -2,11 +2,20 @@
 
 Checked on 2026-09-28. GPUHarbor is published at
 <https://github.com/lightcr1/gpuharbor> (public, Apache-2.0, branch `main`).
-No runtime image has been pushed to a registry and no GPU pod has been started.
+Runtime images are published to GHCR; no GPU pod has been started yet.
+
+## Published images
+
+- `ghcr.io/lightcr1/gpuharbor-runtime-vllm@sha256:a35d491b…`
+- `ghcr.io/lightcr1/gpuharbor-runtime-llama-cpp@sha256:6367ffb8…`
+- `ghcr.io/lightcr1/gpuharbor-runtime-bonsai@sha256:a83dc25c…`
+
+The digests are wired into `.env.example`, so a fresh install can start a pod
+without building images. Full digests: [RELEASE_ARTIFACTS.md](RELEASE_ARTIFACTS.md).
 
 ## Verified without RunPod cost
 
-- 46 unit/API/security/registry/runtime tests pass.
+- 50 unit/API/security/registry/runtime/installer tests pass.
 - Controller image builds from exact Python dependency locks.
 - vLLM, llama.cpp and experimental Bonsai runtime images build locally.
 - Runtime gateway options reject unsupported argument injection.
@@ -33,7 +42,7 @@ No runtime image has been pushed to a registry and no GPU pod has been started.
 
 ## Deliberately not verified yet
 
-- No runtime image has been pushed to a registry.
+- The published runtime images have not yet served a model on a GPU.
 - No GPU pod has been created or started by GPUHarbor.
 - Model loading, VRAM use, token generation, tool calling, throughput and
   measured cost require explicitly approved paid GPU canaries.

@@ -1,0 +1,3 @@
+bonsai=ghcr.io/lightcr1/gpuharbor-runtime-bonsai@sha256:a83dc25c8a5ca4e6926d36bf6e2796fa8879a5b979c51083bdea1eeb46427fe1
+llama-cpp=ghcr.io/lightcr1/gpuharbor-runtime-llama-cpp@sha256:6367ffb83e9e4b4981df883ba988840a8ca4ab91518b6ee16bbe211eb9e1596a
+vllm=ghcr.io/lightcr1/gpuharbor-runtime-vllm@sha256:a35d491bf6f4fc535cda18a85947b112300225b2ecc039b83d8311117082816f
