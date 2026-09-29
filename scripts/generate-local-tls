@@ -10,11 +10,17 @@ tmp=$(mktemp -d)
 cleanup() { rm -rf "$tmp"; }
 trap cleanup EXIT INT TERM
 
-if printf '%s' "$host" | grep -Eq '^[0-9a-fA-F:.]+$'; then
-  san="IP:$host"
-else
-  san="DNS:$host"
-fi
+# Always valid for this machine; extra names (comma separated) are added.
+san=""
+for name in $(printf '%s,localhost,127.0.0.1,::1' "$host" | tr ',' ' '); do
+  case " $san " in *"$name"*) continue ;; esac
+  if printf '%s' "$name" | grep -Eq '^[0-9a-fA-F:.]+$'; then
+    san="$san${san:+,}IP:$name"
+  else
+    san="$san${san:+,}DNS:$name"
+  fi
+done
+first=${host%%,*}
 
 cat >"$tmp/server.cnf" <<EOF
 [req]
@@ -22,7 +28,7 @@ distinguished_name = dn
 prompt = no
 req_extensions = req_ext
 [dn]
-CN = $host
+CN = $first
 [req_ext]
 subjectAltName = $san
 extendedKeyUsage = serverAuth
@@ -44,4 +50,4 @@ openssl x509 -req -sha256 -days 825 \
 rm -f "$out/local-ca.key" "$out/local-ca.srl"
 chmod 600 "$out"/*.key
 chmod 644 "$out"/*.crt
-printf 'Created local TLS certificate for %s in %s. Trust only %s/local-ca.crt on your clients.\n' "$host" "$out" "$out"
+printf 'Created local TLS certificate for %s in %s. Trust only %s/local-ca.crt on your clients.\n' "$san" "$out" "$out"

@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 _REPOSITORY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$")
+INTERNAL_HOSTS = ("controller",)
 _DIGEST = re.compile(r"^.+@sha256:[0-9a-fA-F]{64}$")
 
 
@@ -81,8 +82,14 @@ class Settings(BaseSettings):
         return [value.strip() for value in self.runpod_datacenter_ids.split(",") if value.strip()]
 
     @property
-    def trusted_hosts(self) -> list[str]:
+    def configured_hosts(self) -> list[str]:
         return [value.strip() for value in self.gpuharbor_trusted_hosts.split(",") if value.strip()]
+
+    @property
+    def trusted_hosts(self) -> list[str]:
+        # Open WebUI and OpenHands reach the controller under its Compose service name.
+        hosts = self.configured_hosts
+        return hosts + [name for name in INTERNAL_HOSTS if name not in hosts]
 
     def runtime_image(self, runtime_id: str) -> str:
         return {
@@ -111,7 +118,7 @@ class Settings(BaseSettings):
             errors.append("Every credential must use a different value")
         if not self.datacenter_ids:
             errors.append("RUNPOD_DATACENTER_IDS must not be empty")
-        if not self.trusted_hosts:
+        if not self.configured_hosts:
             errors.append("GPUHARBOR_TRUSTED_HOSTS must not be empty")
         if self.gpuharbor_login_max_attempts < 1:
             errors.append("GPUHARBOR_LOGIN_MAX_ATTEMPTS must be positive")

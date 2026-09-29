@@ -9,6 +9,7 @@ Examples:
     ./scripts/setup
     ./scripts/setup --yes
     ./scripts/setup --bind 0.0.0.0 --https 192.0.2.10 --https-port 9443 --webui --start
+    ./scripts/setup --no-https               # plain HTTP on localhost
     ./scripts/setup --dry-run --bind 192.0.2.10 --https 192.0.2.10
 """
 from __future__ import annotations
@@ -59,6 +60,7 @@ def main() -> int:
     parser.add_argument("--yes", action="store_true", help="accept every default")
     parser.add_argument("--bind", help="bind address (127.0.0.1, 0.0.0.0 or a LAN/VPN IP)")
     parser.add_argument("--https", metavar="HOST", help="enable HTTPS for this host")
+    parser.add_argument("--no-https", action="store_true", help="serve plain HTTP on localhost instead of HTTPS")
     parser.add_argument("--https-port", default="8443", help="host port for the HTTPS proxy")
     parser.add_argument("--webui", action="store_true", help="include Open WebUI")
     parser.add_argument("--openhands", action="store_true", help="include OpenHands Agent Canvas")
@@ -76,12 +78,15 @@ def main() -> int:
         print(f"Ungültige Bind-Adresse: {bind}", file=sys.stderr)
         return 1
 
-    https_host = args.https
-    if https_host is None and interactive:
-        if ask_bool("HTTPS aktivieren?", False):
-            https_host = ask("Hostname oder IP für das Zertifikat",
-                             "localhost" if bind in {"127.0.0.1", "0.0.0.0"} else bind)
-    if https_host is not None and https_host != "" and not valid_host(https_host):
+    https_host = None if args.no_https else args.https
+    if https_host is None and not args.no_https:
+        if interactive:
+            if ask_bool("HTTPS verwenden? (empfohlen)", True):
+                https_host = ask("Hostname oder IP für das Zertifikat",
+                                 "127.0.0.1" if bind in {"127.0.0.1", "0.0.0.0"} else bind)
+        else:
+            https_host = "127.0.0.1" if bind in {"127.0.0.1", "0.0.0.0"} else bind
+    if https_host and not valid_host(https_host):
         print(f"Ungültiger HTTPS-Host: {https_host}", file=sys.stderr)
         return 1
 
@@ -107,34 +112,51 @@ def main() -> int:
         print("Abgebrochen.")
         return 1
 
+    overlays: list[str] = []
+    if https_host:
+        overlays.append("compose.tls.yml")
+    if webui:
+        overlays.append("compose.openwebui.yml")
+        if https_host:
+            overlays.append("compose.openwebui.tls.yml")
+    if openhands:
+        overlays.append("compose.openhands.yml")
+        if https_host:
+            overlays.append("compose.openhands.tls.yml")
+
     env_command = [sys.executable, "scripts/init-env", "--bind-ip", bind]
     if https_host:
         env_command += ["--https-host", https_host, "--tls-port", args.https_port]
+    for overlay in overlays or ["compose.yml"]:
+        env_command += ["--overlay", overlay]
     run(env_command, dry_run=args.dry_run)
 
-    compose = ["docker", "compose", "-f", "compose.yml"]
     if https_host:
         run(["./scripts/generate-local-tls", https_host, "tls"], dry_run=args.dry_run)
-        compose += ["-f", "compose.tls.yml"]
-    if webui:
-        compose += ["-f", "compose.openwebui.yml"]
-    if openhands:
-        compose += ["-f", "compose.openhands.yml"]
 
     if start:
         if shutil.which("docker") is None and not args.dry_run:
             print("Docker nicht gefunden.", file=sys.stderr)
             return 1
-        run([*compose, "up", "-d", "--build"], dry_run=args.dry_run)
+        # COMPOSE_FILE in .env selects the overlays, so plain "docker compose" works later too.
+        run(["docker", "compose", "up", "-d", "--build"], dry_run=args.dry_run)
 
     print()
     print("Fertig.")
-    shown = bind if bind != "0.0.0.0" else "localhost"
     if https_host:
-        print(f"  Dashboard: https://{https_host}:{args.https_port}/")
-    print(f"  Dashboard: http://{shown}:8080/")
+        shown = "localhost" if https_host in {"127.0.0.1", "0.0.0.0"} else https_host
+        print(f"  Dashboard: https://{shown}:{args.https_port}/")
+        if webui:
+            print(f"  Open WebUI: https://{shown}:8444/")
+        if openhands:
+            print(f"  OpenHands : https://{shown}:8445/")
+        print("  Das Zertifikat stammt von einer lokalen CA: der Browser warnt, bis du")
+        print("  tls/local-ca.crt vertraust (siehe docs/TLS.md).")
+    else:
+        shown = bind if bind != "0.0.0.0" else "localhost"
+        print(f"  Dashboard: http://{shown}:8080/")
     print("  Benutzer : admin")
-    print("  Passwort : GPUHARBOR_ADMIN_PASSWORD in .env")
+    print("  Passwort : ./scripts/init-env --show-login")
     print()
     print("Kostenpflichtige RunPod-Aktionen bleiben gesperrt, bis du")
     print("RUNPOD_ALLOW_BILLABLE_ACTIONS=true setzt.")

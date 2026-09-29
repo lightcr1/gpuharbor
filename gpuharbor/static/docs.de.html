@@ -56,13 +56,13 @@ Pod kostet Geld.</p>
 <li><strong>Installieren.</strong> Im Terminal im GPUHarbor-Ordner:
 <pre>./scripts/install</pre>
 Das schreibt die Datei <code>.env</code> mit zufälligen Passwörtern, startet
-GPUHarbor und zeigt die Adresse an. Für andere Geräte
+GPUHarbor und zeigt die Adresse an. HTTPS ist standardmäßig aktiv, mit
+<code>--webui</code> kommt Open WebUI dazu. Für andere Geräte
 <code>./scripts/install --bind-ip &lt;deine-ip&gt;</code>, oder
 <code>./scripts/setup</code> für Rückfragen nutzen.</li>
-<li><strong>Dashboard öffnen.</strong> Auf demselben Rechner
-<code>http://localhost:8080</code>, von einem anderen Gerät
-<code>http://&lt;deine-ip&gt;:8080</code>. Für eine sichere Verbindung siehe
-<a class="link" href="#https">HTTPS</a>.</li>
+<li><strong>Dashboard öffnen.</strong> <code>https://localhost:8443</code>. Das
+Zertifikat stammt von einer lokalen CA, der Browser warnt also, bis du
+<code>tls/local-ca.crt</code> vertraust, siehe <a class="link" href="#https">HTTPS</a>.</li>
 <li><strong>Anmelden.</strong> Benutzer <code>admin</code>. Das Passwort wurde für
 dich erzeugt. Anzeigen mit <code>./scripts/init-env --show-login</code>, ein neues
 setzt du mit <code>--reset-password</code>.</li>
@@ -264,8 +264,9 @@ Image wäre beliebige Codeausführung.</p>
 OpenAI-kompatiblen API von GPUHarbor und bekommen nur
 <code>MODEL_ACCESS_TOKEN</code>, nie den RunPod-Key. Der Pod muss zuerst laufen.</p>
 <h3>Open WebUI (Chat-Oberfläche)</h3>
-<pre>docker compose -f compose.yml -f compose.openwebui.yml up -d --build</pre>
-<p><code>http://localhost:3000</code> öffnen. Diese Erweiterung zeigt Open WebUI
+<pre>./scripts/install --webui</pre>
+<p><code>https://localhost:8444</code> öffnen (mit <code>--no-https</code>:
+<code>http://localhost:3000</code>). Diese Erweiterung zeigt Open WebUI
 schon auf <code>http://controller:8080/v1</code> und übergibt das Token
 automatisch. Das Modell über seinen <em>API-Namen</em> aus dem Profil wählen
 (z. B. <code>chat</code>).</p>
@@ -274,8 +275,8 @@ automatisch. Das Modell über seinen <em>API-Namen</em> aus dem Profil wählen
 <code>MODEL_ACCESS_TOKEN</code> als API-Key anlegen.</p>
 <h3>OpenHands Agent Canvas (führt Code aus)</h3>
 <pre>mkdir -p workspace
-docker compose -f compose.yml -f compose.openhands.yml up -d --build</pre>
-<p><code>http://localhost:3001/canvas</code> öffnen. Als Anbieter
+./scripts/install --openhands</pre>
+<p><code>https://localhost:8445</code> öffnen. Als Anbieter
 <code>openai/chat</code> (oder <code>openai/code</code>), Basis-URL
 <code>http://controller:8080/v1</code> und <code>MODEL_ACCESS_TOKEN</code> nutzen.</p>
 <p class="muted">OpenHands kann Code ausführen und Dateien ändern. Nur mit einem
@@ -284,12 +285,16 @@ leeren, eigenen Arbeitsverzeichnis verwenden.</p>
 
 <section id="https">
 <h2>HTTPS</h2>
-<pre>./scripts/setup
-./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443</pre>
-<p>Erzeugt eine lokale Zertifizierungsstelle in <code>tls/</code> und einen
-TLS-Proxy. <code>tls/local-ca.crt</code> auf den Geräten importieren, dann
-<code>https://192.0.2.10:9443/</code> öffnen. Setzt zusätzlich
-<code>GPUHARBOR_COOKIE_SECURE=true</code>.</p>
+<p>HTTPS ist Standard. <code>./scripts/install</code> erzeugt eine lokale
+Zertifizierungsstelle in <code>tls/</code> und einen nginx-Proxy: das Dashboard
+liegt auf <code>https://localhost:8443</code>, Open WebUI auf <code>:8444</code>,
+OpenHands auf <code>:8445</code>. Die einfachen HTTP-Ports bleiben an diesen
+Rechner gebunden, aus dem Netz ist nur TLS erreichbar. Session-Cookies sind
+<code>Secure</code>.</p>
+<p>Der Browser warnt, bis er <code>tls/local-ca.crt</code> vertraut (als
+Zertifizierungsstelle im Browser oder System importieren). Für andere Geräte:</p>
+<pre>./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443</pre>
+<p><code>--no-https</code> nur für einen Wegwerf-Test auf localhost verwenden.</p>
 <p class="danger">Nicht ins Internet stellen. Nur LAN oder VPN.</p>
 </section>
 

@@ -17,10 +17,12 @@ and its own state volume, and does not mount the host Docker socket.
 
 ```bash
 mkdir -p workspace
-docker compose -f compose.yml -f compose.openhands.yml up -d --build
+./scripts/install --openhands
 ```
 
-Open `http://127.0.0.1:3001/canvas` if it does not redirect by itself. The UI may
+Open `https://localhost:8445` (it redirects to `/canvas`). It sits behind the same
+HTTPS proxy as the dashboard; see [TLS.md](../TLS.md) for trusting the
+certificate. With `--no-https` it is `http://127.0.0.1:3001/canvas`. The UI may
 ask for the backend key.
 
 ## Point it at GPUHarbor

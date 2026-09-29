@@ -77,6 +77,18 @@ def main() -> int:
     )
     parser.add_argument("--tls-port", help="host port for the TLS proxy (default 8443)")
     parser.add_argument(
+        "--tls-bind-ip",
+        help="address the TLS proxy listens on (default: the --https-host); 0.0.0.0 = all interfaces",
+    )
+    parser.add_argument(
+        "--overlay",
+        action="append",
+        default=[],
+        metavar="FILE",
+        help="Compose overlay to enable (repeatable); written to COMPOSE_FILE so a plain "
+        "'docker compose up -d' uses the same stack",
+    )
+    parser.add_argument(
         "--reset-password",
         action="store_true",
         help="generate a new admin password, keep every other value, and print it",
@@ -123,10 +135,15 @@ def main() -> int:
     if args.bind_ip:
         updates["HOST_BIND_IP"] = args.bind_ip
     if args.https_host:
-        updates["TLS_BIND_IP"] = args.https_host
+        # "localhost" is a name; Docker port bindings need an address.
+        updates["TLS_BIND_IP"] = "127.0.0.1" if args.https_host == "localhost" else args.https_host
         updates["GPUHARBOR_COOKIE_SECURE"] = "true"
+    if args.tls_bind_ip:
+        updates["TLS_BIND_IP"] = args.tls_bind_ip
     if args.tls_port:
         updates["TLS_PORT"] = args.tls_port
+    if args.overlay:
+        updates["COMPOSE_FILE"] = ":".join(["compose.yml", *dict.fromkeys(args.overlay)])
 
     existing = [part.strip() for part in values.get("GPUHARBOR_TRUSTED_HOSTS", "").split(",") if part.strip()]
     hosts = list(dict.fromkeys(existing)) or ["localhost", "127.0.0.1"]

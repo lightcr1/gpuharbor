@@ -2,13 +2,15 @@
 """One-command GPUHarbor setup for a single machine or a small LAN/VPN host.
 
 Examples:
-    ./scripts/install                              # localhost, HTTP only
-    ./scripts/install --bind-ip 192.0.2.10       # reachable in the LAN
+    ./scripts/install                              # localhost, HTTPS (local certificate)
+    ./scripts/install --webui                      # plus Open WebUI over HTTPS
     ./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443
+    ./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-name 100.64.0.7 --tls-bind 0.0.0.0
+    ./scripts/install --no-https                   # plain HTTP on localhost only
     ./scripts/install --no-start                   # only prepare files
 
-It generates secrets, optionally creates a local TLS certificate and starts the
-container stack. Nothing here touches RunPod or spends money.
+It generates secrets, creates a local TLS certificate (HTTPS is the default) and
+starts the container stack. Nothing here touches RunPod or spends money.
 """
 from __future__ import annotations
 
@@ -29,8 +31,14 @@ def run(command: list[str], *, check: bool = True) -> subprocess.CompletedProces
 def main() -> int:
     parser = argparse.ArgumentParser(description="Install and start GPUHarbor")
     parser.add_argument("--bind-ip", default="127.0.0.1", help="address the controller binds to")
-    parser.add_argument("--https", metavar="HOST", help="also enable the TLS proxy for HOST")
-    parser.add_argument("--tls-port", default="8443", help="host port for the TLS proxy")
+    parser.add_argument("--https", metavar="HOST", help="address for the TLS proxy (default: 127.0.0.1)")
+    parser.add_argument("--tls-name", action="append", default=[], metavar="NAME",
+                        help="extra IP or host name for the certificate (repeatable), e.g. a VPN address")
+    parser.add_argument("--tls-bind", metavar="IP", help="address the TLS proxy listens on (0.0.0.0 = all interfaces)")
+    parser.add_argument("--no-https", action="store_true", help="skip TLS and serve plain HTTP on localhost")
+    parser.add_argument("--tls-port", default="8443", help="host port for the controller over HTTPS")
+    parser.add_argument("--webui", action="store_true", help="also start Open WebUI")
+    parser.add_argument("--openhands", action="store_true", help="also start OpenHands (runs generated code)")
     parser.add_argument("--no-start", action="store_true", help="prepare .env/certs but do not start")
     parser.add_argument("--pull", action="store_true", help="pull base images before building")
     args = parser.parse_args()
@@ -39,33 +47,57 @@ def main() -> int:
         print("Docker is required but was not found in PATH.", file=sys.stderr)
         return 1
 
-    env_command = [
-        sys.executable,
-        "scripts/init-env",
-        "--bind-ip",
-        args.bind_ip,
-    ]
-    if args.https:
-        env_command += ["--https-host", args.https, "--tls-port", args.tls_port]
+    https_host = None if args.no_https else (args.https or "127.0.0.1")
+    if args.no_https and args.https:
+        print("Choose either --https or --no-https.", file=sys.stderr)
+        return 1
+
+    overlays: list[str] = []
+    if https_host:
+        overlays.append("compose.tls.yml")
+    if args.webui:
+        overlays.append("compose.openwebui.yml")
+        if https_host:
+            overlays.append("compose.openwebui.tls.yml")
+    if args.openhands:
+        overlays.append("compose.openhands.yml")
+        if https_host:
+            overlays.append("compose.openhands.tls.yml")
+
+    env_command = [sys.executable, "scripts/init-env", "--bind-ip", args.bind_ip]
+    if https_host:
+        env_command += ["--https-host", https_host, "--tls-port", args.tls_port]
+        if args.tls_bind:
+            env_command += ["--tls-bind-ip", args.tls_bind]
+        for name in args.tls_name:
+            env_command += ["--add-trusted-host", name]
+    for overlay in overlays or ["compose.yml"]:
+        env_command += ["--overlay", overlay]
     run(env_command)
 
-    compose = ["docker", "compose", "-f", "compose.yml"]
-    if args.https:
-        run(["./scripts/generate-local-tls", args.https, "tls"])
-        compose += ["-f", "compose.tls.yml"]
+    if https_host:
+        run(["./scripts/generate-local-tls", ",".join([https_host, *args.tls_name]), "tls"])
 
     if args.pull:
         run(["docker", "compose", "pull"], check=False)
 
     if not args.no_start:
-        run([*compose, "up", "-d", "--build"])
+        # COMPOSE_FILE in .env selects the overlays, so plain "docker compose" works later too.
+        run(["docker", "compose", "up", "-d", "--build"])
 
     print()
     print("GPUHarbor is ready.")
-    if args.https:
-        print(f"  Dashboard (HTTPS): https://{args.https}:{args.tls_port}/")
-        print("  Trust tls/local-ca.crt on the devices that should accept the certificate.")
-    print(f"  Dashboard (HTTP) : http://{args.bind_ip if args.bind_ip != '0.0.0.0' else 'localhost'}:8080/")
+    shown = "localhost" if https_host in {"127.0.0.1", "0.0.0.0"} else https_host
+    if https_host:
+        print(f"  Dashboard (HTTPS): https://{shown}:{args.tls_port}/")
+        if args.webui:
+            print(f"  Open WebUI       : https://{shown}:8444/")
+        if args.openhands:
+            print(f"  OpenHands        : https://{shown}:8445/")
+        print("  The certificate comes from a local CA. Your browser warns until you trust")
+        print("  tls/local-ca.crt (see docs/TLS.md); nothing is sent over the network unencrypted.")
+    else:
+        print(f"  Dashboard (HTTP) : http://{args.bind_ip if args.bind_ip != '0.0.0.0' else 'localhost'}:8080/")
     print("  Login user       : admin")
     print("  Login password   : ./scripts/init-env --show-login")
     print()
@@ -73,8 +105,6 @@ def main() -> int:
     print("RUNPOD_ALLOW_BILLABLE_ACTIONS=true in .env and restart.")
     print()
     print("Stop:    docker compose down")
-    if args.https:
-        print("Stop:    docker compose -f compose.yml -f compose.tls.yml down")
     return 0
 
 

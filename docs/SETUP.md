@@ -26,7 +26,7 @@ Manual equivalent, if you want to see every step:
 docker compose up --build -d
 ```
 
-Open `http://127.0.0.1:8080`. User is `admin`. The install script generated a
+Open `https://localhost:8443` (or `http://127.0.0.1:8080` with `--no-https`). User is `admin`. The install script generated a
 random password; show it with `./scripts/init-env --show-login` and set a new one
 with `./scripts/init-env --reset-password`. The controller refuses to start with
 the placeholder values from `.env.example`.
@@ -74,10 +74,10 @@ phone, add the address you type in the browser and listen on your network:
 
 ```bash
 ./scripts/add-host 192.0.2.10 --bind-ip 0.0.0.0
-docker compose up -d
+docker compose up -d   # HTTPS: use ./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 instead
 ```
 
-Then open `http://192.0.2.10:8080`. `192.0.2.10` is the documentation example
+Then open `https://192.0.2.10:8443` (or `http://192.0.2.10:8080` if you installed with `--no-https`). `192.0.2.10` is the documentation example
 address from RFC 5737, not a real address — replace it with your own LAN or VPN
 address. `add-host` keeps every
 existing entry in `GPUHARBOR_TRUSTED_HOSTS` and adds the new one. To allow more
@@ -101,23 +101,20 @@ If you see `Invalid host header`, the address is missing from
 
 ## HTTPS
 
-```bash
-./scripts/setup                                              # interactive
-./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443
-```
-
-This creates a local certificate authority under `tls/` and starts an nginx TLS
-proxy. Import `tls/local-ca.crt` on the devices that should trust it, then open
-`https://192.0.2.10:9443/` (use your own address). The installer also sets
-`GPUHARBOR_COOKIE_SECURE=true`, which only makes sense over HTTPS.
-
-If port 8443 is already taken, set `TLS_PORT` to a free port.
-
-Manual start once certificates exist:
+HTTPS is on by default: `./scripts/install` creates a local certificate authority
+under `tls/` and starts an nginx TLS proxy, so the dashboard is at
+`https://localhost:8443`. Open WebUI (`--webui`) is on `:8444`, OpenHands
+(`--openhands`) on `:8445`. Your browser warns until you trust
+`tls/local-ca.crt`; [TLS.md](TLS.md) shows how for each browser and OS.
 
 ```bash
-docker compose -f compose.yml -f compose.tls.yml up -d --build
+./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443   # other devices
+./scripts/install --no-https                                             # plain HTTP, localhost only
 ```
+
+Use your own address instead of `192.0.2.10`. If port 8443 is taken, set
+`TLS_PORT`. The installer records the chosen stack in `COMPOSE_FILE` inside
+`.env`, so a plain `docker compose up -d` keeps using it.
 
 For a public domain, use a normal reverse proxy with a trusted certificate
 instead of the local CA. Details: [TLS.md](TLS.md).

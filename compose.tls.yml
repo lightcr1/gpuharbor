@@ -1,4 +1,10 @@
+# HTTPS in front of everything. The plain HTTP port of every service is limited
+# to this machine, so only TLS is reachable from the network.
 services:
+  controller:
+    ports: !override
+      - "127.0.0.1:8080:8080"
+
   reverse-proxy:
     image: nginx:alpine@sha256:62ff2089abf5a9ed33bd232895bef5e22f7bb4b200675cec49a5ebc48e3d4ac8
     restart: unless-stopped

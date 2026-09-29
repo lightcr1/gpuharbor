@@ -47,7 +47,9 @@ authenticated `/v1/*` and `/health`.
 
 ## Network
 
-Keep it on localhost, a LAN, or a VPN. For LAN access use the TLS overlay and set
+HTTPS is the default: `./scripts/install` puts the dashboard, Open WebUI and
+OpenHands behind an nginx TLS proxy and limits every plain HTTP port to this
+machine. Keep it on localhost, a LAN, or a VPN. For LAN access use the TLS overlay and set
 your exact hosts; see [docs/TLS.md](docs/TLS.md). Do not put the controller,
 Open WebUI or OpenHands on the public internet.
 

@@ -380,3 +380,10 @@ def test_settings_update_notifications_roundtrip(app_client):
     assert client.get("/api/settings").json()["update_notifications"] is True
     settings = client.get("/api/controller-settings").json()
     assert settings["update_check_enabled"] is True
+
+
+def test_compose_service_name_is_an_accepted_host(app_client):
+    """Open WebUI calls http://controller:8080/v1 inside the Compose network."""
+    client, _ = app_client
+    assert client.get("/health", headers={"Host": "controller:8080"}).status_code == 200
+    assert client.get("/health", headers={"Host": "evil.example"}).status_code == 400

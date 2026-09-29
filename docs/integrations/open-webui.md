@@ -8,12 +8,24 @@ OpenAI-compatible endpoint and keeps its own users and chats.
 Set a reviewed `OPEN_WEBUI_IMAGE` (preferably by digest) and a random
 `WEBUI_SECRET_KEY` in `.env`, then:
 
+The quickest way, on a fresh install or an existing one:
+
 ```bash
-docker compose -f compose.yml -f compose.openwebui.yml up -d --build
+./scripts/install --webui
 ```
 
-It listens on `http://127.0.0.1:3000` by default; GPUHarbor stays on port 8080.
-Only change `HOST_BIND_IP` on a trusted LAN or VPN.
+This starts Open WebUI behind the same HTTPS proxy as the dashboard:
+`https://localhost:8444`. GPUHarbor stays on `https://localhost:8443`. Your
+browser warns until you trust `tls/local-ca.crt` (see [TLS.md](../TLS.md)).
+
+Without HTTPS (`--no-https`) it is `http://127.0.0.1:3000`. The plain HTTP port is
+bound to this machine in both modes. Only change `HOST_BIND_IP` on a trusted LAN
+or VPN.
+
+Manual variant: set a reviewed `OPEN_WEBUI_IMAGE` and `WEBUI_SECRET_KEY` in `.env`
+(the installer does this from `.env.example`), then
+`./scripts/init-env --overlay compose.tls.yml --overlay compose.openwebui.yml --overlay compose.openwebui.tls.yml`
+and `docker compose up -d --build`.
 
 ## Point it at GPUHarbor
 
@@ -22,7 +34,7 @@ The overlay already configures the connection for you:
 - Base URL: `http://controller:8080/v1`
 - API key: the value of `MODEL_ACCESS_TOKEN` (passed automatically)
 
-Open `http://127.0.0.1:3000`, then pick the model by its **served name** from the
+Open `https://localhost:8444`, create the first account (it becomes the admin), then pick the model by its **served name** from the
 GPUHarbor profile (for example `chat`). The model pod must be running in GPUHarbor
 first; on first start it downloads the weights and takes a few minutes.
 

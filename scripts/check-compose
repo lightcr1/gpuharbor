@@ -11,5 +11,8 @@ docker compose -f compose.yml config --quiet
 docker compose -f compose.yml -f compose.tls.yml config --quiet
 docker compose -f compose.yml -f compose.openwebui.yml config --quiet
 docker compose -f compose.yml -f compose.openhands.yml config --quiet
-docker compose -f compose.yml -f compose.tls.yml -f compose.openwebui.yml -f compose.openhands.yml config --quiet
+docker compose -f compose.yml -f compose.tls.yml -f compose.openwebui.yml -f compose.openwebui.tls.yml config --quiet
+docker compose -f compose.yml -f compose.tls.yml -f compose.openhands.yml -f compose.openhands.tls.yml config --quiet
+docker compose -f compose.yml -f compose.tls.yml -f compose.openwebui.yml -f compose.openwebui.tls.yml -f compose.openhands.yml -f compose.openhands.tls.yml config --quiet
+docker compose -f compose.yml -f compose.openwebui.yml -f compose.openhands.yml config --quiet
 printf 'All GPUHarbor Compose combinations are valid.\n'

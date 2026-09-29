@@ -2,6 +2,37 @@
 
 All notable changes will be documented here once releases begin.
 
+## Unreleased
+
+### Added
+
+- **HTTPS by default.** `./scripts/install` and `./scripts/setup` create a local CA
+  and start the TLS proxy; `--no-https` opts out. The plain HTTP ports of all
+  services are bound to this machine, so only TLS is reachable from the network.
+- Open WebUI (`https://localhost:8444`) and OpenHands (`https://localhost:8445`)
+  behind the same proxy, selected with `install --webui` / `--openhands`.
+- The installer writes `COMPOSE_FILE` into `.env`, so a plain `docker compose up -d`
+  keeps the chosen stack. `init-env --overlay` sets it.
+- `generate-local-tls` accepts several names and always covers `localhost`,
+  `127.0.0.1` and `::1`. `docs/TLS.md` explains trusting the CA per browser and OS.
+
+### Security
+
+- Runtime images `0.1.4` (gateway token check no longer raises on non-ASCII input).
+  Verified on a real GPU pod, then pinned in `.env.example`.
+
+### Fixed
+
+- Open WebUI and OpenHands could not reach the controller: the Compose service name
+  `controller` was rejected as an untrusted host (HTTP 400). It is now always
+  accepted.
+- `set-runpod-key` no longer drops the TLS overlay when it restarts the stack.
+
+### Changed
+
+- nginx no longer sends `Strict-Transport-Security`: with a local CA it would pin
+  every port of `localhost` and make certificate errors impossible to bypass.
+
 ## 0.1.4 - 2026-09-29
 
 ### Security

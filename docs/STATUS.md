@@ -11,7 +11,7 @@ Last checked: 2026-09-29.
 - OpenAI-compatible endpoint for any client.
 - Optional Open WebUI, OpenHands Agent Canvas and local HTTPS.
 - Published runtime images, so a fresh install does not build anything.
-- 98 tests and a CI workflow on GitHub.
+- 105 tests and a CI workflow on GitHub.
 - Dashboard and docs available in English and German (`/docs` and `/docs/de`),
   the sidebar highlights the current section.
 - Settings dialog with an opt-in update-notification toggle (off by default) and
@@ -23,21 +23,21 @@ Last checked: 2026-09-29.
 
 ## Runtime images
 
-These are on GHCR, tagged `0.1.0` for linux/amd64. They are referenced by digest
+These are on GHCR, tagged `0.1.4` for linux/amd64. They are referenced by digest
 in `.env.example`, so RunPod pulls them directly.
 
 | Runtime | Image |
 |---|---|
-| vLLM | `ghcr.io/lightcr1/gpuharbor-runtime-vllm@sha256:a35d491bf6f4fc535cda18a85947b112300225b2ecc039b83d8311117082816f` |
-| llama.cpp | `ghcr.io/lightcr1/gpuharbor-runtime-llama-cpp@sha256:6367ffb83e9e4b4981df883ba988840a8ca4ab91518b6ee16bbe211eb9e1596a` |
-| Bonsai | `ghcr.io/lightcr1/gpuharbor-runtime-bonsai@sha256:a83dc25c8a5ca4e6926d36bf6e2796fa8879a5b979c51083bdea1eeb46427fe1` |
+| vLLM | `ghcr.io/lightcr1/gpuharbor-runtime-vllm@sha256:47046f391746a94e442b238ad5b57d84d69c4854670858bed459e3cbc98254e4` |
+| llama.cpp | `ghcr.io/lightcr1/gpuharbor-runtime-llama-cpp@sha256:83816656a93f6d6e959ce9c0e17352eb3c4d1fa665114eed6946453ce7b9e31e` |
+| Bonsai | `ghcr.io/lightcr1/gpuharbor-runtime-bonsai@sha256:d1ad005bc0f3a213be68b199665de35c3ce7c0c66a8af7c9fcc858fc94725662` |
 
 GHCR packages are private when first pushed. RunPod pulls without credentials, so
 they were set to public in the web UI. Verify with:
 
 ```bash
 docker logout ghcr.io
-docker pull ghcr.io/lightcr1/gpuharbor-runtime-llama-cpp:0.1.0
+docker pull ghcr.io/lightcr1/gpuharbor-runtime-llama-cpp:0.1.4
 ```
 
 To publish new images, build them on a machine with enough disk and run

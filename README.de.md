@@ -41,7 +41,7 @@ cd gpuharbor
 ./scripts/install
 ```
 
-Danach `http://127.0.0.1:8080` öffnen (Benutzer `admin`, Passwort anzeigen mit `./scripts/init-env --show-login`). Für LAN, HTTPS oder die interaktive
+Danach `https://localhost:8443` öffnen (HTTPS ist Standard, Zertifikat einer lokalen CA, siehe [TLS](docs/TLS.md); Benutzer `admin`, Passwort anzeigen mit `./scripts/init-env --show-login`). Mit `--webui` kommt Open WebUI dazu. Für LAN oder die interaktive
 Variante siehe [Setup](docs/SETUP.md). Die App erklärt jedes Feld unter `/docs`.
 
 Nichts an RunPod passiert, solange `RUNPOD_ALLOW_BILLABLE_ACTIONS=false` gesetzt

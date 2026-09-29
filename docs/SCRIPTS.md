@@ -26,7 +26,9 @@ Installs and starts GPUHarbor (or updates an existing install). It creates
 Your `.env` and data are kept.
 
 ```bash
-./scripts/install                                  # local, HTTP only
+./scripts/install                                  # local, HTTPS by default
+./scripts/install --webui --openhands              # plus the integrations, also over HTTPS
+./scripts/install --no-https                       # plain HTTP on localhost
 ./scripts/install --bind-ip 192.0.2.10             # reachable on LAN or VPN
 ./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443
 ./scripts/install --no-start                       # prepare files only
@@ -56,6 +58,7 @@ address and the trusted hosts.
 ./scripts/init-env --add-trusted-host 192.168.1.5
 ./scripts/init-env --force            # regenerate every secret
 ./scripts/init-env --show-login       # print the admin user and password
+./scripts/init-env --overlay compose.tls.yml   # select the Compose stack (written to COMPOSE_FILE)
 ./scripts/init-env --reset-password   # new admin password, everything else kept
 ```
 

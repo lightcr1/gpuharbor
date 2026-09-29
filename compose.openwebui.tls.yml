@@ -1,0 +1,12 @@
+# HTTPS for Open WebUI, on TLS_BIND_IP:WEBUI_TLS_PORT. Use together with
+# compose.yml, compose.tls.yml and compose.openwebui.yml.
+services:
+  open-webui:
+    environment:
+      WEBUI_SESSION_COOKIE_SECURE: "true"
+    ports: !override
+      - "127.0.0.1:3000:8080"
+
+  reverse-proxy:
+    ports:
+      - "${TLS_BIND_IP:-127.0.0.1}:${WEBUI_TLS_PORT:-8444}:8444"

@@ -26,16 +26,26 @@ def test_setup_dry_run_combines_all_overlays():
     )
     assert "compose.tls.yml" in result.stdout
     assert "compose.openwebui.yml" in result.stdout
+    assert "compose.openwebui.tls.yml" in result.stdout
     assert "compose.openhands.yml" in result.stdout
+    assert "compose.openhands.tls.yml" in result.stdout
     assert "up -d --build" in result.stdout
     assert "--https-host 192.0.2.10" in result.stdout
 
 
-def test_setup_dry_run_local_only_has_no_tls():
-    result = run("--dry-run", "--bind", "127.0.0.1")
+def test_setup_dry_run_defaults_to_https_on_localhost():
+    result = run("--dry-run", "--bind", "127.0.0.1", "--start")
+    assert "--https-host 127.0.0.1" in result.stdout
+    assert "--overlay compose.tls.yml" in result.stdout
+    assert "generate-local-tls 127.0.0.1" in result.stdout
+
+
+def test_setup_dry_run_can_opt_out_of_https():
+    result = run("--dry-run", "--bind", "127.0.0.1", "--no-https")
     assert "compose.tls.yml" not in result.stdout
     assert "compose.openwebui.yml" not in result.stdout
     assert "up -d" not in result.stdout
+    assert "--https-host" not in result.stdout
 
 
 def test_setup_rejects_invalid_bind_address():
