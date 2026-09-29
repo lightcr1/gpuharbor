@@ -26,6 +26,9 @@ address. `localhost`, `127.0.0.1` and `::1` are always in the certificate.
 
 ## Trusting the certificate
 
+On Linux and macOS the installer offers to do this for you, or run
+`./scripts/trust-ca` (it shows every step and asks before using sudo). By hand:
+
 The certificate is signed by a CA that only exists on your machine, so browsers
 warn until you trust `tls/local-ca.crt`. The script deletes the CA key after
 signing, so a leaked `tls/` folder cannot issue certificates your devices trust.

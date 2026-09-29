@@ -11,6 +11,8 @@ with your own LAN or VPN address.
 |---|---|
 | [`install`](#install) | Install or update the stack in one command |
 | [`setup`](#setup) | Interactive assistant with questions |
+| [`doctor`](#doctor) | Check the installation and say what to fix |
+| [`trust-ca`](#trust-ca) | Trust the local HTTPS certificate on this computer |
 | [`init-env`](#init-env) | Create or update `.env` (secrets, addresses) |
 | [`add-host`](#add-host) | Allow more addresses to reach the dashboard |
 | [`set-runpod-key`](#set-runpod-key) | Store the RunPod API key safely |
@@ -29,6 +31,7 @@ Your `.env` and data are kept.
 ./scripts/install                                  # local, HTTPS by default
 ./scripts/install --webui --openhands              # plus the integrations, also over HTTPS
 ./scripts/install --no-https                       # plain HTTP on localhost
+./scripts/install --trust                          # also trust the certificate without asking
 ./scripts/install --bind-ip 192.0.2.10             # reachable on LAN or VPN
 ./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443
 ./scripts/install --no-start                       # prepare files only
@@ -45,6 +48,31 @@ unattended with `--yes`.
 ./scripts/setup
 ./scripts/setup --dry-run --bind 192.0.2.10
 ```
+
+## doctor
+
+Checks Docker and Compose, your `.env`, the certificate and the running containers,
+and prints `ok`, `note` or `FAIL` with a hint for each. It changes nothing and does not
+contact RunPod. Exit code 1 means a problem was found.
+
+```bash
+./scripts/doctor              # everything
+./scripts/doctor --offline    # only files and settings, no Docker calls
+```
+
+## trust-ca
+
+Installs `tls/local-ca.crt` as a trusted authority for the system and for Chrome,
+Chromium and Firefox (Linux, macOS). It prints every command and asks before it
+uses `sudo`. On Linux the browser stores need `certutil` (`libnss3-tools`).
+
+```bash
+./scripts/trust-ca            # ask, then install
+./scripts/trust-ca --dry-run  # only print the steps
+./scripts/trust-ca --remove   # undo
+```
+
+Other devices need the same file imported by hand, see [TLS.md](TLS.md).
 
 ## init-env
 

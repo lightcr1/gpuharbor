@@ -2,39 +2,65 @@
 
 All notable changes will be documented here once releases begin.
 
-## Unreleased
+## 0.1.5 - 2026-09-29
+
+The goal of this release: install with one command, and have the models work in Open
+WebUI and OpenHands without configuring anything.
 
 ### Added
 
-- **HTTPS by default.** `./scripts/install` and `./scripts/setup` create a local CA
-  and start the TLS proxy; `--no-https` opts out. The plain HTTP ports of all
-  services are bound to this machine, so only TLS is reachable from the network.
-- Open WebUI (`https://localhost:8444`) and OpenHands (`https://localhost:8445`)
-  behind the same proxy, selected with `install --webui` / `--openhands`.
-- The installer writes `COMPOSE_FILE` into `.env`, so a plain `docker compose up -d`
-  keeps the chosen stack. `init-env --overlay` sets it.
-- `generate-local-tls` accepts several names and always covers `localhost`,
-  `127.0.0.1` and `::1`. `docs/TLS.md` explains trusting the CA per browser and OS.
+- **HTTPS by default.** `./scripts/install` and `./scripts/setup` create a local CA and
+  start the TLS proxy; `--no-https` opts out. The plain HTTP ports of all services are
+  bound to this machine, so only TLS is reachable from the network.
+- **OpenHands is connected automatically.** The controller writes one LLM profile per
+  model (`gpuharbor-<id>`) into OpenHands, activates the one for the running model and
+  keeps them in sync when models change. Settings fit local models (native tool calls
+  only where the vLLM profile enables them, sensible output length, long cold-start
+  timeout, no hosted-provider options). Profiles you made yourself are never touched.
+- **Open WebUI and OpenHands behind the same proxy:** `https://localhost:8444` and
+  `:8445`, selected with `install --webui` / `--openhands`. The dashboard header links to
+  them.
+- **Dashboard:** a *Getting started* checklist and a *Connect an app* card with base URL,
+  model name and API key (show/copy).
+- `./scripts/doctor` checks Docker, `.env`, certificate and containers and says what to
+  fix. `./scripts/trust-ca` trusts the local certificate on Linux/macOS (asks before sudo).
+- The installer checks Docker and Compose 2.24+, waits until the dashboard answers, offers
+  to trust the certificate, and writes `COMPOSE_FILE` into `.env` so a plain
+  `docker compose up -d` keeps the chosen stack. `setup` now uses the same code.
+- Readable generated admin password (`ABCD-EFGH-JKMN-PQRS-TUVW`), `init-env --show-login`
+  and `--reset-password`.
+- A third theme, **Harbor light**, price hint under the GPU picker, translated badges.
+- `generate-local-tls` keeps a valid certificate (and the CA your devices trust), accepts
+  several names and always covers `localhost`, `127.0.0.1` and `::1`.
+  `docs/TLS.md` explains trusting the CA per browser and OS.
 
 ### Security
 
-- Runtime images `0.1.4` (gateway token check no longer raises on non-ASCII input).
-  Verified on a real GPU pod, then pinned in `.env.example`.
+- Constant-time credential checks that never raise on non-ASCII input and never accept an
+  empty secret (controller and runtime gateway). Runtime images `0.1.4` contain the fix and
+  are pinned in `.env.example` (verified on a real GPU pod).
+- The controller refuses to start with empty or template-placeholder credentials.
+- Sessions are tracked server-side: logout revokes the cookie.
+- Strict Content-Security-Policy (no inline code); DOM text nodes instead of `innerHTML`.
+- nginx rate-limits `/api/login`; `generate-local-tls` deletes the CA key after signing.
 
 ### Fixed
 
 - Open WebUI and OpenHands could not reach the controller: the Compose service name
-  `controller` was rejected as an untrusted host (HTTP 400). It is now always
-  accepted.
-- `init-env` (and so `install`) now adds settings that newer versions introduced to an
-  older `.env`, for example `OPEN_WEBUI_IMAGE`; before, upgrading with `--webui` failed.
-- The tests no longer read a developer's real `.env`.
+  `controller` was rejected as an untrusted host (HTTP 400).
+- Upgrading with `install --webui` failed on older `.env` files; `init-env` now adds
+  settings introduced by newer versions.
 - `set-runpod-key` no longer drops the TLS overlay when it restarts the stack.
+- `/v1` errors use the OpenAI error shape with actionable messages ("No model is running.
+  Start a pod in the GPUHarbor dashboard first.").
+- The tests no longer read a developer's real `.env`.
 
 ### Changed
 
-- nginx no longer sends `Strict-Transport-Security`: with a local CA it would pin
-  every port of `localhost` and make certificate errors impossible to bypass.
+- nginx no longer sends `Strict-Transport-Security`: with a local CA it would pin every
+  port of `localhost` and make certificate errors impossible to bypass.
+- Dashboard and docs styles and scripts moved to `/static/`, one shared `theme.css`.
+- `runtime-digests.txt` moved to `runtime/digests.txt`; base image is Python 3.14.
 
 ## 0.1.4 - 2026-09-29
 

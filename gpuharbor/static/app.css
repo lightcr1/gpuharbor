@@ -84,3 +84,16 @@ dialog .row{align-items:flex-start}
 html[data-theme=light] button:not(.secondary):not(.danger):not(.settings-tab):not(.mode-switch button){color:#fff}
 html[data-theme=light] .mode-switch button.active{color:#fff}
 html[data-theme=light] dialog::backdrop{background:#1c2f5a66}
+
+.small-btn{min-height:28px;padding:2px 10px;font-size:12px}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.steps li{display:flex;gap:10px;align-items:flex-start}
+.steps .mark{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted)}
+.steps li.done .mark{background:var(--ok);border-color:var(--ok);color:#fff}
+.steps li.done .step-text{color:var(--muted)}
+.steps .step-text b{display:block;font-weight:650}
+.steps .hint{display:block}
+.kv{display:grid;grid-template-columns:1fr;gap:4px;margin:0}
+.kv dt{color:var(--muted);font-size:13px;margin-top:6px}
+.kv dd{margin:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+.kv code{font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--input-bg);border:1px solid var(--line);border-radius:6px;padding:2px 6px;overflow-wrap:anywhere}

@@ -13,7 +13,7 @@
 - Settings dialog with an opt-in update-notification toggle and an update pill.
 - `scripts/add-host` and `docs/SCRIPTS.md`.
 - Published runtime images.
-- CI and 105 tests.
+- CI and 121 tests.
 
 ## Next
 

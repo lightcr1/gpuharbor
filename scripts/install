@@ -4,28 +4,88 @@
 Examples:
     ./scripts/install                              # localhost, HTTPS (local certificate)
     ./scripts/install --webui                      # plus Open WebUI over HTTPS
+    ./scripts/install --webui --openhands          # both apps; models are wired up for you
     ./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443
     ./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-name 100.64.0.7 --tls-bind 0.0.0.0
     ./scripts/install --no-https                   # plain HTTP on localhost only
     ./scripts/install --no-start                   # only prepare files
 
-It generates secrets, creates a local TLS certificate (HTTPS is the default) and
-starts the container stack. Nothing here touches RunPod or spends money.
+It checks Docker, generates secrets, creates a local TLS certificate (HTTPS is the
+default), starts the stack and waits until it answers. Running it again keeps your
+settings and secrets. Nothing here touches RunPod or spends money.
 """
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
+import ssl
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+COMPOSE_MINIMUM = (2, 24)
 
 
-def run(command: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run(command: list[str], *, check: bool = True, dry_run: bool = False) -> subprocess.CompletedProcess[str] | None:
     print("+", " ".join(command))
+    if dry_run:
+        return None
     return subprocess.run(command, cwd=ROOT, check=check, text=True)
+
+
+def fail(message: str) -> int:
+    print(f"\n{message}", file=sys.stderr)
+    return 1
+
+
+def check_docker() -> str | None:
+    """Return a problem description, or None when Docker and Compose are usable."""
+    if shutil.which("docker") is None:
+        return "Docker is required but was not found. Install it: https://docs.docker.com/get-docker/"
+    if subprocess.run(["docker", "info"], capture_output=True).returncode != 0:
+        return ("Docker is installed but not running, or your user may not use it.\n"
+                "Start Docker; on Linux run: sudo usermod -aG docker $USER  (then log in again).")
+    version = subprocess.run(["docker", "compose", "version", "--short"], capture_output=True, text=True)
+    match = re.match(r"v?(\d+)\.(\d+)", version.stdout.strip())
+    if version.returncode != 0 or not match:
+        return "Docker Compose v2 is required: https://docs.docker.com/compose/install/"
+    if (int(match.group(1)), int(match.group(2))) < COMPOSE_MINIMUM:
+        return (f"Docker Compose {version.stdout.strip()} is too old; 2.24 or newer is needed for the HTTPS "
+                "overlays. Please update Docker Compose.")
+    return None
+
+
+def env_value(name: str, default: str) -> str:
+    """Last value of NAME in .env (later lines win, like Compose), or the default."""
+    try:
+        lines = (ROOT / ".env").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return default
+    found = default
+    for line in lines:
+        key, _, value = line.partition("=")
+        if key.strip() == name and value.strip():
+            found = value.strip()
+    return found
+
+
+def wait_until_healthy(url: str, authority: Path | None, seconds: int = 150) -> bool:
+    context = ssl.create_default_context(cafile=str(authority)) if authority else None
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=4, context=context) as response:
+                if response.status == 200:
+                    return True
+        except (urllib.error.URLError, ssl.SSLError, OSError):
+            pass
+        time.sleep(3)
+    return False
 
 
 def main() -> int:
@@ -39,18 +99,21 @@ def main() -> int:
     parser.add_argument("--tls-port", default="8443", help="host port for the controller over HTTPS")
     parser.add_argument("--webui", action="store_true", help="also start Open WebUI")
     parser.add_argument("--openhands", action="store_true", help="also start OpenHands (runs generated code)")
+    parser.add_argument("--trust", action="store_true", help="trust the local certificate on this computer without asking")
+    parser.add_argument("--no-trust", action="store_true", help="do not offer to trust the local certificate")
     parser.add_argument("--no-start", action="store_true", help="prepare .env/certs but do not start")
     parser.add_argument("--pull", action="store_true", help="pull base images before building")
+    parser.add_argument("--dry-run", action="store_true", help="print the commands without running them")
     args = parser.parse_args()
 
-    if shutil.which("docker") is None:
-        print("Docker is required but was not found in PATH.", file=sys.stderr)
-        return 1
-
-    https_host = None if args.no_https else (args.https or "127.0.0.1")
     if args.no_https and args.https:
-        print("Choose either --https or --no-https.", file=sys.stderr)
-        return 1
+        return fail("Choose either --https or --no-https.")
+    https_host = None if args.no_https else (args.https or "127.0.0.1")
+
+    if not args.dry_run:
+        problem = check_docker()
+        if problem:
+            return fail(problem)
 
     overlays: list[str] = []
     if https_host:
@@ -73,38 +136,75 @@ def main() -> int:
             env_command += ["--add-trusted-host", name]
     for overlay in overlays or ["compose.yml"]:
         env_command += ["--overlay", overlay]
-    run(env_command)
+    run(env_command, dry_run=args.dry_run)
 
     if https_host:
-        run(["./scripts/generate-local-tls", ",".join([https_host, *args.tls_name]), "tls"])
+        run(["./scripts/generate-local-tls", ",".join([https_host, *args.tls_name]), "tls"], dry_run=args.dry_run)
+    if args.openhands and not args.dry_run:
+        (ROOT / "workspace").mkdir(exist_ok=True)
 
     if args.pull:
-        run(["docker", "compose", "pull"], check=False)
+        run(["docker", "compose", "pull"], check=False, dry_run=args.dry_run)
 
+    started = False
     if not args.no_start:
         # COMPOSE_FILE in .env selects the overlays, so plain "docker compose" works later too.
-        run(["docker", "compose", "up", "-d", "--build"])
+        run(["docker", "compose", "up", "-d", "--build"], dry_run=args.dry_run)
+        started = True
+
+    shown = "localhost" if https_host in {"127.0.0.1", "0.0.0.0"} else https_host
+    dashboard = f"https://{shown}:{args.tls_port}/" if https_host else "http://localhost:8080/"
+    authority = ROOT / "tls" / "local-ca.crt" if https_host else None
+
+    if args.dry_run:
+        return 0
+
+    healthy = None
+    if started:
+        print("\nWaiting for GPUHarbor to answer ...")
+        health_url = f"https://localhost:{args.tls_port}/health" if https_host else "http://localhost:8080/health"
+        healthy = wait_until_healthy(health_url, authority)
 
     print()
-    print("GPUHarbor is ready.")
-    shown = "localhost" if https_host in {"127.0.0.1", "0.0.0.0"} else https_host
-    if https_host:
-        print(f"  Dashboard (HTTPS): https://{shown}:{args.tls_port}/")
-        if args.webui:
-            print(f"  Open WebUI       : https://{shown}:8444/")
-        if args.openhands:
-            print(f"  OpenHands        : https://{shown}:8445/")
-        print("  The certificate comes from a local CA. Your browser warns until you trust")
-        print("  tls/local-ca.crt (see docs/TLS.md); nothing is sent over the network unencrypted.")
-    else:
-        print(f"  Dashboard (HTTP) : http://{args.bind_ip if args.bind_ip != '0.0.0.0' else 'localhost'}:8080/")
-    print("  Login user       : admin")
-    print("  Login password   : ./scripts/init-env --show-login")
-    print()
-    print("Billable RunPod actions stay disabled until you set")
-    print("RUNPOD_ALLOW_BILLABLE_ACTIONS=true in .env and restart.")
-    print()
-    print("Stop:    docker compose down")
+    if healthy is False:
+        print("GPUHarbor was started but does not answer yet.")
+        print("  Check what is wrong:  ./scripts/doctor")
+        print("  Read the log:         docker compose logs controller")
+        return 1
+    print("GPUHarbor is ready." if started else "GPUHarbor is prepared (not started).")
+    print(f"  Dashboard : {dashboard}")
+    if https_host and args.webui:
+        print(f"  Open WebUI: https://{shown}:{env_value('WEBUI_TLS_PORT', '8444')}/")
+    if https_host and args.openhands:
+        print(f"  OpenHands : https://{shown}:{env_value('OPENHANDS_TLS_PORT', '8445')}/")
+    if not https_host and args.webui:
+        print("  Open WebUI: http://localhost:3000/")
+    if not https_host and args.openhands:
+        print("  OpenHands : http://localhost:3001/")
+    print("  Login     : admin / password from  ./scripts/init-env --show-login")
+    if args.openhands:
+        print("  OpenHands gets a ready-made connection to every model; nothing to configure.")
+    if args.webui:
+        print("  Open WebUI finds the model by itself once a pod is running.")
+
+    if https_host and authority and authority.exists() and not args.no_trust:
+        print("\nYour browser will warn about the certificate until it trusts the local CA.")
+        if args.trust:
+            run([sys.executable, "scripts/trust-ca", "--yes"], check=False)
+        elif sys.stdin.isatty():
+            answer = input("Trust it on this computer now? (asks for sudo) [Y/n] ").strip().lower()
+            if answer in {"", "y", "yes", "j", "ja"}:
+                run([sys.executable, "scripts/trust-ca", "--yes"], check=False)
+            else:
+                print("Later: ./scripts/trust-ca   (other devices: see docs/TLS.md)")
+        else:
+            print("Trust it with: ./scripts/trust-ca   (other devices: see docs/TLS.md)")
+
+    print("\nBilling stays locked until you set RUNPOD_ALLOW_BILLABLE_ACTIONS=true in .env")
+    print("and run: docker compose up -d")
+    print("Store your RunPod key:  ./scripts/set-runpod-key")
+    print("Something wrong?        ./scripts/doctor")
+    print("Stop everything:        docker compose down")
     return 0
 
 

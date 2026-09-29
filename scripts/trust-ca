@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""Trust the GPUHarbor local certificate authority on this computer.
+
+The dashboard uses a certificate signed by a CA that only exists on your machine,
+so browsers warn until they trust it. This script installs `tls/local-ca.crt` for
+the system and for Chrome, Chromium and Firefox where that is possible. It shows
+every step and asks before it uses sudo.
+
+    ./scripts/trust-ca               # ask, then install
+    ./scripts/trust-ca --yes         # do not ask
+    ./scripts/trust-ca --dry-run     # only print what would happen
+    ./scripts/trust-ca --remove      # undo
+
+Only trust a CA that you created yourself. Other devices (phones, other PCs) need
+the same file imported by hand, see docs/TLS.md.
+"""
+from __future__ import annotations
+
+import argparse
+import glob
+import os
+import platform
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+NICKNAME = "GPUHarbor Local CA"
+LINUX_TARGET = Path("/usr/local/share/ca-certificates/gpuharbor-local-ca.crt")
+
+
+def run(command: list[str], dry_run: bool, check: bool = True) -> bool:
+    print("  $", " ".join(command))
+    if dry_run:
+        return True
+    result = subprocess.run(command, check=False)
+    if result.returncode != 0 and check:
+        print(f"  command failed (exit {result.returncode})", file=sys.stderr)
+    return result.returncode == 0
+
+
+def nss_databases() -> list[Path]:
+    """Chrome/Chromium and Firefox keep their own certificate stores."""
+    home = Path.home()
+    found: list[Path] = []
+    for pattern in (
+        ".pki/nssdb",
+        "snap/chromium/current/.pki/nssdb",
+        ".mozilla/firefox/*.default*",
+        ".mozilla/firefox/*.default-release*",
+        "snap/firefox/common/.mozilla/firefox/*.default*",
+        ".var/app/org.mozilla.firefox/.mozilla/firefox/*.default*",
+    ):
+        for match in glob.glob(str(home / pattern)):
+            path = Path(match)
+            if (path / "cert9.db").exists() or path.name == "nssdb":
+                found.append(path)
+    return found
+
+
+def install_linux(ca: Path, dry_run: bool, remove: bool) -> bool:
+    ok = True
+    if shutil.which("update-ca-certificates"):
+        if remove:
+            ok &= run(["sudo", "rm", "-f", str(LINUX_TARGET)], dry_run)
+            ok &= run(["sudo", "update-ca-certificates", "--fresh"], dry_run)
+        else:
+            ok &= run(["sudo", "cp", str(ca), str(LINUX_TARGET)], dry_run)
+            ok &= run(["sudo", "update-ca-certificates"], dry_run)
+    else:
+        print("  update-ca-certificates not found; skipping the system store.")
+    databases = nss_databases()
+    if databases and not shutil.which("certutil"):
+        print("  Chrome/Firefox found, but 'certutil' is missing. Install it and run this again:")
+        print("    sudo apt install libnss3-tools     (Debian/Ubuntu)")
+        return ok
+    for database in databases:
+        prefix = "sql:" + str(database)
+        if remove:
+            run(["certutil", "-D", "-n", NICKNAME, "-d", prefix], dry_run, check=False)
+        else:
+            run(["certutil", "-D", "-n", NICKNAME, "-d", prefix], dry_run, check=False)
+            ok &= run(["certutil", "-A", "-n", NICKNAME, "-t", "C,,", "-i", str(ca), "-d", prefix], dry_run)
+    return ok
+
+
+def install_macos(ca: Path, dry_run: bool, remove: bool) -> bool:
+    if remove:
+        return run(["sudo", "security", "delete-certificate", "-c", NICKNAME, "/Library/Keychains/System.keychain"], dry_run)
+    return run(
+        ["sudo", "security", "add-trusted-cert", "-d", "-r", "trustRoot",
+         "-k", "/Library/Keychains/System.keychain", str(ca)],
+        dry_run,
+    )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Trust the GPUHarbor local CA")
+    parser.add_argument("--ca", default=str(ROOT / "tls" / "local-ca.crt"), help="CA certificate file")
+    parser.add_argument("--yes", action="store_true", help="do not ask for confirmation")
+    parser.add_argument("--dry-run", action="store_true", help="print the steps without running them")
+    parser.add_argument("--remove", action="store_true", help="remove the trust again")
+    args = parser.parse_args()
+
+    ca = Path(args.ca)
+    if not ca.exists():
+        print(f"{ca} not found. Run ./scripts/install first.", file=sys.stderr)
+        return 1
+
+    system = platform.system()
+    if system not in {"Linux", "Darwin"}:
+        print("Automatic trust is available on Linux and macOS.")
+        print("On Windows, double-click tls\\local-ca.crt -> Install Certificate -> Local Machine ->")
+        print("'Trusted Root Certification Authorities'. Details: docs/TLS.md")
+        return 0
+    if system == "Linux" and "microsoft" in platform.release().lower():
+        print("This is WSL: the browser runs on Windows. Import tls/local-ca.crt there (docs/TLS.md).")
+        return 0
+
+    action = "Remove trust for" if args.remove else "Trust"
+    print(f"{action} the GPUHarbor local CA ({ca}) on this computer.")
+    print("This changes the system certificate store and the Chrome/Firefox stores of your user.")
+    if not args.yes and not args.dry_run:
+        if not sys.stdin.isatty():
+            print("Not an interactive terminal; re-run with --yes to proceed.", file=sys.stderr)
+            return 1
+        if input("Continue? [Y/n] ").strip().lower() not in {"", "y", "yes", "j", "ja"}:
+            print("Cancelled.")
+            return 1
+
+    ok = install_macos(ca, args.dry_run, args.remove) if system == "Darwin" else install_linux(ca, args.dry_run, args.remove)
+    if args.dry_run:
+        return 0
+    if ok:
+        print("Done. Restart the browser, then open the dashboard again.")
+        return 0
+    print("Some steps failed; see docs/TLS.md for the manual way.", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     runpod_allow_billable_actions: bool = False
     runpod_pod_id: str = ""
 
+    # Set by compose.openhands.yml; empty means OpenHands is not part of this stack.
+    openhands_url: str = ""
+    openhands_backend_api_key: SecretStr | None = None
+    # Dashboard links, "scheme:port", set by the Open WebUI / OpenHands overlays.
+    gpuharbor_link_openwebui: str = ""
+    gpuharbor_link_openhands: str = ""
+
     runtime_image_vllm: str = ""
     runtime_image_llama_cpp: str = ""
     runtime_image_bonsai: str = ""
@@ -112,8 +119,10 @@ class Settings(BaseSettings):
             "GPUHARBOR_SESSION_SECRET": self.gpuharbor_session_secret.get_secret_value(),
         }
         for name, value in values.items():
-            if len(value) < 32 or "replace" in value.lower():
-                errors.append(f"{name} must be a unique random value with at least 32 characters")
+            # The admin password is typed by a person, so it may be shorter than a machine token.
+            minimum = 16 if name == "GPUHARBOR_ADMIN_PASSWORD" else 32
+            if len(value) < minimum or "replace" in value.lower():
+                errors.append(f"{name} must be a unique random value with at least {minimum} characters")
         if len(set(values.values())) != len(values):
             errors.append("Every credential must use a different value")
         if not self.datacenter_ids:

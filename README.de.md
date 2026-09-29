@@ -27,8 +27,12 @@ Nicht mit RunPod verbunden und nicht von RunPod betrieben.
 - GPUs aus dem echten RunPod-Katalog wählen, oder einfach eine Region angeben
   und das Rechenzentrum automatisch zuweisen lassen.
 - Die genaue RunPod-Anfrage vorher ansehen, mit entfernten Geheimnissen.
-- Das Modell jedem OpenAI-kompatiblen Client bereitstellen.
-- Open WebUI und OpenHands nach Wunsch dazunehmen.
+- Das Modell jedem OpenAI-kompatiblen Client bereitstellen. Das Dashboard zeigt
+  Basis-URL, Modellname und Key zum Kopieren.
+- Open WebUI und OpenHands nach Wunsch dazunehmen. Beide sind automatisch mit
+  deinen Modellen verbunden: Open WebUI findet das laufende Modell selbst, und
+  OpenHands bekommt für jedes Modell ein fertiges Profil.
+- HTTPS als Standard, und ein Befehl zur Fehlersuche (`./scripts/doctor`).
 
 ## Installation
 
@@ -41,8 +45,19 @@ cd gpuharbor
 ./scripts/install
 ```
 
-Danach `https://localhost:8443` öffnen (HTTPS ist Standard, Zertifikat einer lokalen CA, siehe [TLS](docs/TLS.md); Benutzer `admin`, Passwort anzeigen mit `./scripts/init-env --show-login`). Mit `--webui` kommt Open WebUI dazu. Für LAN oder die interaktive
-Variante siehe [Setup](docs/SETUP.md). Die App erklärt jedes Feld unter `/docs`.
+Der Installer prüft Docker, erzeugt Passwörter und ein lokales Zertifikat, startet
+alles und wartet, bis es antwortet. Danach:
+
+1. `https://localhost:8443` öffnen, Benutzer `admin`. Passwort anzeigen mit
+   `./scripts/init-env --show-login`.
+2. Der Browser warnt vor dem Zertifikat, bis er der lokalen CA vertraut. Der
+   Installer bietet an, das für dich zu erledigen (oder `./scripts/trust-ca`).
+3. Die **Erste-Schritte-Checkliste** im Dashboard abarbeiten: RunPod-Key hinterlegen
+   (`./scripts/set-runpod-key`), Modell wählen, Pod starten.
+
+Mit `--webui` und/oder `--openhands` kommen die Apps dazu. Etwas funktioniert nicht?
+`./scripts/doctor` ausführen. Für LAN oder die interaktive Variante siehe
+[Setup](docs/SETUP.md). Die App erklärt jedes Feld unter `/docs`.
 
 Nichts an RunPod passiert, solange `RUNPOD_ALLOW_BILLABLE_ACTIONS=false` gesetzt
 ist.

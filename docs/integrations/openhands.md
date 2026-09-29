@@ -27,9 +27,20 @@ ask for the backend key.
 
 ## Point it at GPUHarbor
 
+Nothing to do: GPUHarbor connects OpenHands to your models by itself. The controller
+writes one LLM profile per model (`gpuharbor-<id>`) through OpenHands' settings API and
+activates the one for the running model. It sets sensible values for local models:
+native tool calls only where the vLLM profile enables them, a fitting output length, a
+long timeout for cold starts, and no hosted-provider options. Profiles you create
+yourself are never changed, and if you activate one, GPUHarbor leaves your choice alone.
+It keeps the profiles in sync when you add, edit or delete a model. The dashboard
+header links to OpenHands and *Connect an app* shows the status.
+
+Only if you want to do it by hand:
+
 In the model settings, add an OpenAI-compatible provider:
 
-- Model: `openai/code` if the profile serves `code`, otherwise `openai/chat`
+- Model: `openai/` plus a served name of the profile, for example `openai/default`
 - Base URL: `http://controller:8080/v1`
 - API key: the value of `MODEL_ACCESS_TOKEN`
 

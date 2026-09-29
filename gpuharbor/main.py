@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import secrets
 import time
 from contextlib import asynccontextmanager
@@ -9,7 +10,8 @@ from typing import Annotated
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
@@ -20,6 +22,7 @@ from .catalog import GPU_FALLBACK, MODEL_PRESETS, group_datacenters, region_labe
 from .config import Settings
 from .huggingface import LookupError, lookup as hf_lookup
 from .idle import should_stop_for_idle
+from .integrations import IntegrationSync, sync_openhands
 from .registry import ModelDefinition, Registry
 from .runpod import LaunchOptions, RunpodClient, RunpodError, pod_status, proxy_url, resolve_launch
 from .security import LoginLimiter, SecurityHeadersMiddleware, SessionRegistry, bearer_token, redact_secrets, secure_equals
@@ -54,14 +57,39 @@ async def lifespan(app: FastAPI):
     app.state.last_inference = time.monotonic()
     app.state.update_cache = {"at": 0.0, "data": None}
     app.state.idle_task = asyncio.create_task(idle_stop_loop(app))
+    app.state.integrations = IntegrationSync()
+    app.state.integration_task = (
+        asyncio.create_task(app.state.integrations.run(lambda: openhands_sync(app)))
+        if settings.openhands_url and settings.openhands_backend_api_key
+        else None
+    )
     yield
-    app.state.idle_task.cancel()
-    try:
-        await app.state.idle_task
-    except asyncio.CancelledError:
-        pass
+    for task in (app.state.idle_task, app.state.integration_task):
+        if task is None:
+            continue
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
     await app.state.runpod.close()
     await app.state.proxy.aclose()
+
+
+async def openhands_sync(application: FastAPI) -> dict:
+    """Point OpenHands at every model profile so models work there without setup."""
+    return await sync_openhands(
+        application.state.proxy,
+        settings.openhands_url,
+        settings.openhands_backend_api_key.get_secret_value(),
+        registry.models(),
+        settings.model_access_token.get_secret_value(),
+        store.read().model_id,
+    )
+
+
+def request_integration_sync(application: FastAPI) -> None:
+    application.state.integrations.request()
 
 
 async def idle_stop_loop(application: FastAPI) -> None:
@@ -104,6 +132,19 @@ app.add_middleware(
     same_site="lax",
     https_only=settings.gpuharbor_cookie_secure,
 )
+
+
+@app.exception_handler(HTTPException)
+async def openai_style_errors(request: Request, error: HTTPException):
+    """Clients of /v1 (Open WebUI, OpenHands, SDKs) expect the OpenAI error shape."""
+    if not request.url.path.startswith("/v1/"):
+        return await http_exception_handler(request, error)
+    message = error.detail if isinstance(error.detail, str) else str(error.detail)
+    return JSONResponse(
+        {"error": {"message": message, "type": "gpuharbor_error", "code": error.status_code}, "detail": message},
+        status_code=error.status_code,
+        headers=error.headers,
+    )
 
 
 def session_active(request: Request) -> bool:
@@ -253,7 +294,17 @@ async def controller_settings() -> dict:
         "regions_enabled": True,
         "version": __version__,
         "update_check_enabled": preferences.read().update_notifications,
+        "runpod_key_set": bool(re.fullmatch(r"rpa_[A-Za-z0-9]{20,}", settings.runpod_api_key.get_secret_value())),
     }
+
+
+@app.get("/api/connection", dependencies=[Depends(require_control)])
+async def connection() -> dict:
+    """What an OpenAI-compatible client needs: base path, model names and the inference token."""
+    state = store.read()
+    models_ = registry.models()
+    served = models_[state.model_id].served_names if state.model_id in models_ else []
+    return {"base_path": "/v1", "served_names": served, "model_id": state.model_id, "token": settings.model_access_token.get_secret_value()}
 
 
 @app.get("/api/settings", dependencies=[Depends(require_control)])
@@ -293,6 +344,26 @@ async def update_check(request: Request) -> dict:
     cache["at"] = time.monotonic()
     cache["data"] = result
     return result
+
+
+@app.get("/api/integrations", dependencies=[Depends(require_control)])
+async def integrations(request: Request) -> dict:
+    """Optional apps that belong to this stack, for the dashboard links."""
+    def link(value: str) -> dict | None:
+        scheme, _, port = value.partition(":")
+        return {"scheme": scheme, "port": int(port)} if scheme in {"http", "https"} and port.isdigit() else None
+
+    return {
+        "openwebui": link(settings.gpuharbor_link_openwebui),
+        "openhands": {
+            **(link(settings.gpuharbor_link_openhands) or {}),
+            "path": "/canvas/",
+            "auto_configured": bool(request.app.state.integrations.last.get("synced")),
+            "active_profile": request.app.state.integrations.last.get("active"),
+        }
+        if settings.openhands_url
+        else None,
+    }
 
 
 @app.get("/api/model-presets", dependencies=[Depends(require_control)])
@@ -401,18 +472,19 @@ async def export_models() -> dict:
 
 
 @app.post("/api/models-import", dependencies=[Depends(require_control)])
-async def import_models(body: CatalogImportRequest) -> dict[str, bool]:
+async def import_models(body: CatalogImportRequest, request: Request) -> dict[str, bool]:
     if store.read().pod_id:
         raise HTTPException(status_code=409, detail="Delete the active pod before importing model settings")
     try:
         registry.import_user_catalog(body.catalog, replace=body.replace)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
+    request_integration_sync(request.app)
     return {"ok": True}
 
 
 @app.put("/api/models/{model_id}", dependencies=[Depends(require_control)])
-async def save_model(model_id: str, body: ModelDefinition) -> dict[str, bool]:
+async def save_model(model_id: str, body: ModelDefinition, request: Request) -> dict[str, bool]:
     state = store.read()
     if state.pod_id and state.model_id == model_id:
         raise HTTPException(status_code=409, detail="Stop and delete the active pod before editing its model")
@@ -420,11 +492,12 @@ async def save_model(model_id: str, body: ModelDefinition) -> dict[str, bool]:
         registry.save_model(model_id, body)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
+    request_integration_sync(request.app)
     return {"ok": True}
 
 
 @app.delete("/api/models/{model_id}", dependencies=[Depends(require_control)])
-async def delete_model(model_id: str) -> dict[str, bool]:
+async def delete_model(model_id: str, request: Request) -> dict[str, bool]:
     state = store.read()
     if state.model_id == model_id:
         raise HTTPException(status_code=409, detail="The active model cannot be deleted")
@@ -432,11 +505,12 @@ async def delete_model(model_id: str) -> dict[str, bool]:
         registry.delete_user_model(model_id)
     except KeyError as error:
         raise HTTPException(status_code=409, detail="Built-in models cannot be deleted; reset an override instead") from error
+    request_integration_sync(request.app)
     return {"ok": True}
 
 
 @app.post("/api/models/{model_id}/reset", dependencies=[Depends(require_control)])
-async def reset_model(model_id: str) -> dict[str, bool]:
+async def reset_model(model_id: str, request: Request) -> dict[str, bool]:
     state = store.read()
     if state.pod_id and state.model_id == model_id:
         raise HTTPException(status_code=409, detail="Delete the active pod before resetting its model")
@@ -446,6 +520,7 @@ async def reset_model(model_id: str) -> dict[str, bool]:
         raise HTTPException(status_code=404, detail="Built-in model not found") from error
     except ValueError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+    request_integration_sync(request.app)
     return {"ok": True}
 
 
@@ -588,6 +663,7 @@ async def start(options: LaunchOptions, request: Request) -> dict:
             pod = await request.app.state.runpod.wait_for_status(state.pod_id, {"RUNNING"})
         except RunpodError as error:
             raise HTTPException(status_code=502, detail=str(error)) from error
+        request_integration_sync(request.app)
         return {"pod_id": state.pod_id, "model_id": state.model_id, "status": pod_status(pod)}
 
 
@@ -641,7 +717,7 @@ async def proxy(path: str, request: Request, _: None = Depends(require_model_tok
     request.app.state.last_inference = time.monotonic()
     state = store.read()
     if not state.pod_id:
-        raise HTTPException(status_code=503, detail="No model pod is configured")
+        raise HTTPException(status_code=503, detail="No model is running. Start a pod in the GPUHarbor dashboard first.")
     query = f"?{request.url.query}" if request.url.query else ""
     upstream_request = request.app.state.proxy.build_request(
         request.method,
@@ -657,7 +733,7 @@ async def proxy(path: str, request: Request, _: None = Depends(require_model_tok
     try:
         upstream = await request.app.state.proxy.send(upstream_request, stream=True)
     except httpx.HTTPError as error:
-        raise HTTPException(status_code=503, detail=f"Model unavailable: {error}") from error
+        raise HTTPException(status_code=503, detail=f"Model unavailable: the pod is not answering yet. If you just started it, wait a few minutes while the model loads. ({error})") from error
     return StreamingResponse(
         upstream.aiter_raw(),
         status_code=upstream.status_code,

@@ -22,6 +22,24 @@ for name in $(printf '%s,localhost,127.0.0.1,::1' "$host" | tr ',' ' '); do
 done
 first=${host%%,*}
 
+# Keep the existing certificate (and the CA your devices already trust) while it is
+# still valid for every requested name. Pass FORCE=1 to renew it anyway.
+if [ "${FORCE:-0}" != 1 ] && [ -f "$out/server.crt" ] && [ -f "$out/local-ca.crt" ] \
+   && openssl x509 -in "$out/server.crt" -noout -checkend 2592000 >/dev/null 2>&1; then
+  covered=1
+  for name in $(printf '%s,localhost,127.0.0.1,::1' "$host" | tr ',' ' '); do
+    if printf '%s' "$name" | grep -Eq '^[0-9a-fA-F:.]+$'; then
+      openssl x509 -in "$out/server.crt" -noout -checkip "$name" 2>/dev/null | grep -q "does match" || covered=0
+    else
+      openssl x509 -in "$out/server.crt" -noout -checkhost "$name" 2>/dev/null | grep -q "does match" || covered=0
+    fi
+  done
+  if [ "$covered" = 1 ]; then
+    printf 'Existing TLS certificate in %s is still valid for these names; keeping it (FORCE=1 renews).\n' "$out"
+    exit 0
+  fi
+fi
+
 cat >"$tmp/server.cnf" <<EOF
 [req]
 distinguished_name = dn

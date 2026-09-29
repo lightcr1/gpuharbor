@@ -112,55 +112,19 @@ def main() -> int:
         print("Abgebrochen.")
         return 1
 
-    overlays: list[str] = []
-    if https_host:
-        overlays.append("compose.tls.yml")
+    # The installer does the real work, so both entry points behave the same.
+    command = [sys.executable, "scripts/install", "--bind-ip", bind, "--tls-port", args.https_port]
+    command += ["--https", https_host] if https_host else ["--no-https"]
     if webui:
-        overlays.append("compose.openwebui.yml")
-        if https_host:
-            overlays.append("compose.openwebui.tls.yml")
+        command.append("--webui")
     if openhands:
-        overlays.append("compose.openhands.yml")
-        if https_host:
-            overlays.append("compose.openhands.tls.yml")
-
-    env_command = [sys.executable, "scripts/init-env", "--bind-ip", bind]
-    if https_host:
-        env_command += ["--https-host", https_host, "--tls-port", args.https_port]
-    for overlay in overlays or ["compose.yml"]:
-        env_command += ["--overlay", overlay]
-    run(env_command, dry_run=args.dry_run)
-
-    if https_host:
-        run(["./scripts/generate-local-tls", https_host, "tls"], dry_run=args.dry_run)
-
-    if start:
-        if shutil.which("docker") is None and not args.dry_run:
-            print("Docker nicht gefunden.", file=sys.stderr)
-            return 1
-        # COMPOSE_FILE in .env selects the overlays, so plain "docker compose" works later too.
-        run(["docker", "compose", "up", "-d", "--build"], dry_run=args.dry_run)
-
-    print()
-    print("Fertig.")
-    if https_host:
-        shown = "localhost" if https_host in {"127.0.0.1", "0.0.0.0"} else https_host
-        print(f"  Dashboard: https://{shown}:{args.https_port}/")
-        if webui:
-            print(f"  Open WebUI: https://{shown}:8444/")
-        if openhands:
-            print(f"  OpenHands : https://{shown}:8445/")
-        print("  Das Zertifikat stammt von einer lokalen CA: der Browser warnt, bis du")
-        print("  tls/local-ca.crt vertraust (siehe docs/TLS.md).")
-    else:
-        shown = bind if bind != "0.0.0.0" else "localhost"
-        print(f"  Dashboard: http://{shown}:8080/")
-    print("  Benutzer : admin")
-    print("  Passwort : ./scripts/init-env --show-login")
-    print()
-    print("Kostenpflichtige RunPod-Aktionen bleiben gesperrt, bis du")
-    print("RUNPOD_ALLOW_BILLABLE_ACTIONS=true setzt.")
-    return 0
+        command.append("--openhands")
+    if not start:
+        command.append("--no-start")
+    if args.dry_run:
+        command.append("--dry-run")
+    print("+", " ".join(command))
+    return subprocess.run(command, cwd=ROOT, check=False).returncode
 
 
 if __name__ == "__main__":
