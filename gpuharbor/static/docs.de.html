@@ -73,6 +73,10 @@ funktionieren sofort:
 <code>RUNPOD_ALLOW_BILLABLE_ACTIONS=true</code> in <code>.env</code> setzen und den
 Controller neu starten.</li>
 </ol>
+<p>Das Dashboard zeigt eine <strong>Erste-Schritte-Checkliste</strong> und eine Karte
+<strong>App verbinden</strong> mit Basis-URL, Modellname und API-Key. Wenn etwas nicht
+funktioniert, <code>./scripts/doctor</code> ausführen: es prüft Docker, <code>.env</code>,
+Zertifikat und Container und sagt, was zu tun ist.</p>
 <h3>Was ist <code>.env</code>, und wie öffne ich sie?</h3>
 <p><code>.env</code> ist eine einfache Textdatei im GPUHarbor-Ordner. Sie enthält
 deine Passwörter und Einstellungen. Der Name beginnt mit einem Punkt, sie ist
@@ -247,6 +251,8 @@ Image wäre beliebige Codeausführung.</p>
 <tr><th>Skript</th><th>Zweck</th></tr>
 <tr><td><code>./scripts/install</code></td><td>Installieren oder aktualisieren; erzeugt <code>.env</code> und startet.</td></tr>
 <tr><td><code>./scripts/setup</code></td><td>Interaktive Rückfragen (Bind-Adresse, HTTPS, Open WebUI, OpenHands).</td></tr>
+<tr><td><code>./scripts/doctor</code></td><td>Installation prüfen und in einfachen Worten sagen, was zu tun ist.</td></tr>
+<tr><td><code>./scripts/trust-ca</code></td><td>Lokales HTTPS-Zertifikat auf diesem Rechner vertrauen (fragt vor sudo).</td></tr>
 <tr><td><code>./scripts/init-env</code></td><td><code>.env</code> mit zufälligen Secrets und Adressen anlegen/aktualisieren.</td></tr>
 <tr><td><code>./scripts/add-host</code></td><td>Weitere Adressen für das Dashboard freigeben.</td></tr>
 <tr><td><code>./scripts/set-runpod-key</code></td><td>RunPod-API-Key sicher hinterlegen.</td></tr>
@@ -265,8 +271,9 @@ OpenAI-kompatiblen API von GPUHarbor und bekommen nur
 <code>MODEL_ACCESS_TOKEN</code>, nie den RunPod-Key. Der Pod muss zuerst laufen.</p>
 <h3>Open WebUI (Chat-Oberfläche)</h3>
 <pre>./scripts/install --webui</pre>
-<p><code>https://localhost:8444</code> öffnen (mit <code>--no-https</code>:
-<code>http://localhost:3000</code>). Diese Erweiterung zeigt Open WebUI
+<p>den Link <em>Open WebUI</em> im Dashboard-Kopf öffnen
+(<code>https://localhost:8444</code>, mit <code>--no-https</code>:
+<code>http://localhost:3000</code>) und das erste Konto anlegen. Diese Erweiterung zeigt Open WebUI
 schon auf <code>http://controller:8080/v1</code> und übergibt das Token
 automatisch. Das Modell über seinen <em>API-Namen</em> aus dem Profil wählen
 (z. B. <code>chat</code>).</p>
@@ -276,7 +283,10 @@ automatisch. Das Modell über seinen <em>API-Namen</em> aus dem Profil wählen
 <h3>OpenHands Agent Canvas (führt Code aus)</h3>
 <pre>mkdir -p workspace
 ./scripts/install --openhands</pre>
-<p><code>https://localhost:8445</code> öffnen. Als Anbieter
+<p>den Link <em>OpenHands</em> im Dashboard-Kopf öffnen (<code>https://localhost:8445</code>).
+<strong>Nichts einzustellen:</strong> GPUHarbor legt für jedes Modell ein LLM-Profil in
+OpenHands an und aktiviert das zum laufenden Modell. Eigene Profile bleiben unberührt.
+Von Hand: Als Anbieter
 <code>openai/chat</code> (oder <code>openai/code</code>), Basis-URL
 <code>http://controller:8080/v1</code> und <code>MODEL_ACCESS_TOKEN</code> nutzen.</p>
 <p class="muted">OpenHands kann Code ausführen und Dateien ändern. Nur mit einem
@@ -345,7 +355,8 @@ Zertifizierungsstelle im Browser oder System importieren). Für andere Geräte:<
 <tr><td>409 Another pod operation is running</td><td>Andere Aktion abwarten.</td></tr>
 <tr><td>Invalid host header</td><td>Adresse fehlt in <code>GPUHARBOR_TRUSTED_HOSTS</code>.</td></tr>
 <tr><td>No configured placement was available</td><td>GPU nicht verfügbar. Andere GPU, Region oder Zeitpunkt.</td></tr>
-<tr><td>Model unavailable: All connection attempts failed</td><td>Pod läuft, Modell lädt noch oder Runtime ist abgestürzt.</td></tr>
+<tr><td>No model is running. Start a pod in the GPUHarbor dashboard first.</td><td>Eine App hat das Modell aufgerufen, obwohl kein Pod läuft. Im Dashboard einen starten.</td></tr>
+<tr><td>Model unavailable: the pod is not answering yet</td><td>Pod läuft, Modell lädt noch oder Runtime ist abgestürzt.</td></tr>
 <tr><td>429 Too many failed login attempts</td><td>Zeitfenster abwarten.</td></tr>
 </table>
 </section>

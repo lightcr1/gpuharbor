@@ -60,6 +60,20 @@ def check_docker() -> str | None:
     return None
 
 
+def env_value(name: str, default: str) -> str:
+    """Last value of NAME in .env (later lines win, like Compose), or the default."""
+    try:
+        lines = (ROOT / ".env").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return default
+    found = default
+    for line in lines:
+        key, _, value = line.partition("=")
+        if key.strip() == name and value.strip():
+            found = value.strip()
+    return found
+
+
 def wait_until_healthy(url: str, authority: Path | None, seconds: int = 150) -> bool:
     context = ssl.create_default_context(cafile=str(authority)) if authority else None
     deadline = time.monotonic() + seconds
@@ -160,9 +174,9 @@ def main() -> int:
     print("GPUHarbor is ready." if started else "GPUHarbor is prepared (not started).")
     print(f"  Dashboard : {dashboard}")
     if https_host and args.webui:
-        print(f"  Open WebUI: https://{shown}:8444/")
+        print(f"  Open WebUI: https://{shown}:{env_value('WEBUI_TLS_PORT', '8444')}/")
     if https_host and args.openhands:
-        print(f"  OpenHands : https://{shown}:8445/")
+        print(f"  OpenHands : https://{shown}:{env_value('OPENHANDS_TLS_PORT', '8445')}/")
     if not https_host and args.webui:
         print("  Open WebUI: http://localhost:3000/")
     if not https_host and args.openhands:

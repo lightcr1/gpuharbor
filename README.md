@@ -27,8 +27,13 @@ Not affiliated with RunPod.
   pick a datacenter.
 - Preview the exact RunPod request, with secrets removed, before spending
   anything.
-- Serve the model to any OpenAI-compatible client.
-- Add Open WebUI, OpenHands, both, or neither.
+- Serve the model to any OpenAI-compatible client. The dashboard shows the base
+  URL, model name and key to copy.
+- Add Open WebUI, OpenHands, both, or neither. Both are connected to your models
+  automatically: Open WebUI finds the running model by itself, and OpenHands gets a
+  ready-made profile for every model.
+- HTTPS by default, with a one-command check (`./scripts/doctor`) when something
+  does not work.
 
 ## Install
 
@@ -41,10 +46,19 @@ cd gpuharbor
 ./scripts/install
 ```
 
-Then open `https://localhost:8443`, user `admin`. HTTPS is the default; the
-certificate comes from a local CA, see [TLS](docs/TLS.md) to trust it. Show the generated password with
-`./scripts/init-env --show-login`. Add `--webui` for Open WebUI. For a LAN or the interactive variant,
-see [Setup](docs/SETUP.md). The app explains every field at `/docs`.
+The installer checks Docker, creates secrets and a local certificate, starts
+everything and waits until it answers. Then:
+
+1. Open `https://localhost:8443`, user `admin`. Show the password with
+   `./scripts/init-env --show-login`.
+2. Your browser warns about the certificate until it trusts the local CA. The
+   installer offers to do that for you (or run `./scripts/trust-ca`).
+3. Follow the **Getting started** checklist in the dashboard: store your RunPod key
+   (`./scripts/set-runpod-key`), pick a model, start a pod.
+
+Add `--webui` and/or `--openhands` to the install command for the apps. Something
+not working? Run `./scripts/doctor`. For a LAN or the interactive variant see
+[Setup](docs/SETUP.md). The app explains every field at `/docs`.
 
 Nothing touches RunPod until you set `RUNPOD_ALLOW_BILLABLE_ACTIONS=true`.
 

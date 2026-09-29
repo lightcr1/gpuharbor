@@ -27,6 +27,8 @@
       <option value="de">Deutsch</option>
     </select>
     <a class="link" href="/docs" data-i18n="nav.docs">Documentation</a>
+    <a id="link-openwebui" class="link hidden" href="#" target="_blank" rel="noopener">Open WebUI ↗</a>
+    <a id="link-openhands" class="link hidden" href="#" target="_blank" rel="noopener">OpenHands ↗</a>
     <a id="update-pill" class="pill ok hidden" href="#" target="_blank" rel="noopener"></a>
     <span id="billable-pill" class="pill"></span>
     <span id="version-label" class="hint"></span>
@@ -36,6 +38,12 @@
 </header>
 
 <div class="grid"><main>
+
+<section id="onboarding" class="card hidden">
+<div class="card-head"><h2 data-i18n="onb.title">Getting started</h2>
+<button type="button" class="secondary small-btn" data-click="dismissOnboarding" data-i18n="onb.dismiss">Hide</button></div>
+<ol id="onb-steps" class="steps"></ol>
+</section>
 
 <section class="card"><h2 data-i18n="start.title">Start a model</h2>
 <div class="row">
@@ -81,6 +89,16 @@
 <div id="status"><span class="dot"></span><span data-i18n="status.loading">Loading …</span></div>
 <div id="ready" class="small status-line"><span class="dot"></span><span data-i18n="ready.unknown">Model status unknown</span></div>
 <button class="secondary" data-click="refreshStatus" data-i18n="status.refresh">Refresh</button></section>
+
+<section class="card"><h2 data-i18n="connect.title">Connect an app</h2>
+<p class="hint" data-i18n="connect.hint">Any OpenAI-compatible app can use the running model with these values.</p>
+<dl class="kv">
+  <dt data-i18n="connect.url">Base URL</dt><dd><code id="conn-url"></code><button type="button" class="secondary small-btn" data-copy="conn-url" data-i18n="connect.copy">Copy</button></dd>
+  <dt data-i18n="connect.model">Model name</dt><dd><code id="conn-model">—</code><button type="button" class="secondary small-btn" data-copy="conn-model" data-i18n="connect.copy">Copy</button></dd>
+  <dt data-i18n="connect.token">API key</dt><dd><code id="conn-token">••••••••</code><button type="button" class="secondary small-btn" data-click="revealToken" data-i18n="connect.reveal">Show</button><button type="button" class="secondary small-btn" data-copy="conn-token" data-i18n="connect.copy">Copy</button></dd>
+</dl>
+<p id="conn-apps" class="hint"></p>
+</section>
 
 <section class="card"><h2 data-i18n="catalog.title">Model catalog</h2>
 <p class="hint" data-i18n="catalog.hint">Shipped profiles survive upgrades; your profiles and overrides are stored separately.</p>

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import secrets
 import time
 from contextlib import asynccontextmanager
@@ -293,7 +294,17 @@ async def controller_settings() -> dict:
         "regions_enabled": True,
         "version": __version__,
         "update_check_enabled": preferences.read().update_notifications,
+        "runpod_key_set": bool(re.fullmatch(r"rpa_[A-Za-z0-9]{20,}", settings.runpod_api_key.get_secret_value())),
     }
+
+
+@app.get("/api/connection", dependencies=[Depends(require_control)])
+async def connection() -> dict:
+    """What an OpenAI-compatible client needs: base path, model names and the inference token."""
+    state = store.read()
+    models_ = registry.models()
+    served = models_[state.model_id].served_names if state.model_id in models_ else []
+    return {"base_path": "/v1", "served_names": served, "model_id": state.model_id, "token": settings.model_access_token.get_secret_value()}
 
 
 @app.get("/api/settings", dependencies=[Depends(require_control)])

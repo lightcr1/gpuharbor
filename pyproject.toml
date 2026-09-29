@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gpuharbor"
-version = "0.1.4"
+version = "0.1.5"
 description = "Self-hosted control plane for curated AI models on RunPod"
 requires-python = ">=3.12"
 license = "Apache-2.0"

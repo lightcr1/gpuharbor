@@ -10,16 +10,60 @@ cd gpuharbor
 ./scripts/install
 ```
 
-That writes `.env` with random secrets, starts the stack and prints the URL and
-login. Run it again any time; real values are not overwritten.
+The installer:
 
-Prefer questions and checkboxes:
+1. checks that Docker and Docker Compose 2.24 or newer work and explains what to
+   fix if not,
+2. writes `.env` with random secrets (real values are never overwritten, and
+   settings added by newer versions are filled in),
+3. creates a local certificate and starts everything over HTTPS,
+4. waits until the dashboard answers and prints the address,
+5. offers to trust the local certificate on this computer.
+
+Run it again any time, for example after `git pull`. Add the apps you want:
 
 ```bash
-./scripts/setup
+./scripts/install --webui              # chat interface
+./scripts/install --openhands          # coding agent (runs generated code)
+./scripts/install --webui --openhands  # both
 ```
 
-Manual equivalent, if you want to see every step:
+Prefer questions and checkboxes: `./scripts/setup`.
+
+## First steps in the dashboard
+
+The **Getting started** card lists what is left:
+
+1. **Store your RunPod key:** `./scripts/set-runpod-key`
+2. **Allow starting pods:** billing is locked by default. Set
+   `RUNPOD_ALLOW_BILLABLE_ACTIONS=true` in `.env` and run `docker compose up -d`.
+3. **Runtime image ready:** the installed `.env` already has them.
+4. **Start a pod:** pick a model and press *Start pod*. The first start downloads the
+   model and takes a few minutes.
+5. **Model loaded:** the status on the right says so. Then use it.
+
+## Use the model
+
+The **Connect an app** card shows the base URL, the model name and the API key of the
+running model. Any OpenAI-compatible tool works with them.
+
+- **Open WebUI** (`--webui`): open the link in the dashboard header, create the first
+  account, and the running model is listed. Nothing to configure.
+- **OpenHands** (`--openhands`): GPUHarbor writes an LLM profile for every model into
+  OpenHands and activates the one for the running model. Nothing to configure. Profiles
+  you create yourself are never touched.
+
+## When something does not work
+
+```bash
+./scripts/doctor
+```
+
+It checks Docker, your `.env`, the certificate and the running containers, and says in
+plain words what to do. Useful commands: `docker compose ps`, `docker compose logs
+controller`.
+
+Manual equivalent of the installer, if you want to see every step:
 
 ```bash
 ./scripts/init-env --bind-ip 127.0.0.1
@@ -27,7 +71,7 @@ docker compose up --build -d
 ```
 
 Open `https://localhost:8443` (or `http://127.0.0.1:8080` with `--no-https`). User is `admin`. The install script generated a
-random password; show it with `./scripts/init-env --show-login` and set a new one
+random password in groups like `ABCD-EFGH-JKMN-PQRS-TUVW`; show it with `./scripts/init-env --show-login` and set a new one
 with `./scripts/init-env --reset-password`. The controller refuses to start with
 the placeholder values from `.env.example`.
 

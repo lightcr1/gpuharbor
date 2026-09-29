@@ -34,7 +34,7 @@ The overlay already configures the connection for you:
 - Base URL: `http://controller:8080/v1`
 - API key: the value of `MODEL_ACCESS_TOKEN` (passed automatically)
 
-Open `https://localhost:8444`, create the first account (it becomes the admin), then pick the model by its **served name** from the
+Open `https://localhost:8444` (or the *Open WebUI* link in the dashboard header), create the first account (it becomes the admin), then pick the model by its **served name** from the
 GPUHarbor profile (for example `chat`). The model pod must be running in GPUHarbor
 first; on first start it downloads the weights and takes a few minutes.
 

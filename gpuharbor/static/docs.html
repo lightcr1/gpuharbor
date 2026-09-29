@@ -72,6 +72,10 @@ right away:
 <code>RUNPOD_ALLOW_BILLABLE_ACTIONS=true</code> in <code>.env</code> and restart
 the controller.</li>
 </ol>
+<p>The dashboard shows a <strong>Getting started</strong> checklist and a <strong>Connect an
+app</strong> card with the base URL, model name and API key. If something does not work,
+run <code>./scripts/doctor</code>: it checks Docker, <code>.env</code>, the certificate and
+the containers and says what to fix.</p>
 <h3>What is <code>.env</code>, and how do I open it?</h3>
 <p><code>.env</code> is a plain text file in the GPUHarbor folder. It holds your
 passwords and settings. The name starts with a dot, so it is hidden by default.</p>
@@ -244,6 +248,8 @@ image would mean arbitrary code execution.</p>
 <tr><th>Script</th><th>Purpose</th></tr>
 <tr><td><code>./scripts/install</code></td><td>Install or update; creates <code>.env</code> and starts the stack.</td></tr>
 <tr><td><code>./scripts/setup</code></td><td>Interactive questions (bind address, HTTPS, Open WebUI, OpenHands).</td></tr>
+<tr><td><code>./scripts/doctor</code></td><td>Check the installation and say in plain words what to fix.</td></tr>
+<tr><td><code>./scripts/trust-ca</code></td><td>Trust the local HTTPS certificate on this computer (asks before sudo).</td></tr>
 <tr><td><code>./scripts/init-env</code></td><td>Create or update <code>.env</code> with random secrets and addresses.</td></tr>
 <tr><td><code>./scripts/add-host</code></td><td>Allow more addresses to reach the dashboard.</td></tr>
 <tr><td><code>./scripts/set-runpod-key</code></td><td>Store the RunPod API key safely.</td></tr>
@@ -262,8 +268,9 @@ OpenAI-compatible API and receive only <code>MODEL_ACCESS_TOKEN</code>, never th
 RunPod key. The model pod must be running first.</p>
 <h3>Open WebUI (chat interface)</h3>
 <pre>./scripts/install --webui</pre>
-<p>Open <code>https://localhost:8444</code> (or <code>http://localhost:3000</code>
-with <code>--no-https</code>). The overlay already points Open WebUI at
+<p>Open the <em>Open WebUI</em> link in the dashboard header
+(<code>https://localhost:8444</code>, or <code>http://localhost:3000</code>
+with <code>--no-https</code>) and create the first account. The overlay already points Open WebUI at
 <code>http://controller:8080/v1</code> and passes the token automatically. Pick the
 model by its <em>served name</em> from the profile (for example <code>chat</code>).</p>
 <p>Running Open WebUI yourself? Add an OpenAI connection with base URL
@@ -272,7 +279,10 @@ model by its <em>served name</em> from the profile (for example <code>chat</code
 <h3>OpenHands Agent Canvas (runs code)</h3>
 <pre>mkdir -p workspace
 ./scripts/install --openhands</pre>
-<p>Open <code>https://localhost:8445</code>. As the provider use
+<p>Open the <em>OpenHands</em> link in the dashboard header
+(<code>https://localhost:8445</code>). <strong>Nothing to configure:</strong> GPUHarbor
+writes an LLM profile for every model into OpenHands and activates the one for the
+running model. Profiles you made yourself are never touched. By hand, as the provider use
 <code>openai/chat</code> (or <code>openai/code</code>), base URL
 <code>http://controller:8080/v1</code> and <code>MODEL_ACCESS_TOKEN</code>.</p>
 <p class="muted">OpenHands can run code and change files. Use an empty, dedicated
@@ -340,7 +350,8 @@ authority in the browser or the system). For other devices:</p>
 <tr><td>409 Another pod operation is running</td><td>Wait for the other action.</td></tr>
 <tr><td>Invalid host header</td><td>The address is missing from <code>GPUHARBOR_TRUSTED_HOSTS</code>.</td></tr>
 <tr><td>No configured placement was available</td><td>GPU not available. Try another GPU, region or time.</td></tr>
-<tr><td>Model unavailable: All connection attempts failed</td><td>Pod is up but the model is still loading, or the runtime crashed.</td></tr>
+<tr><td>No model is running. Start a pod in the GPUHarbor dashboard first.</td><td>An app called the model while no pod exists. Start one in the dashboard.</td></tr>
+<tr><td>Model unavailable: the pod is not answering yet</td><td>Pod is up but the model is still loading, or the runtime crashed.</td></tr>
 <tr><td>429 Too many failed login attempts</td><td>Wait for the window to pass.</td></tr>
 </table>
 </section>

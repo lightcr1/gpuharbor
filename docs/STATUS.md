@@ -9,9 +9,13 @@ Last checked: 2026-09-29.
 - RunPod lifecycle: create, start, stop, delete, plus duplicate-pod protection.
 - Idle stop after `RUNPOD_IDLE_STOP_MINUTES` without model traffic.
 - OpenAI-compatible endpoint for any client.
+- HTTPS by default (local CA), with `install`, `doctor` and `trust-ca`.
+- Open WebUI: verified with a running pod on a real GPU.
+- OpenHands: the profile sync is tested against a real OpenHands container and a
+  full Compose stack; chatting with a real model through OpenHands has not been tried yet.
 - Optional Open WebUI, OpenHands Agent Canvas and local HTTPS.
 - Published runtime images, so a fresh install does not build anything.
-- 105 tests and a CI workflow on GitHub.
+- 121 tests and a CI workflow on GitHub.
 - Dashboard and docs available in English and German (`/docs` and `/docs/de`),
   the sidebar highlights the current section.
 - Settings dialog with an opt-in update-notification toggle (off by default) and

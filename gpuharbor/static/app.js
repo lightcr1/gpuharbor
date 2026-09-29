@@ -46,6 +46,16 @@ en:{
  "sum.ready":"Model ready: ","sum.yes":"yes","sum.no":"no","sum.pod":"Pod: ","sum.status":"Status: ","sum.model":"Model: ",
  "cost.single":"About {price} $/h while the pod runs.","cost.range":"About {min}–{max} $/h while the pod runs, depending on the GPU.","cost.unknown":"No price available.","cost.estimate":" (estimate; the live RunPod catalog is not reachable)",
  "badge.stable":"stable","badge.experimental":"experimental","badge.disabled":"disabled","badge.builtin":"built-in","badge.custom":"custom","badge.override":"override","badge.orphaned-override":"orphaned override","badge.gated":"gated","badge.verified":"verified","badge.unverified":"not verified",
+ "onb.title":"Getting started","onb.dismiss":"Hide",
+ "onb.key":"Store your RunPod API key","onb.key_hint":"Run ./scripts/set-runpod-key on the machine that hosts GPUHarbor.",
+ "onb.unlock":"Allow starting pods","onb.unlock_hint":"Billing is locked. To spend money, set RUNPOD_ALLOW_BILLABLE_ACTIONS=true in .env and run docker compose up -d.",
+ "onb.image":"Runtime image is ready","onb.image_hint":"The selected model needs a runtime image with a pinned digest; copy it from .env.example.",
+ "onb.start":"Start a pod","onb.start_hint":"Pick a model above and press Start pod. The first start downloads the model and takes a few minutes.",
+ "onb.ready":"Model is loaded","onb.ready_hint":"Wait until the status on the right says the model is loaded, then use it from any app.",
+ "connect.title":"Connect an app","connect.hint":"Any OpenAI-compatible app can use the running model with these values.",
+ "connect.url":"Base URL","connect.model":"Model name","connect.token":"API key","connect.copy":"Copy","connect.copied":"Copied","connect.reveal":"Show","connect.hide":"Hide",
+ "connect.apps_none":"Open WebUI and OpenHands are optional: ./scripts/install --webui --openhands",
+ "connect.owui":"Open WebUI finds the model by itself while a pod runs.","connect.oh":"OpenHands has a profile for every model; the one for the running model is active.","connect.oh_wait":"OpenHands is being connected …",
  "sum.no_pod":"No managed pod."
 },
 de:{
@@ -95,6 +105,16 @@ de:{
  "sum.ready":"Modell bereit: ","sum.yes":"ja","sum.no":"nein","sum.pod":"Pod: ","sum.status":"Status: ","sum.model":"Modell: ",
  "cost.single":"Etwa {price} $/h, solange der Pod läuft.","cost.range":"Etwa {min}–{max} $/h, solange der Pod läuft (je nach GPU).","cost.unknown":"Kein Preis verfügbar.","cost.estimate":" (Schätzwert; der Live-Katalog von RunPod ist nicht erreichbar)",
  "badge.stable":"stabil","badge.experimental":"experimentell","badge.disabled":"deaktiviert","badge.builtin":"mitgeliefert","badge.custom":"eigenes","badge.override":"angepasst","badge.orphaned-override":"verwaiste Anpassung","badge.gated":"eingeschränkt","badge.verified":"geprüft","badge.unverified":"ungeprüft",
+ "onb.title":"Erste Schritte","onb.dismiss":"Ausblenden",
+ "onb.key":"RunPod-API-Key hinterlegen","onb.key_hint":"Auf dem Rechner mit GPUHarbor ./scripts/set-runpod-key ausführen.",
+ "onb.unlock":"Pod-Start erlauben","onb.unlock_hint":"Abrechnung ist gesperrt. Zum Freigeben RUNPOD_ALLOW_BILLABLE_ACTIONS=true in .env setzen und docker compose up -d ausführen.",
+ "onb.image":"Runtime-Image ist bereit","onb.image_hint":"Das gewählte Modell braucht ein Runtime-Image mit festem Digest; den Wert aus .env.example übernehmen.",
+ "onb.start":"Pod starten","onb.start_hint":"Oben ein Modell wählen und „Pod starten“ drücken. Beim ersten Start wird das Modell geladen, das dauert einige Minuten.",
+ "onb.ready":"Modell ist geladen","onb.ready_hint":"Warten, bis rechts „Modell geladen“ steht, dann in jeder App nutzen.",
+ "connect.title":"App verbinden","connect.hint":"Jede OpenAI-kompatible App kann das laufende Modell mit diesen Werten nutzen.",
+ "connect.url":"Basis-URL","connect.model":"Modellname","connect.token":"API-Key","connect.copy":"Kopieren","connect.copied":"Kopiert","connect.reveal":"Anzeigen","connect.hide":"Verbergen",
+ "connect.apps_none":"Open WebUI und OpenHands sind optional: ./scripts/install --webui --openhands",
+ "connect.owui":"Open WebUI findet das Modell selbst, solange ein Pod läuft.","connect.oh":"OpenHands hat ein Profil für jedes Modell; das zum laufenden Modell ist aktiv.","connect.oh_wait":"OpenHands wird verbunden …",
  "sum.no_pod":"Kein Pod verwaltet."
 }};
 
@@ -117,9 +137,10 @@ function applyLang(){
   $('lang-switch').value=lang;
   updateBillablePill();
   renderUpdatePill();
+  if(typeof renderOnboarding==='function'&&Object.keys(models).length){renderOnboarding();renderConnectApps()}
 }
 
-let gpuSource='live',models={},runtimes={},settingsData={},gpuOptions=[],regions=[],presets={},csrfToken='',podActive=false,lastRaw='',lastKey=null,updateInfo=null,theme=document.documentElement.dataset.theme||'blue';
+let gpuSource='live',modelReady=false,connection=null,integrations={},tokenShown=false,models={},runtimes={},settingsData={},gpuOptions=[],regions=[],presets={},csrfToken='',podActive=false,lastRaw='',lastKey=null,updateInfo=null,theme=document.documentElement.dataset.theme||'blue';
 let mode='simple';
 const $=id=>document.getElementById(id), output=$('output'), editor=$('editor'), settingsDialog=$('settings');
 
@@ -235,6 +256,7 @@ async function boot(){
   $('login').classList.add('hidden');$('app').classList.remove('hidden');
   await loadCatalog();
   await Promise.all([loadStatus(),loadReady()]);
+  loadConnection();loadIntegrations();renderOnboarding();
 }
 async function logout(){await api('/api/logout',{method:'POST'});location.reload()}
 
@@ -356,13 +378,75 @@ async function loadStatus(){
   }catch(err){setLine($('status'),'bad',t('status.error')+err.message)}
 }
 async function loadReady(){
-  if(!podActive){setLine($('ready'),'',t('ready.none'));return}
+  if(!podActive){modelReady=false;setLine($('ready'),'',t('ready.none'));renderOnboarding();return}
   try{
     const d=await api('/api/model/ready');
+    modelReady=!!d.ready;
+    renderOnboarding();
     setLine($('ready'),d.ready?'ok':'wait',(d.ready?t('ready.loaded'):t('ready.loading'))+(d.detail?' — '+d.detail:''));
   }catch(err){setLine($('ready'),'bad',t('ready.unknown')+': '+err.message)}
 }
-async function refreshStatus(){await loadStatus();await loadReady()}
+async function refreshStatus(){await loadStatus();await loadReady();loadConnection();renderOnboarding()}
+function onboardingDismissed(){try{return localStorage.getItem('gh-onb-dismissed')==='1'}catch(e){return false}}
+function renderOnboarding(){
+  const box=$('onboarding');
+  const m=models[$('model').value];
+  const steps=[
+    ['key',!!settingsData.runpod_key_set],
+    ['unlock',!!settingsData.billable_actions_enabled],
+    ['image',!!m&&!!m.runtime_ready],
+    ['start',!!podActive],
+    ['ready',!!modelReady]];
+  const complete=steps.every(x=>x[1]);
+  box.classList.toggle('hidden',complete||onboardingDismissed()||!Object.keys(models).length);
+  const list=$('onb-steps');list.replaceChildren();
+  let current=steps.findIndex(x=>!x[1]);
+  steps.forEach(([id,done],i)=>{
+    const li=document.createElement('li');li.className=done?'done':'';
+    const mark=document.createElement('span');mark.className='mark';mark.textContent=done?'✓':String(i+1);
+    const text=document.createElement('span');text.className='step-text';
+    const b=document.createElement('b');b.textContent=t('onb.'+id);text.append(b);
+    if(!done&&i===current){const h=document.createElement('span');h.className='hint';h.textContent=t('onb.'+id+'_hint');text.append(h)}
+    li.append(mark,text);list.append(li);
+  });
+}
+function dismissOnboarding(){try{localStorage.setItem('gh-onb-dismissed','1')}catch(e){}$('onboarding').classList.add('hidden')}
+async function loadIntegrations(){
+  try{integrations=await api('/api/integrations')}catch{integrations={}}
+  const link=(id,info)=>{
+    const a=$(id);
+    if(!info||!info.port){a.classList.add('hidden');return}
+    a.href=(info.scheme||'https')+'://'+location.hostname+':'+info.port+(info.path||'/');
+    a.classList.remove('hidden');
+  };
+  link('link-openwebui',integrations.openwebui);
+  link('link-openhands',integrations.openhands);
+  renderConnectApps();
+}
+function renderConnectApps(){
+  const lines=[];
+  if(integrations.openwebui)lines.push(t('connect.owui'));
+  if(integrations.openhands)lines.push(integrations.openhands.auto_configured?t('connect.oh'):t('connect.oh_wait'));
+  $('conn-apps').textContent=lines.length?lines.join(' '):t('connect.apps_none');
+}
+async function loadConnection(){
+  try{connection=await api('/api/connection')}catch{connection=null;return}
+  $('conn-url').textContent=location.origin+connection.base_path;
+  const selected=(models[$('model').value]||{}).served_names||[];
+  $('conn-model').textContent=(connection.served_names||[])[0]||selected[0]||'—';
+  $('conn-token').textContent=tokenShown?connection.token:'••••••••';
+}
+function revealToken(){
+  tokenShown=!tokenShown;
+  if(connection)$('conn-token').textContent=tokenShown?connection.token:'••••••••';
+  const btn=document.querySelector('[data-click=revealToken]');btn.textContent=t(tokenShown?'connect.hide':'connect.reveal');
+}
+async function copyValue(id,button){
+  const value=id==='conn-token'?(connection&&connection.token):$(id).textContent;
+  if(!value||value==='—')return;
+  try{await navigator.clipboard.writeText(value)}catch{return}
+  const old=button.textContent;button.textContent=t('connect.copied');setTimeout(()=>{button.textContent=old},1200);
+}
 function fillEditor(id,m){
   $('editor-error').textContent='';
   $('editor-title').textContent=m?(t('editor.edit_title')+': '+(m.name||id)):t('editor.new_title');
@@ -489,18 +573,19 @@ async function importModels(file){
     await loadCatalog();render(t('msg.imported'));
   }catch(err){render(t('msg.import_error')+err.message)}finally{$('import-file').value=''}
 }
-const actions={openSettings,logout,newModel,editModel,exportModels,plan,preflight,startPod,stopPod,deletePod,refreshStatus,lookupModel,removeModel,
+const actions={dismissOnboarding,revealToken,openSettings,logout,newModel,editModel,exportModels,plan,preflight,startPod,stopPod,deletePod,refreshStatus,lookupModel,removeModel,
   pickImport:()=>$('import-file').click(),closeEditor:()=>editor.close(),closeSettings:()=>settingsDialog.close()};
 document.addEventListener('click',e=>{
-  const target=e.target.closest('[data-click],[data-mode],[data-tab]');
+  const target=e.target.closest('[data-click],[data-mode],[data-tab],[data-copy]');
   if(!target)return;
-  if(target.dataset.click)actions[target.dataset.click]?.();
+  if(target.dataset.copy)copyValue(target.dataset.copy,target);
+  else if(target.dataset.click)actions[target.dataset.click]?.();
   else if(target.dataset.mode)setMode(target.dataset.mode);
   else if(target.dataset.tab)showSettingsTab(target.dataset.tab,target);
 });
 const onChange=(id,fn)=>$(id).addEventListener('change',fn);
 onChange('lang-switch',e=>setLang(e.target.value));
-onChange('model',selectModel);
+onChange('model',()=>{selectModel();renderOnboarding();loadConnection()});
 onChange('region',regionChanged);
 onChange('gpu',updateCost);
 onChange('e-preset',applyPreset);
