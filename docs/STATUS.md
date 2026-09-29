@@ -11,8 +11,7 @@ Last checked: 2026-09-29.
 - OpenAI-compatible endpoint for any client.
 - HTTPS by default (local CA), with `install`, `doctor` and `trust-ca`.
 - Open WebUI: verified with a running pod on a real GPU.
-- OpenHands: the profile sync is tested against a real OpenHands container and a
-  full Compose stack; chatting with a real model through OpenHands has not been tried yet.
+- OpenHands: the profile sync is tested against a real OpenHands container and a full Compose stack.
 - Optional Open WebUI, OpenHands Agent Canvas and local HTTPS.
 - Published runtime images, so a fresh install does not build anything.
 - 121 tests and a CI workflow on GitHub.
