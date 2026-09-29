@@ -35,7 +35,7 @@ def test_init_env_generates_secrets_and_bind_ip(tmp_path):
     values = read_values(target)
 
     assert values["HOST_BIND_IP"] == "0.0.0.0"
-    assert "0.0.0.0" in values["GPUHARBOR_TRUSTED_HOSTS"]
+    assert "0.0.0.0" not in values["GPUHARBOR_TRUSTED_HOSTS"], "0.0.0.0 is never a Host header"
     assert values["RUNPOD_ALLOW_BILLABLE_ACTIONS"] == "false"
     for key in ("RUNPOD_API_KEY", "CONTROL_TOKEN", "MODEL_ACCESS_TOKEN", "GPUHARBOR_ADMIN_PASSWORD"):
         assert "replace" not in values[key].lower()
