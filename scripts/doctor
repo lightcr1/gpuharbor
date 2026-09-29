@@ -1,0 +1,194 @@
+#!/usr/bin/env python3
+"""Check a GPUHarbor installation and say in plain words what is wrong.
+
+    ./scripts/doctor              # full check, including the running stack
+    ./scripts/doctor --offline    # only files and settings, no Docker calls
+
+Exit code 0 means nothing needs your attention; 1 means at least one problem.
+Nothing here changes anything or talks to RunPod.
+"""
+from __future__ import annotations
+
+import argparse
+import re
+import shutil
+import ssl
+import subprocess
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+DIGEST = re.compile(r"^.+@sha256:[0-9a-fA-F]{64}$")
+COMPOSE_MINIMUM = (2, 24)
+
+problems = 0
+warnings = 0
+
+
+def ok(message: str) -> None:
+    print(f"  ok    {message}")
+
+
+def warn(message: str, fix: str = "") -> None:
+    global warnings
+    warnings += 1
+    print(f"  note  {message}")
+    if fix:
+        print(f"        -> {fix}")
+
+
+def bad(message: str, fix: str = "") -> None:
+    global problems
+    problems += 1
+    print(f"  FAIL  {message}")
+    if fix:
+        print(f"        -> {fix}")
+
+
+def read_env(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip() and not line.lstrip().startswith("#") and "=" in line:
+            key, _, value = line.partition("=")
+            values[key.strip()] = value.strip()
+    return values
+
+
+def check_docker() -> None:
+    print("Docker")
+    if shutil.which("docker") is None:
+        bad("Docker is not installed.", "Install Docker Engine or Docker Desktop: https://docs.docker.com/get-docker/")
+        return
+    info = subprocess.run(["docker", "info"], capture_output=True, text=True)
+    if info.returncode != 0:
+        bad("Docker is installed but not running or not allowed for your user.",
+            "Start Docker; on Linux add yourself to the docker group (sudo usermod -aG docker $USER) and log in again.")
+        return
+    ok("Docker is running")
+    version = subprocess.run(["docker", "compose", "version", "--short"], capture_output=True, text=True)
+    match = re.match(r"v?(\d+)\.(\d+)", version.stdout.strip())
+    if version.returncode != 0 or not match:
+        bad("Docker Compose v2 is missing.", "Install the Compose plugin: https://docs.docker.com/compose/install/")
+    elif (int(match.group(1)), int(match.group(2))) < COMPOSE_MINIMUM:
+        bad(f"Docker Compose {version.stdout.strip()} is too old (need 2.24 or newer).",
+            "Update Docker Compose; the HTTPS setup relies on newer Compose features.")
+    else:
+        ok(f"Docker Compose {version.stdout.strip()}")
+
+
+def check_env(env_path: Path) -> dict[str, str]:
+    print("Settings (.env)")
+    if not env_path.exists():
+        bad(f"{env_path.name} does not exist.", "Run ./scripts/install")
+        return {}
+    values = read_env(env_path)
+    mode = env_path.stat().st_mode & 0o077
+    if mode:
+        warn(".env can be read by other users.", "chmod 600 .env")
+    else:
+        ok(".env is private")
+    secrets_ = ["CONTROL_TOKEN", "MODEL_ACCESS_TOKEN", "RUNTIME_GATEWAY_TOKEN",
+                "GPUHARBOR_ADMIN_PASSWORD", "GPUHARBOR_SESSION_SECRET"]
+    weak = [key for key in secrets_ if not values.get(key) or values[key].lower().startswith("replace")]
+    if weak:
+        bad(f"Not set up yet: {', '.join(weak)}.", "Run ./scripts/init-env")
+    else:
+        ok("all passwords and tokens are generated")
+    key = values.get("RUNPOD_API_KEY", "")
+    if not re.fullmatch(r"rpa_[A-Za-z0-9]{20,}", key):
+        warn("No RunPod API key stored yet. The dashboard works, but pods cannot start.", "Run ./scripts/set-runpod-key")
+    else:
+        ok("RunPod API key is stored")
+    for name in ("RUNTIME_IMAGE_VLLM", "RUNTIME_IMAGE_LLAMA_CPP", "RUNTIME_IMAGE_BONSAI"):
+        if not DIGEST.fullmatch(values.get(name, "")):
+            warn(f"{name} is not a pinned image digest; models of that runtime cannot start.",
+                 "Copy the value from .env.example")
+    if values.get("RUNPOD_ALLOW_BILLABLE_ACTIONS", "false").lower() == "true":
+        warn("Cost lock is OFF: pods can be started and cost money.", "Set RUNPOD_ALLOW_BILLABLE_ACTIONS=false to lock it again.")
+    else:
+        ok("cost lock is on (no pod can be started until you turn it off)")
+    bind = values.get("HOST_BIND_IP", "127.0.0.1")
+    tls = "compose.tls.yml" in values.get("COMPOSE_FILE", "")
+    if bind not in {"127.0.0.1", "localhost"} and not tls:
+        warn(f"The dashboard listens on {bind} over plain HTTP: passwords cross the network unencrypted.",
+             "Run ./scripts/install --bind-ip " + bind + " --https <your-address>")
+    return values
+
+
+def check_tls(values: dict[str, str]) -> Path | None:
+    if "compose.tls.yml" not in values.get("COMPOSE_FILE", ""):
+        return None
+    print("HTTPS")
+    certificate, authority = ROOT / "tls" / "server.crt", ROOT / "tls" / "local-ca.crt"
+    if not certificate.exists() or not authority.exists():
+        bad("The TLS certificate is missing.", "Run ./scripts/install (it creates one)")
+        return None
+    if shutil.which("openssl"):
+        soon = subprocess.run(["openssl", "x509", "-in", str(certificate), "-noout", "-checkend", str(30 * 86400)],
+                              capture_output=True)
+        expired = subprocess.run(["openssl", "x509", "-in", str(certificate), "-noout", "-checkend", "0"],
+                                 capture_output=True)
+        if expired.returncode != 0:
+            bad("The certificate has expired.", "FORCE=1 ./scripts/generate-local-tls <address> tls, then ./scripts/trust-ca")
+        elif soon.returncode != 0:
+            warn("The certificate expires within 30 days.", "It is renewed by ./scripts/install; trust the new CA afterwards.")
+        else:
+            ok("certificate is valid")
+    return authority
+
+
+def check_stack(values: dict[str, str], authority: Path | None) -> None:
+    print("Running stack")
+    result = subprocess.run(["docker", "compose", "ps", "--format", "{{.Service}} {{.State}} {{.Health}}"],
+                            cwd=ROOT, capture_output=True, text=True)
+    lines = [line.split() for line in result.stdout.splitlines() if line.strip()]
+    if result.returncode != 0 or not lines:
+        warn("No containers are running.", "Start them with: docker compose up -d")
+        return
+    for parts in lines:
+        service, state = parts[0], parts[1] if len(parts) > 1 else "?"
+        health = parts[2] if len(parts) > 2 else ""
+        if state != "running":
+            bad(f"{service} is {state}.", f"Look at the log: docker compose logs {service}")
+        elif health in {"unhealthy"}:
+            bad(f"{service} is running but unhealthy.", f"Look at the log: docker compose logs {service}")
+        else:
+            ok(f"{service} {health or state}")
+    tls = authority is not None
+    port = values.get("TLS_PORT", "8443") if tls else "8080"
+    url = f"{'https' if tls else 'http'}://localhost:{port}/health"
+    context = ssl.create_default_context(cafile=str(authority)) if tls else None
+    try:
+        with urllib.request.urlopen(url, timeout=5, context=context) as response:
+            ok(f"{url} answers ({response.status})")
+    except (urllib.error.URLError, ssl.SSLError, OSError) as error:
+        bad(f"{url} does not answer: {getattr(error, 'reason', error)}",
+            "Check that the port is free and the container is healthy: docker compose ps")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Check a GPUHarbor installation")
+    parser.add_argument("--offline", action="store_true", help="skip everything that needs Docker")
+    parser.add_argument("--env", default=str(ROOT / ".env"), help="path to .env")
+    args = parser.parse_args()
+
+    print("GPUHarbor doctor\n")
+    if not args.offline:
+        check_docker()
+    values = check_env(Path(args.env))
+    authority = check_tls(values)
+    if not args.offline and values and shutil.which("docker"):
+        check_stack(values, authority)
+
+    print()
+    if problems:
+        print(f"{problems} problem(s) found. Fix the FAIL lines above first.")
+        return 1
+    print("Nothing needs your attention." if not warnings else f"No problems; {warnings} note(s) above.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
