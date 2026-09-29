@@ -85,7 +85,7 @@ async def idle_stop_loop(application: FastAPI) -> None:
 
 app = FastAPI(
     title="GPUHarbor",
-    version="0.1.2",
+    version="0.1.3",
     lifespan=lifespan,
     docs_url=None,
     redoc_url=None,

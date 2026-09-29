@@ -4,24 +4,28 @@ All notable changes will be documented here once releases begin.
 
 ## Unreleased
 
+## 0.1.3 - 2026-09-29
+
 - Added a Settings dialog (sidebar plus content) with an opt-in
   update-notification toggle. The choice is stored in the data volume;
   `GPUHARBOR_UPDATE_CHECK` now only seeds the default.
-- Added `docs/SCRIPTS.md` and a Scripts section to the in-app documentation.
 - Added two selectable themes — **Harbor blue** and **RunPod violet** — switchable
   under Settings → Appearance and shared with the documentation.
-- Added `scripts/add-host` and documented how to add and list reachable addresses
-  in `GPUHARBOR_TRUSTED_HOSTS`; `scripts/init-env` no longer drops existing hosts.
 - Added an opt-in update check against the GitHub releases API and an update pill
   in the dashboard.
+- Added `docs/SCRIPTS.md` and a Scripts section to the in-app documentation.
+- Added `scripts/add-host`; `scripts/init-env` no longer drops existing trusted
+  hosts and accepts `--add-trusted-host`.
 - Documentation: the sidebar highlights the current section, the first steps
   explain how to open `.env`, and the Open WebUI wiring is documented.
-- Replaced the personal example address with the documentation placeholder
+- Replaced the personal example address with the documented RFC 5737 placeholder
   `192.0.2.10` and removed the local publish-window guard.
-
+- Serve `/docs` and `/docs/de` with `Cache-Control: no-store`.
 - Align the numeric fields in the start panel so all four inputs share one line.
 - Fix a literal `&amp;` on the German delete button and re-render option lists
   when the language changes.
+
+## 0.1.0 - 2026-09-28
 
 - Added the GPUHarbor controller, authenticated dashboard and OpenAI-compatible proxy.
 - Added versioned, update-safe built-ins, custom profiles, overrides, reset,
