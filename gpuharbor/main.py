@@ -22,7 +22,9 @@ from .idle import should_stop_for_idle
 from .registry import ModelDefinition, Registry
 from .runpod import LaunchOptions, RunpodClient, RunpodError, pod_status, proxy_url, resolve_launch
 from .security import LoginLimiter, SecurityHeadersMiddleware, redact_secrets
-from .state import ControllerState, StateStore
+from .state import ControllerState, PreferenceStore, Preferences, StateStore
+from .updates import fetch_latest, is_newer
+from . import __version__
 
 
 settings = Settings()
@@ -33,6 +35,7 @@ registry = Registry(
     settings.models_path,
 )
 store = StateStore(settings.state_path, settings.runpod_pod_id)
+preferences = PreferenceStore(settings.preferences_path, settings.gpuharbor_update_check)
 operation_lock = asyncio.Lock()
 login_limiter = LoginLimiter(
     settings.gpuharbor_login_max_attempts,
@@ -46,6 +49,7 @@ async def lifespan(app: FastAPI):
     app.state.runpod = RunpodClient(settings)
     app.state.proxy = httpx.AsyncClient(timeout=None)
     app.state.last_inference = time.monotonic()
+    app.state.update_cache = {"at": 0.0, "data": None}
     app.state.idle_task = asyncio.create_task(idle_stop_loop(app))
     yield
     app.state.idle_task.cancel()
@@ -81,7 +85,7 @@ async def idle_stop_loop(application: FastAPI) -> None:
 
 app = FastAPI(
     title="GPUHarbor",
-    version="0.1.0-dev",
+    version="0.1.2",
     lifespan=lifespan,
     docs_url=None,
     redoc_url=None,
@@ -137,6 +141,10 @@ class CatalogImportRequest(BaseModel):
 
 class SuggestRequest(BaseModel):
     model_id: str
+
+
+class PreferencesUpdate(BaseModel):
+    update_notifications: bool
 
 
 @app.post("/api/model-suggest", dependencies=[Depends(require_control)])
@@ -234,7 +242,48 @@ async def controller_settings() -> dict:
         "billable_actions_enabled": settings.runpod_allow_billable_actions,
         "idle_stop_minutes": settings.runpod_idle_stop_minutes,
         "regions_enabled": True,
+        "version": __version__,
+        "update_check_enabled": preferences.read().update_notifications,
     }
+
+
+@app.get("/api/settings", dependencies=[Depends(require_control)])
+async def get_settings() -> dict:
+    return {
+        "update_notifications": preferences.read().update_notifications,
+        "version": __version__,
+    }
+
+
+@app.put("/api/settings", dependencies=[Depends(require_control)])
+async def put_settings(body: PreferencesUpdate) -> dict:
+    preferences.write(Preferences(update_notifications=body.update_notifications))
+    return {"ok": True, "update_notifications": body.update_notifications}
+
+
+@app.get("/api/update-check", dependencies=[Depends(require_control)])
+async def update_check(request: Request) -> dict:
+    """Opt-in check against the GitHub releases API. Cached for six hours."""
+    if not preferences.read().update_notifications:
+        return {"enabled": False, "current": __version__}
+    cache = request.app.state.update_cache
+    if cache["data"] and time.monotonic() - cache["at"] < 6 * 60 * 60:
+        return cache["data"]
+    try:
+        latest = await fetch_latest(request.app.state.proxy, settings.gpuharbor_update_repo)
+    except httpx.HTTPError as error:
+        return {"enabled": True, "current": __version__, "error": str(error)}
+    result = {
+        "enabled": True,
+        "current": __version__,
+        "latest": latest["tag"],
+        "url": latest["url"],
+        "published_at": latest["published_at"],
+        "update_available": is_newer(latest["tag"], __version__),
+    }
+    cache["at"] = time.monotonic()
+    cache["data"] = result
+    return result
 
 
 @app.get("/api/model-presets", dependencies=[Depends(require_control)])
@@ -279,7 +328,11 @@ async def regions(request: Request) -> dict:
             "source": "fallback",
             "detail": str(error),
             "regions": [
-                {"id": name, "label": name.title(), "datacenters": ids}
+                {
+                    "id": name,
+                    "label": f"Configured ({', '.join(ids)})" if name == "CONFIGURED" else name.title(),
+                    "datacenters": ids,
+                }
                 for name, ids in grouped.items()
             ],
         }

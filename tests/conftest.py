@@ -28,6 +28,7 @@ def app_client(tmp_path, monkeypatch):
         "GPUHARBOR_ADMIN_PASSWORD": "p" * 40,
         "GPUHARBOR_SESSION_SECRET": "s" * 40,
         "GPUHARBOR_TRUSTED_HOSTS": "testserver,localhost,127.0.0.1",
+        "GPUHARBOR_UPDATE_CHECK": "false",
         "RUNPOD_ALLOW_BILLABLE_ACTIONS": "false",
         "RUNTIME_IMAGE_VLLM": "ghcr.io/example/vllm@sha256:" + "a" * 64,
         "RUNTIME_IMAGE_LLAMA_CPP": "",
@@ -37,6 +38,7 @@ def app_client(tmp_path, monkeypatch):
         "BUNDLED_MODELS_PATH": str(models),
         "RUNTIMES_PATH": str(runtimes),
         "STATE_PATH": str(tmp_path / "data" / "state.json"),
+        "PREFERENCES_PATH": str(tmp_path / "data" / "preferences.json"),
     }
     for key, value in values.items():
         monkeypatch.setenv(key, value)

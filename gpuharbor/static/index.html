@@ -4,15 +4,18 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>GPUHarbor</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('gh-theme')||'blue'}catch(e){}</script>
 <style>
-:root{color-scheme:dark;--card:#151d31;--line:#2b3855;--text:#edf3ff;--muted:#9cabc7;--accent:#68a6ff;--danger:#ff6b79;--ok:#54d69a;--warn:#ffd479}
+:root{color-scheme:dark;--bg1:#071022;--bg2:#0f1c3a;--card:#101a33;--card-2:#17244a;--input-bg:#0c1730;--line:#27365e;--text:#eaf1ff;--muted:#9fb0d0;--accent:#5b8cff;--accent-strong:#3f6fe0;--accent-2:#38bdf8;--danger:#ff6b79;--ok:#4ecb8f;--warn:#ffcf6b}
+html[data-theme=runpod]{--bg1:#06040d;--bg2:#150c2e;--card:#161029;--card-2:#221838;--input-bg:#100c22;--line:#2a1f45;--text:#f3f0fa;--muted:#ccc6df;--accent:#9b7dff;--accent-strong:#5d29f0;--accent-2:#bbb6fd;--danger:#d45453;--ok:#76b971;--warn:#f4bd72}
 *{box-sizing:border-box}
-body{margin:0;background:linear-gradient(145deg,#08101e,#121a2d);color:var(--text);font:15px/1.5 system-ui,sans-serif}
+body{margin:0;background:linear-gradient(145deg,var(--bg1),var(--bg2));color:var(--text);font:15px/1.5 system-ui,sans-serif}
 .shell{max-width:1220px;margin:auto;padding:26px}
 header{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap}
 h1{margin:0;font-size:29px}
 h2{font-size:17px;margin-top:0}
 .brand{color:var(--accent)}
+.brand2{color:var(--accent-2)}
 .nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .grid{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}
 .card{background:rgba(21,29,49,.94);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 14px 50px #0004}
@@ -22,24 +25,33 @@ h2{font-size:17px;margin-top:0}
 .field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:150px}
 label{color:var(--muted);font-size:13px}
 .hint{color:var(--muted);font-size:12px;line-height:1.35}
-input,select,textarea,button{font:inherit;color:var(--text);border:1px solid var(--line);border-radius:8px;background:#0e1628;padding:9px}
+input,select,textarea,button{font:inherit;color:var(--text);border:1px solid var(--line);border-radius:8px;background:var(--input-bg);padding:9px}
 textarea{resize:vertical}
-button{cursor:pointer;background:#2869c7;border-color:#3c80e6;font-weight:650}
-button.secondary{background:#18243b}
-button.danger{background:#8c2934;border-color:#bd4350}
+button{cursor:pointer;background:var(--accent-strong);border-color:var(--accent);font-weight:650}
+button.secondary{background:var(--card-2)}
+button.danger{background:#8f2436;border-color:var(--danger)}
 button:disabled{opacity:.5;cursor:not-allowed}
 a.link{color:var(--accent);text-decoration:none;font-weight:600}
-pre{white-space:pre-wrap;word-break:break-word;max-height:430px;overflow:auto;background:#090f1d;border-radius:8px;padding:13px;font-size:13px}
-.pill{display:inline-block;padding:3px 8px;border-radius:99px;background:#24314e;color:#bdd2f3;margin:2px;font-size:12px}
+pre{white-space:pre-wrap;word-break:break-word;max-height:430px;overflow:auto;background:var(--input-bg);border-radius:8px;padding:13px;font-size:13px}
+.pill{display:inline-block;padding:3px 8px;border-radius:99px;background:var(--card-2);color:var(--text);margin:2px;font-size:12px}
 .warn{color:var(--warn)}.ok{color:var(--ok)}.danger-text{color:var(--danger)}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:#5a6a86}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:var(--line)}
 .dot.ok{background:var(--ok)}.dot.wait{background:var(--warn)}.dot.bad{background:var(--danger)}
 dialog{width:min(860px,96vw);background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:14px}
 dialog::backdrop{background:#000a}
-.gpu-list{max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:10px;background:#0d1526}
+#settings{width:min(760px,96vw)}
+.settings{display:grid;grid-template-columns:190px 1fr;gap:20px}
+.settings-nav{display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--line);padding-right:16px}
+.settings-nav h2{font-size:16px;margin:0 0 6px}
+.settings-tab{background:transparent;border:1px solid transparent;text-align:left;padding:8px 10px;border-radius:8px;color:var(--muted);font-weight:600}
+.settings-tab:hover{background:var(--card-2);color:var(--text)}
+.settings-tab.active{background:var(--card-2);color:var(--text);border-color:var(--line)}
+.settings-main{min-width:0}
+@media(max-width:640px){.settings{grid-template-columns:1fr}.settings-nav{border-right:none;border-bottom:1px solid var(--line);padding:0 0 12px}}
+.gpu-list{max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:10px;background:var(--input-bg)}
 .gpu-list label{display:flex;gap:8px;align-items:center;color:var(--text);font-size:13px;padding:3px 0}
 .mode-switch button{padding:5px 11px;font-size:13px;background:#18243b}
-.mode-switch button.active{background:#2869c7}
+.mode-switch button.active{background:var(--accent-strong)}
 .login{max-width:390px;margin:12vh auto}
 .hidden{display:none!important}
 .small{font-size:12.5px}
@@ -49,7 +61,7 @@ dialog::backdrop{background:#000a}
 <body>
 
 <div id="login" class="login card">
-<h1><span class="brand">GPU</span>Harbor</h1><p class="hint" data-i18n="login.subtitle">Sign in to the local controller.</p>
+<h1><span class="brand">GPU</span><span class="brand2">Harbor</span></h1><p class="hint" data-i18n="login.subtitle">Sign in to the local controller.</p>
 <form id="login-form">
 <div class="field"><label for="username" data-i18n="login.username">Username</label><input id="username" autocomplete="username" required></div><br>
 <div class="field"><label for="password" data-i18n="login.password">Password</label><input id="password" type="password" autocomplete="current-password" required></div><br>
@@ -58,14 +70,17 @@ dialog::backdrop{background:#000a}
 
 <div id="app" class="shell hidden">
 <header>
-  <div><h1><span class="brand">GPU</span>Harbor</h1><div class="hint" data-i18n="app.subtitle">RunPod model control</div></div>
+  <div><h1><span class="brand">GPU</span><span class="brand2">Harbor</span></h1><div class="hint" data-i18n="app.subtitle">RunPod model control</div></div>
   <div class="nav">
     <select id="lang-switch" onchange="setLang(this.value)" aria-label="Language">
       <option value="en">English</option>
       <option value="de">Deutsch</option>
     </select>
-    <a class="link" href="/docs" target="_blank" rel="noopener" data-i18n="nav.docs">Documentation</a>
+    <a class="link" href="/docs" data-i18n="nav.docs">Documentation</a>
+    <a id="update-pill" class="pill ok hidden" href="#" target="_blank" rel="noopener"></a>
     <span id="billable-pill" class="pill"></span>
+    <span id="version-label" class="hint"></span>
+    <button class="secondary" onclick="openSettings()" data-i18n="nav.settings">Settings</button>
     <button class="secondary" onclick="logout()" data-i18n="nav.logout">Sign out</button>
   </div>
 </header>
@@ -182,11 +197,36 @@ dialog::backdrop{background:#000a}
 </div>
 <p id="editor-error" class="warn"></p></form></dialog>
 
+<dialog id="settings"><div class="settings">
+  <nav class="settings-nav">
+    <h2 data-i18n="settings.title">Settings</h2>
+    <button type="button" class="settings-tab active" onclick="showSettingsTab('updates',this)" data-i18n="settings.updates">Updates</button>
+    <button type="button" class="settings-tab" onclick="showSettingsTab('design',this)" data-i18n="settings.appearance">Appearance</button>
+  </nav>
+  <div class="settings-main">
+    <section id="settings-updates">
+      <h3 data-i18n="settings.updates">Updates</h3>
+      <label class="small"><input id="set-update-notifications" type="checkbox" onchange="saveUpdateSetting()"> <span data-i18n="settings.notifications">Show update notifications</span></label>
+      <p class="hint" data-i18n="settings.notifications_hint">When on, GPUHarbor asks the public GitHub releases API once a day and shows a link when a newer version exists. Only that request leaves the machine; no token is sent.</p>
+    </section>
+    <section id="settings-design" class="hidden">
+      <h3 data-i18n="settings.appearance">Appearance</h3>
+      <label class="small"><input type="radio" name="theme" value="blue" onchange="setTheme('blue')"> <span data-i18n="settings.theme_blue">Harbor blue</span></label><br>
+      <label class="small"><input type="radio" name="theme" value="runpod" onchange="setTheme('runpod')"> <span data-i18n="settings.theme_runpod">RunPod violet</span></label>
+      <p class="hint" data-i18n="settings.theme_hint">Applies to the dashboard and the documentation.</p>
+    </section>
+    <p id="settings-saved" class="hint ok"></p>
+    <button type="button" class="secondary" onclick="settingsDialog.close()" data-i18n="settings.close">Close</button>
+  </div>
+</div></dialog>
+
 <script>
 const I18N={
 en:{
- "app.subtitle":"RunPod model control","nav.docs":"Documentation","nav.logout":"Sign out",
+ "app.subtitle":"RunPod model control","nav.docs":"Documentation","nav.logout":"Sign out","nav.settings":"Settings",
  "pill.billable_on":"Billable actions ENABLED","pill.billable_off":"Cost lock active",
+ "pill.update":"Update available: ","pill.update_title":"Open the release page",
+ "settings.title":"Settings","settings.updates":"Updates","settings.notifications":"Show update notifications","settings.notifications_hint":"When on, GPUHarbor asks the public GitHub releases API once a day and shows a link when a newer version exists. Only that request leaves the machine; no token is sent.","settings.saved":"Saved.","settings.close":"Close","settings.appearance":"Appearance","settings.theme_blue":"Harbor blue","settings.theme_runpod":"RunPod violet","settings.theme_hint":"Applies to the dashboard and the documentation.",
  "login.subtitle":"Sign in to the local controller.","login.username":"Username","login.password":"Password","login.button":"Sign in","login.failed":"Sign-in failed.",
  "start.title":"Start a model","start.model":"Model profile","start.region":"Region","start.datacenter":"Datacenter (advanced)",
  "start.auto_region":"Automatic (configured locations)","start.auto_dc":"Automatic","start.auto_gpu":"Automatic by priority",
@@ -230,8 +270,10 @@ en:{
  "sum.no_pod":"No managed pod."
 },
 de:{
- "app.subtitle":"RunPod-Modellsteuerung","nav.docs":"Dokumentation","nav.logout":"Abmelden",
+ "app.subtitle":"RunPod-Modellsteuerung","nav.docs":"Dokumentation","nav.logout":"Abmelden","nav.settings":"Einstellungen",
  "pill.billable_on":"Kostenpflichtig AKTIV","pill.billable_off":"Kostensperre aktiv",
+ "pill.update":"Update verfügbar: ","pill.update_title":"Release-Seite öffnen",
+ "settings.title":"Einstellungen","settings.updates":"Updates","settings.notifications":"Update-Hinweise anzeigen","settings.notifications_hint":"Wenn aktiv, fragt GPUHarbor einmal täglich die öffentliche GitHub-Releases-API und zeigt einen Link, wenn eine neuere Version existiert. Nur diese Anfrage verlässt den Rechner; kein Token wird gesendet.","settings.saved":"Gespeichert.","settings.close":"Schließen","settings.appearance":"Design","settings.theme_blue":"Harbor-Blau","settings.theme_runpod":"RunPod-Lila","settings.theme_hint":"Gilt für Dashboard und Dokumentation.",
  "login.subtitle":"Am lokalen Controller anmelden.","login.username":"Benutzername","login.password":"Passwort","login.button":"Anmelden","login.failed":"Anmeldung fehlgeschlagen.",
  "start.title":"Modell starten","start.model":"Modellprofil","start.region":"Region","start.datacenter":"Rechenzentrum (erweitert)",
  "start.auto_region":"Automatisch (konfigurierte Standorte)","start.auto_dc":"Automatisch","start.auto_gpu":"Automatisch nach Priorität",
@@ -292,11 +334,12 @@ function applyLang(){
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{el.placeholder=t(el.dataset.i18nPlaceholder)});
   $('lang-switch').value=lang;
   updateBillablePill();
+  renderUpdatePill();
 }
 
-let models={},runtimes={},settingsData={},gpuOptions=[],regions=[],presets={},csrfToken='',podActive=false,lastRaw='',lastKey=null;
+let models={},runtimes={},settingsData={},gpuOptions=[],regions=[],presets={},csrfToken='',podActive=false,lastRaw='',lastKey=null,updateInfo=null,theme=document.documentElement.dataset.theme||'blue';
 let mode='pretty';
-const $=id=>document.getElementById(id), output=$('output'), editor=$('editor');
+const $=id=>document.getElementById(id), output=$('output'), editor=$('editor'), settingsDialog=$('settings');
 
 async function api(path,options={}){
   const method=(options.method||'GET').toUpperCase();
@@ -311,6 +354,46 @@ function updateBillablePill(){
   const on=!!settingsData.billable_actions_enabled;
   $('billable-pill').textContent=on?t('pill.billable_on'):t('pill.billable_off');
   $('billable-pill').className='pill '+(on?'danger-text':'ok');
+}
+function renderUpdatePill(){
+  const a=$('update-pill');
+  if(!updateInfo||!updateInfo.update_available){a.classList.add('hidden');return}
+  a.textContent=t('pill.update')+(updateInfo.latest||'');
+  a.title=t('pill.update_title');
+  a.href=updateInfo.url||'#';
+  a.classList.remove('hidden');
+}
+async function checkUpdate(){
+  if(!settingsData.update_check_enabled){updateInfo=null;renderUpdatePill();return}
+  try{updateInfo=await api('/api/update-check')}catch{updateInfo=null}
+  renderUpdatePill();
+}
+async function openSettings(){
+  try{const s=await api('/api/settings');$('set-update-notifications').checked=!!s.update_notifications}catch{}
+  $('settings-saved').textContent='';
+  const el=document.querySelector('input[name="theme"][value="'+theme+'"]');if(el)el.checked=true;
+  settingsDialog.showModal();
+}
+function setTheme(value){
+  theme=value==='runpod'?'runpod':'blue';
+  try{localStorage.setItem('gh-theme',theme)}catch(e){}
+  document.documentElement.dataset.theme=theme;
+  const el=document.querySelector('input[name="theme"][value="'+theme+'"]');if(el)el.checked=true;
+}
+function showSettingsTab(name,button){
+  for(const b of document.querySelectorAll('.settings-tab'))b.classList.toggle('active',b===button);
+  $('settings-updates').classList.toggle('hidden',name!=='updates');
+  $('settings-design').classList.toggle('hidden',name!=='design');
+}
+async function saveUpdateSetting(){
+  const value=$('set-update-notifications').checked;
+  try{
+    await api('/api/settings',{method:'PUT',body:JSON.stringify({update_notifications:value})});
+    settingsData.update_check_enabled=value;
+    updateInfo=null;renderUpdatePill();
+    if(value)checkUpdate();
+    $('settings-saved').textContent=t('settings.saved');
+  }catch(err){$('settings-saved').textContent=t('msg.error')+err.message}
 }
 function showMessage(key){lastKey=key;render(t(key))}
 function setMode(m){mode=m;for(const n of ['simple','pretty','raw'])$('mode-'+n).classList.toggle('active',n===m);render(lastRaw)}
@@ -384,7 +467,9 @@ async function loadCatalog(){
   for(const [id,rr] of Object.entries(runtimes)){const o=document.createElement('option');o.value=id;o.textContent=rr.label;$('e-runtime').append(o)}
   $('e-preset').replaceChildren(new Option('— '+t('editor.preset')+' —',''));
   for(const [id,pp] of Object.entries(presets)){const o=document.createElement('option');o.value=id;o.textContent=pp.label;$('e-preset').append(o)}
+  $('version-label').textContent=settingsData.version?'v'+settingsData.version:'';
   updateBillablePill();
+  checkUpdate();
   renderRuntimes();
   renderGpuOptions();
   regionChanged();

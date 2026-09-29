@@ -32,7 +32,3 @@ Or everything at once:
 ```bash
 ./scripts/check-local-release
 ```
-
-The maintainer's local workflow also blocks commits and pushes Monday to Friday
-from 07:00 to 18:00 Europe/Zurich. That is an operational habit, not a rule for
-other contributors.

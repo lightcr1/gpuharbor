@@ -8,8 +8,8 @@ so it works unattended.
 Examples:
     ./scripts/setup
     ./scripts/setup --yes
-    ./scripts/setup --bind 0.0.0.0 --https 10.10.40.100 --https-port 9443 --webui --start
-    ./scripts/setup --dry-run --bind 10.10.40.100 --https 10.10.40.100
+    ./scripts/setup --bind 0.0.0.0 --https 192.0.2.10 --https-port 9443 --webui --start
+    ./scripts/setup --dry-run --bind 192.0.2.10 --https 192.0.2.10
 """
 from __future__ import annotations
 

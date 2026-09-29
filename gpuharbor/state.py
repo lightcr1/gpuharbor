@@ -40,3 +40,29 @@ class StateStore:
         temporary = self.path.with_suffix(".tmp")
         temporary.write_text(state.model_dump_json(indent=2), encoding="utf-8")
         os.replace(temporary, self.path)
+
+
+class Preferences(BaseModel):
+    update_notifications: bool = False
+
+
+class PreferenceStore:
+    """Persisted user preferences, seeded once from the environment default."""
+
+    def __init__(self, path: Path, default_update_notifications: bool = False) -> None:
+        self.path = path
+        self.default_update_notifications = default_update_notifications
+
+    def read(self) -> Preferences:
+        if not self.path.exists():
+            return Preferences(update_notifications=self.default_update_notifications)
+        try:
+            return Preferences.model_validate_json(self.path.read_text(encoding="utf-8"))
+        except ValueError:
+            return Preferences(update_notifications=self.default_update_notifications)
+
+    def write(self, preferences: Preferences) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_suffix(".tmp")
+        temporary.write_text(preferences.model_dump_json(indent=2), encoding="utf-8")
+        os.replace(temporary, self.path)

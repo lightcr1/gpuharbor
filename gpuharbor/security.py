@@ -43,7 +43,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
             "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         )
-        if request.url.path == "/" or request.url.path.startswith("/api/"):
+        if (
+            request.url.path == "/"
+            or request.url.path.startswith("/api/")
+            or request.url.path.startswith("/docs")
+        ):
             response.headers["Cache-Control"] = "no-store"
         if request.url.scheme == "https":
             response.headers["Strict-Transport-Security"] = "max-age=31536000"

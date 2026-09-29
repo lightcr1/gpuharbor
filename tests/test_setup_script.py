@@ -20,15 +20,15 @@ def run(*args: str) -> subprocess.CompletedProcess[str]:
 
 def test_setup_dry_run_combines_all_overlays():
     result = run(
-        "--dry-run", "--bind", "10.10.40.100",
-        "--https", "10.10.40.100", "--https-port", "9443",
+        "--dry-run", "--bind", "192.0.2.10",
+        "--https", "192.0.2.10", "--https-port", "9443",
         "--webui", "--openhands", "--start",
     )
     assert "compose.tls.yml" in result.stdout
     assert "compose.openwebui.yml" in result.stdout
     assert "compose.openhands.yml" in result.stdout
     assert "up -d --build" in result.stdout
-    assert "--https-host 10.10.40.100" in result.stdout
+    assert "--https-host 192.0.2.10" in result.stdout
 
 
 def test_setup_dry_run_local_only_has_no_tls():

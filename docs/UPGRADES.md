@@ -3,6 +3,40 @@
 GPUHarbor keeps shipped data and your data separate, so updating the controller
 image does not wipe your setup.
 
+## How to upgrade a running install
+
+Your profiles live in the Docker volume, not in the code, and `.env` is never
+overwritten. A normal update is two commands:
+
+```bash
+git pull
+./scripts/install        # keeps .env, rebuilds and restarts
+```
+
+If you run a released image instead of building from source:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Afterwards open the dashboard again. New shipped profiles appear by themselves;
+your own profiles and overrides stay untouched (rules below).
+
+To go back to an older version, check out the previous tag or git commit and run
+`./scripts/install` again. Your data is not affected either way.
+
+## Update check (opt-in)
+
+The dashboard never talks to the internet on its own. Open **Settings** in the
+header and turn on **Show update notifications**. Then the controller asks the
+public GitHub releases API at most once a day and shows an "update available"
+link. Only that request leaves the machine; no token and no configuration is
+sent. The choice is stored in the data volume.
+
+For a scripted install you can seed the default with `GPUHARBOR_UPDATE_CHECK=true`
+in `.env`. The toggle in the web interface wins afterwards.
+
 ## Merge rules
 
 - New shipped profiles appear automatically.

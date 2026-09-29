@@ -231,9 +231,11 @@ def test_docs_favicon_and_presets_are_available(app_client):
     assert docs.status_code == 200
     assert "Documentation" in docs.text
     assert "Trust Hugging Face remote code" in docs.text
+    assert docs.headers["cache-control"] == "no-store"
     german = client.get("/docs/de")
     assert german.status_code == 200
     assert "Dokumentation" in german.text
+    assert german.headers["cache-control"] == "no-store"
     icon = client.get("/favicon.svg")
     assert icon.status_code == 200
     assert icon.headers["content-type"].startswith("image/svg+xml")
@@ -335,3 +337,46 @@ def test_logout_requires_csrf_and_invalidates_session(app_client):
     assert client.post("/api/logout").status_code == 403
     assert client.post("/api/logout", headers={"X-CSRF-Token": csrf}).status_code == 200
     assert client.get("/api/me").json()["authenticated"] is False
+
+
+def test_controller_settings_report_version_and_update_flag(app_client):
+    client, _ = app_client
+    login(client)
+    settings = client.get("/api/controller-settings").json()
+    assert settings["version"]
+    assert settings["update_check_enabled"] is False
+
+
+def test_update_check_is_disabled_by_default(app_client):
+    client, _ = app_client
+    login(client)
+    result = client.get("/api/update-check").json()
+    assert result["enabled"] is False
+    assert result["current"]
+
+
+def test_update_check_reports_available_release(app_client, monkeypatch):
+    client, main = app_client
+    csrf = login(client)
+    saved = client.put("/api/settings", json={"update_notifications": True}, headers={"X-CSRF-Token": csrf})
+    assert saved.status_code == 200
+    monkeypatch.setattr(
+        main,
+        "fetch_latest",
+        AsyncMock(return_value={"tag": "v9.9.9", "url": "https://example/release", "published_at": ""}),
+    )
+    result = client.get("/api/update-check").json()
+    assert result["enabled"] is True
+    assert result["update_available"] is True
+    assert result["url"] == "https://example/release"
+
+
+def test_settings_update_notifications_roundtrip(app_client):
+    client, _ = app_client
+    csrf = login(client)
+    assert client.get("/api/settings").json()["update_notifications"] is False
+    assert client.put("/api/settings", json={"update_notifications": True}).status_code == 403
+    client.put("/api/settings", json={"update_notifications": True}, headers={"X-CSRF-Token": csrf})
+    assert client.get("/api/settings").json()["update_notifications"] is True
+    settings = client.get("/api/controller-settings").json()
+    assert settings["update_check_enabled"] is True

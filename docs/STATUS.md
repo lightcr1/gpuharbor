@@ -11,8 +11,12 @@ Last checked: 2026-09-28.
 - OpenAI-compatible endpoint for any client.
 - Optional Open WebUI, OpenHands Agent Canvas and local HTTPS.
 - Published runtime images, so a fresh install does not build anything.
-- 78 tests and a CI workflow on GitHub.
-- Dashboard and docs available in English and German (`/docs` and `/docs/de`).
+- 90 tests and a CI workflow on GitHub.
+- Dashboard and docs available in English and German (`/docs` and `/docs/de`),
+  the sidebar highlights the current section.
+- Settings dialog with an opt-in update-notification toggle (off by default) and
+  an update pill in the header.
+- Helper scripts documented in `docs/SCRIPTS.md`.
 - Runtime image status is visible read-only in the dashboard.
 - The model editor can look a repository up on Hugging Face and propose runtime,
   context, volume, licence and GPUs.

@@ -59,10 +59,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Initialise a GPUHarbor .env")
     parser.add_argument("--env", default=".env", help="target file (default: .env)")
     parser.add_argument("--example", default=".env.example", help="template file")
-    parser.add_argument("--bind-ip", help="set HOST_BIND_IP, e.g. 0.0.0.0 or 10.10.40.100")
+    parser.add_argument("--bind-ip", help="set HOST_BIND_IP, e.g. 0.0.0.0 or 192.0.2.10")
     parser.add_argument(
         "--trusted-hosts",
         help="comma separated GPUHARBOR_TRUSTED_HOSTS value; defaults to localhost plus the bind/https hosts",
+    )
+    parser.add_argument(
+        "--add-trusted-host",
+        action="append",
+        default=[],
+        metavar="ADDRESS",
+        help="append an address to GPUHARBOR_TRUSTED_HOSTS without removing existing ones (repeatable)",
     )
     parser.add_argument(
         "--https-host",
@@ -99,13 +106,19 @@ def main() -> int:
     if args.tls_port:
         updates["TLS_PORT"] = args.tls_port
 
-    hosts = ["localhost", "127.0.0.1"]
+    existing = [part.strip() for part in values.get("GPUHARBOR_TRUSTED_HOSTS", "").split(",") if part.strip()]
+    hosts = list(dict.fromkeys(existing)) or ["localhost", "127.0.0.1"]
     for candidate in (args.bind_ip, args.https_host):
         if candidate and candidate not in hosts:
             hosts.append(candidate)
+    for value in args.add_trusted_host:
+        for part in value.split(","):
+            part = part.strip()
+            if part and part not in hosts:
+                hosts.append(part)
     if args.trusted_hosts:
         hosts = [part.strip() for part in args.trusted_hosts.split(",") if part.strip()]
-    if args.bind_ip or args.https_host or args.trusted_hosts:
+    if args.bind_ip or args.https_host or args.trusted_hosts or args.add_trusted_host:
         updates["GPUHARBOR_TRUSTED_HOSTS"] = ",".join(hosts)
 
     if target.exists():

@@ -60,14 +60,14 @@ def test_init_env_https_flags_enable_secure_cookie(tmp_path):
 
     run(
         "--env", str(target), "--example", str(example),
-        "--bind-ip", "0.0.0.0", "--https-host", "10.10.40.100", "--tls-port", "9443",
+        "--bind-ip", "0.0.0.0", "--https-host", "192.0.2.10", "--tls-port", "9443",
     )
     values = read_values(target)
     assert values["GPUHARBOR_COOKIE_SECURE"] == "true"
-    assert values["TLS_BIND_IP"] == "10.10.40.100"
+    assert values["TLS_BIND_IP"] == "192.0.2.10"
     assert values["TLS_PORT"] == "9443"
     assert values["HOST_BIND_IP"] == "0.0.0.0"
-    assert "10.10.40.100" in values["GPUHARBOR_TRUSTED_HOSTS"]
+    assert "192.0.2.10" in values["GPUHARBOR_TRUSTED_HOSTS"]
 
 
 def test_init_env_secrets_are_distinct(tmp_path):
@@ -86,3 +86,15 @@ def test_init_env_secrets_are_distinct(tmp_path):
         "GPUHARBOR_SESSION_SECRET",
     )]
     assert len(set(secrets_used)) == len(secrets_used)
+
+
+def test_init_env_add_trusted_host_keeps_existing(tmp_path):
+    example = tmp_path / ".env.example"
+    example.write_text((ROOT / ".env.example").read_text(encoding="utf-8"), encoding="utf-8")
+    target = tmp_path / ".env"
+
+    run("--env", str(target), "--example", str(example), "--bind-ip", "192.0.2.10")
+    run("--env", str(target), "--example", str(example), "--add-trusted-host", "192.168.1.5")
+    hosts = read_values(target)["GPUHARBOR_TRUSTED_HOSTS"].split(",")
+    assert "192.0.2.10" in hosts
+    assert "192.168.1.5" in hosts

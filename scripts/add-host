@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""Allow more addresses to reach the GPUHarbor dashboard.
+
+Existing entries in GPUHARBOR_TRUSTED_HOSTS are kept. The address must be exactly
+what you type in the browser (IP address or hostname).
+
+Usage:
+    ./scripts/add-host 192.168.1.5
+    ./scripts/add-host 192.168.1.5 vpn.example.ts.net
+    ./scripts/add-host 192.168.1.5 --bind-ip 0.0.0.0
+
+`--bind-ip 0.0.0.0` makes the controller listen on every interface, which is what
+you usually need to reach it from another device. Then restart it:
+
+    docker compose up -d
+
+List the currently allowed addresses:
+
+    grep GPUHARBOR_TRUSTED_HOSTS .env
+"""
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Allow more addresses to reach GPUHarbor")
+    parser.add_argument("hosts", nargs="+", help="IP address or hostname, as typed in the browser")
+    parser.add_argument("--bind-ip", help="also set HOST_BIND_IP (0.0.0.0 listens on every interface)")
+    parser.add_argument("--env", default=".env", help="target .env file")
+    args = parser.parse_args()
+
+    command = [sys.executable, str(ROOT / "scripts" / "init-env"), "--env", args.env]
+    if args.bind_ip:
+        command += ["--bind-ip", args.bind_ip]
+    for host in args.hosts:
+        command += ["--add-trusted-host", host]
+    result = subprocess.run(command, cwd=ROOT)
+    if result.returncode != 0:
+        return result.returncode
+    print()
+    print("Restart the controller so the change takes effect: docker compose up -d")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

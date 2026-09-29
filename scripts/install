@@ -3,8 +3,8 @@
 
 Examples:
     ./scripts/install                              # localhost, HTTP only
-    ./scripts/install --bind-ip 10.10.40.100       # reachable in the LAN
-    ./scripts/install --bind-ip 0.0.0.0 --https 10.10.40.100 --tls-port 9443
+    ./scripts/install --bind-ip 192.0.2.10       # reachable in the LAN
+    ./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443
     ./scripts/install --no-start                   # only prepare files
 
 It generates secrets, optionally creates a local TLS certificate and starts the

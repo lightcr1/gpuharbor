@@ -4,6 +4,7 @@ Start here.
 
 - [Setup](SETUP.md) — install, reach it from another device, enable HTTPS
 - [Models](MODELS.md) — profiles, runtimes, how to add your own
+- [Scripts](SCRIPTS.md) — what every script in `scripts/` does and how to run it
 - [Upgrades](UPGRADES.md) — what survives an update
 - [Status](STATUS.md) — what works, what has not been tested
 - [Roadmap](ROADMAP.md)

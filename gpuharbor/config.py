@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     gpuharbor_login_max_attempts: int = 5
     gpuharbor_login_window_seconds: int = 300
     gpuharbor_max_request_mb: int = 20
+    # Opt-in: fetch the latest GitHub release once a day and show an update hint.
+    gpuharbor_update_check: bool = False
+    gpuharbor_update_repo: str = "lightcr1/gpuharbor"
 
     runpod_api_base: str = "https://api.runpod.io/v2"
     runpod_pod_name: str = "gpuharbor-model"
@@ -45,6 +48,7 @@ class Settings(BaseSettings):
     bundled_models_path: Path = Path("registry/models.json")
     runtimes_path: Path = Path("registry/runtimes.json")
     state_path: Path = Path("/data/state.json")
+    preferences_path: Path = Path("/data/preferences.json")
 
     @property
     def datacenter_ids(self) -> list[str]:

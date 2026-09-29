@@ -31,6 +31,27 @@ Open `http://127.0.0.1:8080`. User is `admin`; the password is
 
 Stop with `docker compose down`.
 
+## Where is the password, and how do I open `.env`?
+
+`.env` is a plain text file in the GPUHarbor folder. It stores your passwords and
+settings. The name starts with a dot, so it is hidden by default.
+
+- **Terminal (Linux, macOS, WSL):**
+
+  ```bash
+  nano .env     # edit (save: Ctrl+O, Enter; leave: Ctrl+X)
+  cat .env      # only read
+  ```
+
+- **File manager:** switch on "show hidden files" (usually `Ctrl+H`), then open
+  `.env`.
+- **Windows Notepad:** *File → Open*, paste the full path (for example
+  `C:\gpuharbor\.env`), then Open.
+
+Find the line `GPUHARBOR_ADMIN_PASSWORD=...`. Everything after the `=` is your
+login password. Keep this file private; it also holds the RunPod key and the
+control tokens.
+
 ## Set the RunPod API key
 
 Create a key in the RunPod console under **Settings → API Keys**, then:
@@ -47,15 +68,27 @@ and read-only.
 ## Reach it from another device
 
 Only `127.0.0.1` is bound by default. To use the dashboard from a laptop or
-phone, bind the machine's LAN or VPN address:
+phone, add the address you type in the browser and listen on your network:
 
 ```bash
-./scripts/init-env --bind-ip 10.10.40.100
+./scripts/add-host 192.0.2.10 --bind-ip 0.0.0.0
 docker compose up -d
 ```
 
-Then open `http://10.10.40.100:8080`. The address is added to
-`GPUHARBOR_TRUSTED_HOSTS` for you. `--bind-ip 0.0.0.0` binds every interface.
+Then open `http://192.0.2.10:8080`. `192.0.2.10` is the documentation example
+address from RFC 5737, not a real address — replace it with your own LAN or VPN
+address. `add-host` keeps every
+existing entry in `GPUHARBOR_TRUSTED_HOSTS` and adds the new one. To allow more
+devices later, just repeat it:
+
+```bash
+grep GPUHARBOR_TRUSTED_HOSTS .env           # list what is allowed
+./scripts/add-host 192.168.1.5 100.64.0.7   # add more
+docker compose up -d
+```
+
+The address must match exactly what the browser sends. `--bind-ip 0.0.0.0` binds
+every interface; a single LAN or VPN address also works.
 
 Keep this on a trusted LAN or a VPN such as Tailscale or WireGuard. Plain HTTP
 with a password does not belong on the public internet, so do not forward the
@@ -68,12 +101,12 @@ If you see `Invalid host header`, the address is missing from
 
 ```bash
 ./scripts/setup                                              # interactive
-./scripts/install --bind-ip 0.0.0.0 --https 10.10.40.100 --tls-port 9443
+./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443
 ```
 
 This creates a local certificate authority under `tls/` and starts an nginx TLS
 proxy. Import `tls/local-ca.crt` on the devices that should trust it, then open
-`https://10.10.40.100:9443/`. The installer also sets
+`https://192.0.2.10:9443/` (use your own address). The installer also sets
 `GPUHARBOR_COOKIE_SECURE=true`, which only makes sense over HTTPS.
 
 If port 8443 is already taken, set `TLS_PORT` to a free port.

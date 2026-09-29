@@ -3,36 +3,43 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GPUHarbor · Dokumentation</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('gh-theme')||'blue'}catch(e){}</script>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <style>
-:root{color-scheme:dark;--bg:#0b1020;--card:#151d31;--line:#2b3855;--text:#edf3ff;--muted:#9cabc7;--accent:#68a6ff;--warn:#ffd479;--danger:#ff6b79;--ok:#54d69a}
+:root{color-scheme:dark;--bg1:#071022;--bg2:#0f1c3a;--card:#101a33;--card-2:#17244a;--input-bg:#0c1730;--line:#27365e;--text:#eaf1ff;--muted:#9fb0d0;--accent:#5b8cff;--accent-2:#38bdf8;--warn:#ffcf6b;--danger:#ff6b79;--ok:#4ecb8f}
+html[data-theme=runpod]{--bg1:#06040d;--bg2:#150c2e;--card:#161029;--card-2:#221838;--input-bg:#100c22;--line:#2a1f45;--text:#f3f0fa;--muted:#ccc6df;--accent:#9b7dff;--accent-2:#bbb6fd;--warn:#f4bd72;--danger:#d45453;--ok:#76b971}
 *{box-sizing:border-box}
-body{margin:0;background:linear-gradient(145deg,#08101e,#121a2d);color:var(--text);font:16px/1.6 system-ui,sans-serif}
+body{margin:0;background:linear-gradient(145deg,var(--bg1),var(--bg2));color:var(--text);font:16px/1.6 system-ui,sans-serif}
+.brand{color:var(--accent)}.brand2{color:var(--accent-2)}
 .wrap{display:grid;grid-template-columns:260px 1fr;gap:26px;max-width:1200px;margin:auto;padding:26px}
-nav{position:sticky;top:26px;align-self:start;background:rgba(21,29,49,.94);border:1px solid var(--line);border-radius:14px;padding:16px}
+nav{position:sticky;top:26px;align-self:start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
 nav h1{font-size:19px;margin:0 0 10px}
 nav a{display:block;color:var(--muted);text-decoration:none;padding:5px 8px;border-radius:7px;font-size:14px}
-nav a:hover{background:#22304d;color:var(--text)}
+nav a:hover{background:var(--card-2);color:var(--text)}
 main{min-width:0}
-section{background:rgba(21,29,49,.94);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
 h2{margin-top:0;font-size:21px;border-bottom:1px solid var(--line);padding-bottom:10px}
-code{background:#0d1526;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:14px}
-pre{white-space:pre-wrap;background:#090f1d;border-radius:9px;padding:14px;overflow:auto}
+code{background:var(--input-bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:14px}
+pre{white-space:pre-wrap;background:var(--input-bg);border-radius:9px;padding:14px;overflow:auto}
 table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
 th,td{text-align:left;border-bottom:1px solid var(--line);padding:8px 6px;vertical-align:top}
 th{color:var(--muted);font-weight:600}
 .muted{color:var(--muted)}.warn{color:var(--warn)}.danger{color:var(--danger)}
-.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:#24314e;color:#bdd2f3}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--card-2);color:var(--accent-2)}
 .required{background:#5a2530;color:#ffc9d0}.optional{background:#1f3a2c;color:#b6f0cf}
 .lang{display:flex;gap:8px;margin-top:12px}
 .lang a{color:var(--accent);text-decoration:none;font-weight:600}
+nav a.active{background:var(--card-2);color:var(--text);font-weight:600;box-shadow:inset 3px 0 0 var(--accent)}
 @media(max-width:900px){.wrap{grid-template-columns:1fr}nav{position:static}}
+.themes{display:flex;gap:6px;margin-top:8px}
+.themes button{flex:1;background:var(--card-2);border:1px solid var(--line);color:var(--muted);padding:5px 8px;font-size:12px;border-radius:7px;cursor:pointer;font-family:inherit}
+.themes button.active{color:var(--text);border-color:var(--accent)}
 </style>
 </head>
 <body>
 <div class="wrap">
 <nav>
-  <h1>GPUHarbor</h1>
+  <h1><span class="brand">GPU</span><span class="brand2">Harbor</span></h1>
   <a href="/">← Dashboard</a>
   <a href="#ueberblick">Überblick</a>
   <a href="#start">Erste Schritte</a>
@@ -45,12 +52,17 @@ th{color:var(--muted);font-weight:600}
   <a href="#kosten">Kosten</a>
   <a href="#katalog">Katalog &amp; Updates</a>
   <a href="#runtimes">Runtimes erweitern</a>
+  <a href="#scripts">Skripte</a>
   <a href="#integrationen">Integrationen</a>
   <a href="#https">HTTPS</a>
   <a href="#sicherheit">Sicherheit</a>
   <a href="#api">API</a>
   <a href="#fehler">Fehlermeldungen</a>
   <div class="lang"><a href="/docs">English</a></div>
+  <div class="themes">
+    <button type="button" data-theme="blue">Blau</button>
+    <button type="button" data-theme="runpod">Lila</button>
+  </div>
 </nav>
 <main>
 
@@ -66,13 +78,50 @@ Pod kostet Geld.</p>
 
 <section id="start">
 <h2>Erste Schritte</h2>
-<pre>./scripts/install                          # lokal, nur HTTP
-./scripts/install --bind-ip 10.10.40.100   # im LAN/VPN erreichbar
-./scripts/setup                            # interaktiv mit Häkchen</pre>
-<p>Danach <code>http://&lt;ip&gt;:8080</code> öffnen. Benutzer <code>admin</code>,
-Passwort aus <code>GPUHARBOR_ADMIN_PASSWORD</code> in <code>.env</code>.</p>
-<p><strong>Kostenpflichtige Aktionen sind standardmäßig gesperrt.</strong> Erst mit
-<code>RUNPOD_ALLOW_BILLABLE_ACTIONS=true</code> erreicht etwas RunPod.</p>
+<p>Installieren, starten und anmelden — in fünf Schritten:</p>
+<ol>
+<li><strong>Installieren.</strong> Im Terminal im GPUHarbor-Ordner:
+<pre>./scripts/install</pre>
+Das schreibt die Datei <code>.env</code> mit zufälligen Passwörtern, startet
+GPUHarbor und zeigt die Adresse an. Für andere Geräte
+<code>./scripts/install --bind-ip &lt;deine-ip&gt;</code>, oder
+<code>./scripts/setup</code> für Rückfragen nutzen.</li>
+<li><strong>Dashboard öffnen.</strong> Auf demselben Rechner
+<code>http://localhost:8080</code>, von einem anderen Gerät
+<code>http://&lt;deine-ip&gt;:8080</code>. Für eine sichere Verbindung siehe
+<a class="link" href="#https">HTTPS</a>.</li>
+<li><strong>Anmelden.</strong> Benutzer <code>admin</code>. Das Passwort wurde für
+dich erzeugt und steht in <code>.env</code> — siehe nächster Block.</li>
+<li><strong>Optional: RunPod-Key hinterlegen.</strong> Kostenlose Prüfungen
+funktionieren sofort:
+<pre>./scripts/set-runpod-key</pre></li>
+<li><strong>Nur wenn du Geld ausgeben willst.</strong>
+<code>RUNPOD_ALLOW_BILLABLE_ACTIONS=true</code> in <code>.env</code> setzen und den
+Controller neu starten.</li>
+</ol>
+<h3>Was ist <code>.env</code>, und wie öffne ich sie?</h3>
+<p><code>.env</code> ist eine einfache Textdatei im GPUHarbor-Ordner. Sie enthält
+deine Passwörter und Einstellungen. Der Name beginnt mit einem Punkt, sie ist
+deshalb standardmäßig versteckt.</p>
+<ul>
+<li><strong>Terminal (Linux, macOS, WSL):</strong>
+<pre>nano .env     # bearbeiten (speichern: Ctrl+O, Enter; verlassen: Ctrl+X)
+cat .env      # nur lesen</pre></li>
+<li><strong>Dateimanager:</strong> „Versteckte Dateien anzeigen“ einschalten
+(meist <code>Ctrl+H</code>), dann <code>.env</code> öffnen.</li>
+<li><strong>Windows-Editor:</strong> <em>Datei → Öffnen</em>, den vollen Pfad
+einfügen (z. B. <code>C:\gpuharbor\.env</code>), Öffnen.</li>
+</ul>
+<p>Suche die Zeile <code>GPUHARBOR_ADMIN_PASSWORD=...</code>. Alles nach dem
+<code>=</code> ist dein Login-Passwort. Diese Datei nicht weitergeben.</p>
+<h3>Von weiteren Geräten erreichbar</h3>
+<p>Zuerst darf nur der lokale Rechner verbinden. Adresse eines Laptops oder
+Handys genau so eintragen, wie im Browser eingegeben, dann neu starten:</p>
+<pre>./scripts/add-host 192.0.2.10 --bind-ip 0.0.0.0
+docker compose up -d</pre>
+<p><code>192.0.2.10</code> ist die RFC-5737-Dokumentationsadresse — durch die eigene
+ersetzen. Erlaubte Adressen anzeigen:
+<code>grep GPUHARBOR_TRUSTED_HOSTS .env</code>.</p>
 </section>
 
 <section id="modelle">
@@ -141,6 +190,11 @@ oder Nordamerika. GPUHarbor fragt RunPod, welche Rechenzentren dazugehören, und
 weist automatisch eines zu. Ein konkretes Rechenzentrum bleibt im erweiterten Feld
 möglich.</p>
 <p>Feste Liste in <code>.env</code>: <code>RUNPOD_DATACENTER_IDS=EU-SE-1,CA-MTL-1</code>.</p>
+<p>Stehen dort nur <strong>Automatisch</strong> und <strong>Konfiguriert</strong>,
+konnte der Live-Katalog von RunPod nicht gelesen werden — meist weil noch kein
+RunPod-Key hinterlegt ist. GPUHarbor nutzt dann die feste Liste aus
+<code>RUNPOD_DATACENTER_IDS</code>. Mit hinterlegtem RunPod-Key erscheinen wieder
+alle echten Regionen.</p>
 <p class="muted">Das Volume hängt am Rechenzentrum. Ein Standortwechsel bedeutet
 neuen Pod und neues Volume, der Modell-Cache wird also neu geladen.</p>
 </section>
@@ -187,6 +241,15 @@ Verkehr. Die Volume-Kosten beendet er <strong>nicht</strong>.</p>
 <li>Eigene Profile bleiben unberührt. Export/Import als JSON im Dashboard.</li>
 <li>Schreiben erfolgt atomar, die vorige Datei bleibt als <code>.bak</code>.</li>
 </ul>
+<h3>GPUHarbor aktualisieren</h3>
+<p>Deine Profile liegen im Daten-Volume und werden nie überschrieben. Zum
+Aktualisieren:</p>
+<pre>git pull
+./scripts/install        # behält .env, baut neu und startet neu</pre>
+<p>Mit einem fertigen Image stattdessen: <code>docker compose pull &amp;&amp; docker compose up -d</code>.</p>
+<p>Der optionale Update-Hinweis ist standardmäßig aus. Unter
+<strong>Einstellungen</strong> im Kopf aktivieren; dann fragt der Controller
+einmal täglich die GitHub-Releases-API und zeigt einen „Update verfügbar“-Link.</p>
 </section>
 
 <section id="runtimes">
@@ -203,12 +266,44 @@ Code in <code>runtime/gateway.py</code>. Neue Modelle brauchen das nicht.</p>
 Image wäre beliebige Codeausführung.</p>
 </section>
 
+<section id="scripts">
+<h2>Skripte</h2>
+<p>Hilfsskripte liegen in <code>scripts/</code>. Im GPUHarbor-Ordner ausführen.</p>
+<table>
+<tr><th>Skript</th><th>Zweck</th></tr>
+<tr><td><code>./scripts/install</code></td><td>Installieren oder aktualisieren; erzeugt <code>.env</code> und startet.</td></tr>
+<tr><td><code>./scripts/setup</code></td><td>Interaktive Rückfragen (Bind-Adresse, HTTPS, Open WebUI, OpenHands).</td></tr>
+<tr><td><code>./scripts/init-env</code></td><td><code>.env</code> mit zufälligen Secrets und Adressen anlegen/aktualisieren.</td></tr>
+<tr><td><code>./scripts/add-host</code></td><td>Weitere Adressen für das Dashboard freigeben.</td></tr>
+<tr><td><code>./scripts/set-runpod-key</code></td><td>RunPod-API-Key sicher hinterlegen.</td></tr>
+<tr><td><code>./scripts/generate-local-tls</code></td><td>Lokales HTTPS-Zertifikat unter <code>tls/</code> erzeugen.</td></tr>
+<tr><td><code>./scripts/check-compose</code></td><td>Compose-Dateien prüfen.</td></tr>
+<tr><td><code>./scripts/check-local-release</code></td><td>Tests und alle Prüfungen vor einem Release.</td></tr>
+<tr><td><code>./scripts/publish-runtime-images</code></td><td>Runtime-Images bauen und zu GHCR pushen.</td></tr>
+</table>
+<p>Details: <a class="link" href="https://github.com/lightcr1/gpuharbor/blob/main/docs/SCRIPTS.md">docs/SCRIPTS.md</a>.</p>
+</section>
+
 <section id="integrationen">
 <h2>Integrationen</h2>
-<p>Open WebUI und OpenHands sind optional und nutzen dieselbe OpenAI-kompatible
-API. Sie bekommen nur das <code>MODEL_ACCESS_TOKEN</code>, nie den RunPod-Key.</p>
-<pre>docker compose -f compose.yml -f compose.openwebui.yml up -d --build
+<p>Open WebUI und OpenHands sind optional. Beide sprechen mit der
+OpenAI-kompatiblen API von GPUHarbor und bekommen nur
+<code>MODEL_ACCESS_TOKEN</code>, nie den RunPod-Key. Der Pod muss zuerst laufen.</p>
+<h3>Open WebUI (Chat-Oberfläche)</h3>
+<pre>docker compose -f compose.yml -f compose.openwebui.yml up -d --build</pre>
+<p><code>http://localhost:3000</code> öffnen. Diese Erweiterung zeigt Open WebUI
+schon auf <code>http://controller:8080/v1</code> und übergibt das Token
+automatisch. Das Modell über seinen <em>API-Namen</em> aus dem Profil wählen
+(z. B. <code>chat</code>).</p>
+<p>Open WebUI selbst betrieben? Dann eine OpenAI-Verbindung mit Basis-URL
+<code>http://controller:8080/v1</code> und dem Wert von
+<code>MODEL_ACCESS_TOKEN</code> als API-Key anlegen.</p>
+<h3>OpenHands Agent Canvas (führt Code aus)</h3>
+<pre>mkdir -p workspace
 docker compose -f compose.yml -f compose.openhands.yml up -d --build</pre>
+<p><code>http://localhost:3001/canvas</code> öffnen. Als Anbieter
+<code>openai/chat</code> (oder <code>openai/code</code>), Basis-URL
+<code>http://controller:8080/v1</code> und <code>MODEL_ACCESS_TOKEN</code> nutzen.</p>
 <p class="muted">OpenHands kann Code ausführen und Dateien ändern. Nur mit einem
 leeren, eigenen Arbeitsverzeichnis verwenden.</p>
 </section>
@@ -216,10 +311,10 @@ leeren, eigenen Arbeitsverzeichnis verwenden.</p>
 <section id="https">
 <h2>HTTPS</h2>
 <pre>./scripts/setup
-./scripts/install --bind-ip 0.0.0.0 --https 10.10.40.100 --tls-port 9443</pre>
+./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443</pre>
 <p>Erzeugt eine lokale Zertifizierungsstelle in <code>tls/</code> und einen
 TLS-Proxy. <code>tls/local-ca.crt</code> auf den Geräten importieren, dann
-<code>https://10.10.40.100:9443/</code> öffnen. Setzt zusätzlich
+<code>https://192.0.2.10:9443/</code> öffnen. Setzt zusätzlich
 <code>GPUHARBOR_COOKIE_SECURE=true</code>.</p>
 <p class="danger">Nicht ins Internet stellen. Nur LAN oder VPN.</p>
 </section>
@@ -278,5 +373,34 @@ TLS-Proxy. <code>tls/local-ca.crt</code> auf den Geräten importieren, dann
 
 </main>
 </div>
+<script>
+(function(){
+  var links=[].slice.call(document.querySelectorAll('nav a[href^="#"]'));
+  var sections=[].slice.call(document.querySelectorAll('main section[id]'));
+  if(!sections.length)return;
+  function setActive(id){links.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+id);});}
+  function onScroll(){
+    var threshold=140,current=sections[0].id;
+    sections.forEach(function(s){if(s.getBoundingClientRect().top<=threshold)current=s.id;});
+    setActive(current);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+  window.addEventListener('hashchange',onScroll);
+  onScroll();
+})();
+(function(){
+  function apply(value){
+    var t=value==='runpod'?'runpod':'blue';
+    document.documentElement.dataset.theme=t;
+    try{localStorage.setItem('gh-theme',t)}catch(e){}
+    var buttons=document.querySelectorAll('.themes button');
+    for(var i=0;i<buttons.length;i++)buttons[i].classList.toggle('active',buttons[i].dataset.theme===t);
+  }
+  window.setTheme=apply;
+  document.querySelectorAll('.themes button').forEach(function(b){b.addEventListener('click',function(){apply(b.dataset.theme)})});
+  apply(document.documentElement.dataset.theme||'blue');
+})();
+</script>
 </body>
 </html>

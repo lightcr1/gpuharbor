@@ -7,8 +7,10 @@ Easiest path:
 
 ```bash
 ./scripts/setup                    # answer the HTTPS questions
-./scripts/install --bind-ip 0.0.0.0 --https 10.10.40.100 --tls-port 9443
+./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443
 ```
+
+`192.0.2.10` is the RFC 5737 documentation address — use your own address.
 
 This creates a local certificate authority in `tls/`, sets
 `GPUHARBOR_COOKIE_SECURE=true`, starts the overlay and prints the HTTPS URL.
