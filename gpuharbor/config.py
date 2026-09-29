@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     runpod_allow_billable_actions: bool = False
     runpod_pod_id: str = ""
 
+    # Set by compose.openhands.yml; empty means OpenHands is not part of this stack.
+    openhands_url: str = ""
+    openhands_backend_api_key: SecretStr | None = None
+    # Dashboard links, "scheme:port", set by the Open WebUI / OpenHands overlays.
+    gpuharbor_link_openwebui: str = ""
+    gpuharbor_link_openhands: str = ""
+
     runtime_image_vllm: str = ""
     runtime_image_llama_cpp: str = ""
     runtime_image_bonsai: str = ""

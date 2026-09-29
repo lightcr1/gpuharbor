@@ -1,6 +1,10 @@
 # HTTPS for OpenHands Agent Canvas, on TLS_BIND_IP:OPENHANDS_TLS_PORT. Use
 # together with compose.yml, compose.tls.yml and compose.openhands.yml.
 services:
+  controller:
+    environment:
+      GPUHARBOR_LINK_OPENHANDS: "https:${OPENHANDS_TLS_PORT:-8445}"
+
   openhands:
     ports: !override
       - "127.0.0.1:3001:8000"

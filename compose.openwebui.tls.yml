@@ -1,6 +1,10 @@
 # HTTPS for Open WebUI, on TLS_BIND_IP:WEBUI_TLS_PORT. Use together with
 # compose.yml, compose.tls.yml and compose.openwebui.yml.
 services:
+  controller:
+    environment:
+      GPUHARBOR_LINK_OPENWEBUI: "https:${WEBUI_TLS_PORT:-8444}"
+
   open-webui:
     environment:
       WEBUI_SESSION_COOKIE_SECURE: "true"

@@ -1,6 +1,14 @@
 # OpenHands Agent Canvas is optional and can execute generated code inside the
 # mounted projects directory. Use a dedicated workspace without secrets.
 services:
+  # The controller writes an OpenHands LLM profile for every model, so models
+  # work in OpenHands without visiting its settings.
+  controller:
+    environment:
+      OPENHANDS_URL: http://openhands:8000
+      OPENHANDS_BACKEND_API_KEY: ${OPENHANDS_BACKEND_API_KEY:?Set a separate random OpenHands backend key}
+      GPUHARBOR_LINK_OPENHANDS: "http:3001"
+
   openhands:
     image: ${OPENHANDS_IMAGE:?Set OPENHANDS_IMAGE to the reviewed Agent Canvas digest}
     restart: unless-stopped

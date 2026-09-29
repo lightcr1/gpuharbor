@@ -1,4 +1,8 @@
 services:
+  controller:
+    environment:
+      GPUHARBOR_LINK_OPENWEBUI: "http:3000"
+
   open-webui:
     image: ${OPEN_WEBUI_IMAGE:?Set OPEN_WEBUI_IMAGE to a reviewed version or digest}
     restart: unless-stopped
