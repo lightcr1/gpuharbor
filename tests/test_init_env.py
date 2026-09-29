@@ -39,7 +39,9 @@ def test_init_env_generates_secrets_and_bind_ip(tmp_path):
     assert values["RUNPOD_ALLOW_BILLABLE_ACTIONS"] == "false"
     for key in ("RUNPOD_API_KEY", "CONTROL_TOKEN", "MODEL_ACCESS_TOKEN", "GPUHARBOR_ADMIN_PASSWORD"):
         assert "replace" not in values[key].lower()
+    for key in ("RUNPOD_API_KEY", "CONTROL_TOKEN", "MODEL_ACCESS_TOKEN"):
         assert len(values[key]) == 64
+    assert len(values["GPUHARBOR_ADMIN_PASSWORD"]) == 24  # readable groups, see the dedicated test
 
 
 def test_init_env_is_idempotent(tmp_path):
@@ -134,3 +136,15 @@ def test_upgrade_adds_settings_missing_from_an_older_env(tmp_path):
     assert values["TLS_PORT"] == "9443", "existing settings stay"
     assert values["OPEN_WEBUI_IMAGE"].endswith("a" * 64), "new settings are added"
     assert len(values["WEBUI_SECRET_KEY"]) == 64 and "replace" not in values["WEBUI_SECRET_KEY"]
+
+
+def test_generated_admin_password_is_readable_and_strong(tmp_path):
+    import re
+
+    example = tmp_path / ".env.example"
+    example.write_text("GPUHARBOR_ADMIN_PASSWORD=replace-me\nCONTROL_TOKEN=replace-me\n", encoding="utf-8")
+    target = tmp_path / ".env"
+    run("--env", str(target), "--example", str(example))
+    values = read_values(target)
+    assert re.fullmatch(r"([A-HJKMNP-Z2-9]{4}-){4}[A-HJKMNP-Z2-9]{4}", values["GPUHARBOR_ADMIN_PASSWORD"])
+    assert len(values["CONTROL_TOKEN"]) == 64, "machine tokens stay long hex values"

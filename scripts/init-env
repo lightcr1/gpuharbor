@@ -25,6 +25,17 @@ SECRET_KEYS = [
 ]
 
 
+# Upper-case letters and digits without look-alikes (no 0/O, 1/I/L): easy to read out and type.
+PASSWORD_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+
+def readable_password(groups: int = 5, size: int = 4) -> str:
+    """Random login password like ABCD-EFGH-JKMN-PQRS-TUVW (about 100 bits)."""
+    return "-".join(
+        "".join(secrets.choice(PASSWORD_ALPHABET) for _ in range(size)) for _ in range(groups)
+    )
+
+
 def parse(text: str) -> tuple[list[str], dict[str, str]]:
     lines = text.splitlines()
     values: dict[str, str] = {}
@@ -133,10 +144,10 @@ def main() -> int:
     for key in SECRET_KEYS:
         current = values.get(key, "")
         if args.force or not current or "replace" in current.lower() or key in updates:
-            updates[key] = secrets.token_hex(32)
+            updates[key] = readable_password() if key == "GPUHARBOR_ADMIN_PASSWORD" else secrets.token_hex(32)
 
     if args.reset_password:
-        updates["GPUHARBOR_ADMIN_PASSWORD"] = secrets.token_urlsafe(18)
+        updates["GPUHARBOR_ADMIN_PASSWORD"] = readable_password()
 
     if args.bind_ip:
         updates["HOST_BIND_IP"] = args.bind_ip

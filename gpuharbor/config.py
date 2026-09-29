@@ -119,8 +119,10 @@ class Settings(BaseSettings):
             "GPUHARBOR_SESSION_SECRET": self.gpuharbor_session_secret.get_secret_value(),
         }
         for name, value in values.items():
-            if len(value) < 32 or "replace" in value.lower():
-                errors.append(f"{name} must be a unique random value with at least 32 characters")
+            # The admin password is typed by a person, so it may be shorter than a machine token.
+            minimum = 16 if name == "GPUHARBOR_ADMIN_PASSWORD" else 32
+            if len(value) < minimum or "replace" in value.lower():
+                errors.append(f"{name} must be a unique random value with at least {minimum} characters")
         if len(set(values.values())) != len(values):
             errors.append("Every credential must use a different value")
         if not self.datacenter_ids:

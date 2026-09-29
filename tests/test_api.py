@@ -387,3 +387,16 @@ def test_compose_service_name_is_an_accepted_host(app_client):
     client, _ = app_client
     assert client.get("/health", headers={"Host": "controller:8080"}).status_code == 200
     assert client.get("/health", headers={"Host": "evil.example"}).status_code == 400
+
+
+def test_v1_errors_use_the_openai_shape(app_client):
+    client, _ = app_client
+    unauthorized = client.get("/v1/models")
+    assert unauthorized.status_code == 401
+    assert unauthorized.json()["error"]["message"] == "Invalid model token"
+    no_pod = client.get("/v1/models", headers={"Authorization": "Bearer " + "m" * 40})
+    assert no_pod.status_code == 503
+    body = no_pod.json()
+    assert "Start a pod" in body["error"]["message"] and body["detail"] == body["error"]["message"]
+    # the dashboard API keeps the plain FastAPI shape
+    assert client.get("/api/status").json() == {"detail": "Authentication required"}

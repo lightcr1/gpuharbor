@@ -9,7 +9,8 @@ from typing import Annotated
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
@@ -130,6 +131,19 @@ app.add_middleware(
     same_site="lax",
     https_only=settings.gpuharbor_cookie_secure,
 )
+
+
+@app.exception_handler(HTTPException)
+async def openai_style_errors(request: Request, error: HTTPException):
+    """Clients of /v1 (Open WebUI, OpenHands, SDKs) expect the OpenAI error shape."""
+    if not request.url.path.startswith("/v1/"):
+        return await http_exception_handler(request, error)
+    message = error.detail if isinstance(error.detail, str) else str(error.detail)
+    return JSONResponse(
+        {"error": {"message": message, "type": "gpuharbor_error", "code": error.status_code}, "detail": message},
+        status_code=error.status_code,
+        headers=error.headers,
+    )
 
 
 def session_active(request: Request) -> bool:
@@ -692,7 +706,7 @@ async def proxy(path: str, request: Request, _: None = Depends(require_model_tok
     request.app.state.last_inference = time.monotonic()
     state = store.read()
     if not state.pod_id:
-        raise HTTPException(status_code=503, detail="No model pod is configured")
+        raise HTTPException(status_code=503, detail="No model is running. Start a pod in the GPUHarbor dashboard first.")
     query = f"?{request.url.query}" if request.url.query else ""
     upstream_request = request.app.state.proxy.build_request(
         request.method,
@@ -708,7 +722,7 @@ async def proxy(path: str, request: Request, _: None = Depends(require_model_tok
     try:
         upstream = await request.app.state.proxy.send(upstream_request, stream=True)
     except httpx.HTTPError as error:
-        raise HTTPException(status_code=503, detail=f"Model unavailable: {error}") from error
+        raise HTTPException(status_code=503, detail=f"Model unavailable: the pod is not answering yet. If you just started it, wait a few minutes while the model loads. ({error})") from error
     return StreamingResponse(
         upstream.aiter_raw(),
         status_code=upstream.status_code,
