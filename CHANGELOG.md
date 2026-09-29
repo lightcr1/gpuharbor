@@ -26,6 +26,9 @@ All notable changes will be documented here once releases begin.
 - Open WebUI and OpenHands could not reach the controller: the Compose service name
   `controller` was rejected as an untrusted host (HTTP 400). It is now always
   accepted.
+- `init-env` (and so `install`) now adds settings that newer versions introduced to an
+  older `.env`, for example `OPEN_WEBUI_IMAGE`; before, upgrading with `--webui` failed.
+- The tests no longer read a developer's real `.env`.
 - `set-runpod-key` no longer drops the TLS overlay when it restarts the stack.
 
 ### Changed

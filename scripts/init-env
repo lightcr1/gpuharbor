@@ -124,9 +124,15 @@ def main() -> int:
     lines, values = parse(source.read_text(encoding="utf-8"))
 
     updates: dict[str, str] = {}
+    if target.exists():
+        # Upgrades: bring in settings that newer versions added to .env.example.
+        _, template = parse(example.read_text(encoding="utf-8"))
+        for key, value in template.items():
+            if key not in values:
+                updates[key] = value
     for key in SECRET_KEYS:
         current = values.get(key, "")
-        if args.force or not current or "replace" in current.lower():
+        if args.force or not current or "replace" in current.lower() or key in updates:
             updates[key] = secrets.token_hex(32)
 
     if args.reset_password:
@@ -148,7 +154,7 @@ def main() -> int:
     existing = [part.strip() for part in values.get("GPUHARBOR_TRUSTED_HOSTS", "").split(",") if part.strip()]
     hosts = list(dict.fromkeys(existing)) or ["localhost", "127.0.0.1"]
     for candidate in (args.bind_ip, args.https_host):
-        if candidate and candidate not in hosts:
+        if candidate and candidate != "0.0.0.0" and candidate not in hosts:  # never a Host header
             hosts.append(candidate)
     for value in args.add_trusted_host:
         for part in value.split(","):

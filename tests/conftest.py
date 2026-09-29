@@ -30,6 +30,7 @@ def app_client(tmp_path, monkeypatch):
         "GPUHARBOR_TRUSTED_HOSTS": "testserver,localhost,127.0.0.1",
         "GPUHARBOR_UPDATE_CHECK": "false",
         "RUNPOD_ALLOW_BILLABLE_ACTIONS": "false",
+        "GPUHARBOR_COOKIE_SECURE": "false",
         "RUNTIME_IMAGE_VLLM": "ghcr.io/example/vllm@sha256:" + "a" * 64,
         "RUNTIME_IMAGE_LLAMA_CPP": "",
         "RUNTIME_IMAGE_BONSAI": "",
@@ -42,6 +43,8 @@ def app_client(tmp_path, monkeypatch):
     }
     for key, value in values.items():
         monkeypatch.setenv(key, value)
+    # Never pick up a developer's real .env from the project folder.
+    monkeypatch.chdir(tmp_path)
 
     sys.modules.pop("gpuharbor.main", None)
     main = importlib.import_module("gpuharbor.main")

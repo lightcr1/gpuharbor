@@ -117,3 +117,20 @@ def test_show_login_and_reset_password(tmp_path):
     assert after["GPUHARBOR_ADMIN_PASSWORD"] != before["GPUHARBOR_ADMIN_PASSWORD"]
     assert after["CONTROL_TOKEN"] == before["CONTROL_TOKEN"]
     assert after["GPUHARBOR_ADMIN_PASSWORD"] in result.stdout
+
+
+def test_upgrade_adds_settings_missing_from_an_older_env(tmp_path):
+    example = tmp_path / ".env.example"
+    example.write_text(
+        "CONTROL_TOKEN=replace-me\nOPEN_WEBUI_IMAGE=ghcr.io/example/open-webui@sha256:" + "a" * 64
+        + "\nWEBUI_SECRET_KEY=replace-me\nTLS_PORT=8443\n",
+        encoding="utf-8",
+    )
+    target = tmp_path / ".env"
+    target.write_text("CONTROL_TOKEN=" + "c" * 64 + "\nTLS_PORT=9443\n", encoding="utf-8")
+    run("--env", str(target), "--example", str(example))
+    values = read_values(target)
+    assert values["CONTROL_TOKEN"] == "c" * 64, "existing secrets stay"
+    assert values["TLS_PORT"] == "9443", "existing settings stay"
+    assert values["OPEN_WEBUI_IMAGE"].endswith("a" * 64), "new settings are added"
+    assert len(values["WEBUI_SECRET_KEY"]) == 64 and "replace" not in values["WEBUI_SECRET_KEY"]
