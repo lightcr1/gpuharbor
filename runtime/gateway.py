@@ -109,8 +109,8 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
 
 
 def authorize(value: str | None) -> None:
-    supplied = value[7:] if value and value.startswith("Bearer ") else ""
-    if not secrets.compare_digest(supplied, API_KEY):
+    supplied = value[7:] if value and value[:7].lower() == "bearer " else ""
+    if not supplied or not secrets.compare_digest(supplied.encode(), API_KEY.encode()):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 

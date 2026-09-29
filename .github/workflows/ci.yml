@@ -33,15 +33,7 @@ jobs:
 
       - name: Check dashboard JavaScript
         run: |
-          python - <<'PY'
-          import re
-          from pathlib import Path
-          html = Path("gpuharbor/static/index.html").read_text(encoding="utf-8")
-          Path("/tmp/gpuharbor-ui.js").write_text(
-              "\n".join(re.findall(r"<script>(.*?)</script>", html, re.S)), encoding="utf-8"
-          )
-          PY
-          node --check /tmp/gpuharbor-ui.js
+          for file in gpuharbor/static/*.js; do node --check "$file"; done
 
       - name: Validate Compose combinations
         run: ./scripts/check-compose

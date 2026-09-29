@@ -77,6 +77,16 @@ def main() -> int:
     )
     parser.add_argument("--tls-port", help="host port for the TLS proxy (default 8443)")
     parser.add_argument(
+        "--reset-password",
+        action="store_true",
+        help="generate a new admin password, keep every other value, and print it",
+    )
+    parser.add_argument(
+        "--show-login",
+        action="store_true",
+        help="print the admin user name and password from the .env and exit",
+    )
+    parser.add_argument(
         "--force",
         action="store_true",
         help="regenerate every secret even if a real value is already present",
@@ -89,6 +99,15 @@ def main() -> int:
         print(f"Template {example} not found.", file=sys.stderr)
         return 1
 
+    if args.show_login:
+        if not target.exists():
+            print(f"{target} does not exist yet. Run ./scripts/init-env first.", file=sys.stderr)
+            return 1
+        _, current = parse(target.read_text(encoding="utf-8"))
+        print(f"User    : {current.get('GPUHARBOR_ADMIN_USERNAME', 'admin') or 'admin'}")
+        print(f"Password: {current.get('GPUHARBOR_ADMIN_PASSWORD', '')}")
+        return 0
+
     source = target if target.exists() else example
     lines, values = parse(source.read_text(encoding="utf-8"))
 
@@ -97,6 +116,9 @@ def main() -> int:
         current = values.get(key, "")
         if args.force or not current or "replace" in current.lower():
             updates[key] = secrets.token_hex(32)
+
+    if args.reset_password:
+        updates["GPUHARBOR_ADMIN_PASSWORD"] = secrets.token_urlsafe(18)
 
     if args.bind_ip:
         updates["HOST_BIND_IP"] = args.bind_ip
@@ -130,6 +152,9 @@ def main() -> int:
     target.chmod(0o600)
     changed = ", ".join(sorted(updates)) or "nothing"
     print(f"Wrote {target}. Updated: {changed}")
+    if args.reset_password:
+        print(f"New admin password: {updates['GPUHARBOR_ADMIN_PASSWORD']}")
+        print("Restart the controller to apply it: docker compose up -d")
     print("Keep RUNPOD_ALLOW_BILLABLE_ACTIONS=false until you intend to spend money.")
     return 0
 

@@ -55,6 +55,8 @@ address and the trusted hosts.
 ./scripts/init-env --bind-ip 0.0.0.0 --https-host 192.0.2.10 --tls-port 9443
 ./scripts/init-env --add-trusted-host 192.168.1.5
 ./scripts/init-env --force            # regenerate every secret
+./scripts/init-env --show-login       # print the admin user and password
+./scripts/init-env --reset-password   # new admin password, everything else kept
 ```
 
 Useful flags: `--bind-ip`, `--https-host`, `--tls-port`, `--trusted-hosts`,
@@ -93,8 +95,8 @@ under `tls/`. Use the exact IP or hostname you will type in the browser.
 ./scripts/generate-local-tls harbor.local tls
 ```
 
-Import `tls/local-ca.crt` on the devices that should trust the certificate. Keep
-`tls/local-ca.key` private and never commit the `tls/` folder.
+Import `tls/local-ca.crt` on the devices that should trust the certificate. The CA key is deleted after
+signing; never commit the `tls/` folder.
 
 ## check-compose
 

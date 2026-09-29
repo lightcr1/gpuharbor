@@ -19,8 +19,13 @@ cautious.
   token do not.
 - Failed logins are rate limited per client address.
 - Allowed `Host` headers come from `GPUHARBOR_TRUSTED_HOSTS`.
-- Responses carry CSP, frame-deny, nosniff, referrer and permissions headers.
-  Dashboard and API responses are not cached.
+- Responses carry a strict CSP (`script-src 'self'`, `style-src 'self'`, no inline
+  code), frame-deny, nosniff, referrer and permissions headers. Dashboard and API
+  responses are not cached.
+- The controller refuses to start while a credential is empty or still the
+  `replace-with-…` placeholder from `.env.example`.
+- Credentials are compared in constant time, and malformed or non-ASCII values
+  are answered with 401 instead of an error.
 - Set `GPUHARBOR_COOKIE_SECURE=true` when you use HTTPS.
 - Data coming back from RunPod is scrubbed for fields that look like tokens,
   keys, passwords or authorization headers before it reaches the browser.

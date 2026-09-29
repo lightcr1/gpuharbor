@@ -32,13 +32,16 @@ Nicht mit RunPod verbunden und nicht von RunPod betrieben.
 
 ## Installation
 
+Du brauchst Docker mit Compose und einen [RunPod](https://www.runpod.io/)-Account
+(nur zum Starten echter Pods; das Dashboard läuft auch ohne).
+
 ```bash
 git clone https://github.com/lightcr1/gpuharbor.git
 cd gpuharbor
 ./scripts/install
 ```
 
-Danach `http://127.0.0.1:8080` öffnen. Für LAN, HTTPS oder die interaktive
+Danach `http://127.0.0.1:8080` öffnen (Benutzer `admin`, Passwort anzeigen mit `./scripts/init-env --show-login`). Für LAN, HTTPS oder die interaktive
 Variante siehe [Setup](docs/SETUP.md). Die App erklärt jedes Feld unter `/docs`.
 
 Nichts an RunPod passiert, solange `RUNPOD_ALLOW_BILLABLE_ACTIONS=false` gesetzt

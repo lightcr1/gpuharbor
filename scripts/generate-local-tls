@@ -39,6 +39,9 @@ openssl x509 -req -sha256 -days 825 \
   -in "$tmp/server.csr" -CA "$out/local-ca.crt" -CAkey "$out/local-ca.key" \
   -CAcreateserial -out "$out/server.crt" \
   -extfile "$tmp/server.cnf" -extensions req_ext >/dev/null 2>&1
+# The CA key is only needed to sign the server certificate. Removing it means a
+# leaked tls/ folder cannot mint certificates that your devices trust.
+rm -f "$out/local-ca.key" "$out/local-ca.srl"
 chmod 600 "$out"/*.key
 chmod 644 "$out"/*.crt
 printf 'Created local TLS certificate for %s in %s. Trust only %s/local-ca.crt on your clients.\n' "$host" "$out" "$out"

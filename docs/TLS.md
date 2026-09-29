@@ -22,7 +22,8 @@ Manual steps, if you want them:
 ./scripts/generate-local-tls 192.0.2.10
 ```
 
-Use the real LAN or VPN address as the argument. Keep `tls/local-ca.key` private.
+Use the real LAN or VPN address as the argument. The script deletes the CA key after signing, so a leaked `tls/` folder cannot
+issue certificates your devices trust. Run it again to renew the certificate.
 Then set the values in `.env`:
 
 ```env

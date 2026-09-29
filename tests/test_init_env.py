@@ -98,3 +98,22 @@ def test_init_env_add_trusted_host_keeps_existing(tmp_path):
     hosts = read_values(target)["GPUHARBOR_TRUSTED_HOSTS"].split(",")
     assert "192.0.2.10" in hosts
     assert "192.168.1.5" in hosts
+
+
+def test_show_login_and_reset_password(tmp_path):
+    example = tmp_path / ".env.example"
+    example.write_text(
+        "GPUHARBOR_ADMIN_USERNAME=admin\nGPUHARBOR_ADMIN_PASSWORD=replace-me\nCONTROL_TOKEN=replace-me\n",
+        encoding="utf-8",
+    )
+    target = tmp_path / ".env"
+    run("--env", str(target), "--example", str(example))
+    before = read_values(target)
+    shown = run("--env", str(target), "--show-login").stdout
+    assert before["GPUHARBOR_ADMIN_PASSWORD"] in shown and "admin" in shown
+
+    result = run("--env", str(target), "--example", str(example), "--reset-password")
+    after = read_values(target)
+    assert after["GPUHARBOR_ADMIN_PASSWORD"] != before["GPUHARBOR_ADMIN_PASSWORD"]
+    assert after["CONTROL_TOKEN"] == before["CONTROL_TOKEN"]
+    assert after["GPUHARBOR_ADMIN_PASSWORD"] in result.stdout

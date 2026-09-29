@@ -10,6 +10,7 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
 from starlette.middleware.sessions import SessionMiddleware
@@ -21,7 +22,7 @@ from .huggingface import LookupError, lookup as hf_lookup
 from .idle import should_stop_for_idle
 from .registry import ModelDefinition, Registry
 from .runpod import LaunchOptions, RunpodClient, RunpodError, pod_status, proxy_url, resolve_launch
-from .security import LoginLimiter, SecurityHeadersMiddleware, redact_secrets
+from .security import LoginLimiter, SecurityHeadersMiddleware, SessionRegistry, bearer_token, redact_secrets, secure_equals
 from .state import ControllerState, PreferenceStore, Preferences, StateStore
 from .updates import fetch_latest, is_newer
 from . import __version__
@@ -36,6 +37,8 @@ registry = Registry(
 )
 store = StateStore(settings.state_path, settings.runpod_pod_id)
 preferences = PreferenceStore(settings.preferences_path, settings.gpuharbor_update_check)
+SESSION_SECONDS = 12 * 60 * 60
+sessions = SessionRegistry(SESSION_SECONDS)
 operation_lock = asyncio.Lock()
 login_limiter = LoginLimiter(
     settings.gpuharbor_login_max_attempts,
@@ -85,7 +88,7 @@ async def idle_stop_loop(application: FastAPI) -> None:
 
 app = FastAPI(
     title="GPUHarbor",
-    version="0.1.3",
+    version=__version__,
     lifespan=lifespan,
     docs_url=None,
     redoc_url=None,
@@ -97,10 +100,14 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=settings.gpuharbor_session_secret.get_secret_value(),
     session_cookie="gpuharbor_session",
-    max_age=12 * 60 * 60,
+    max_age=SESSION_SECONDS,
     same_site="lax",
     https_only=settings.gpuharbor_cookie_secure,
 )
+
+
+def session_active(request: Request) -> bool:
+    return bool(request.session.get("authenticated")) and sessions.valid(request.session.get("sid"))
 
 
 def require_control(
@@ -110,13 +117,12 @@ def require_control(
     x_csrf_token: Annotated[str | None, Header()] = None,
 ) -> None:
     expected = settings.control_token.get_secret_value()
-    bearer = authorization.removeprefix("Bearer ") if authorization else ""
-    if any(secrets.compare_digest(expected, supplied) for supplied in (bearer, x_control_token or "")):
+    if secure_equals(expected, bearer_token(authorization)) or secure_equals(expected, x_control_token):
         return
-    if request.session.get("authenticated"):
+    if session_active(request):
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
             session_token = str(request.session.get("csrf_token", ""))
-            if not session_token or not x_csrf_token or not secrets.compare_digest(session_token, x_csrf_token):
+            if not secure_equals(session_token, x_csrf_token):
                 raise HTTPException(status_code=403, detail="Invalid CSRF token")
         return
     raise HTTPException(status_code=401, detail="Authentication required")
@@ -124,8 +130,7 @@ def require_control(
 
 def require_model_token(authorization: Annotated[str | None, Header()] = None) -> None:
     expected = settings.model_access_token.get_secret_value()
-    bearer = authorization.removeprefix("Bearer ") if authorization else ""
-    if not secrets.compare_digest(expected, bearer):
+    if not secure_equals(expected, bearer_token(authorization)):
         raise HTTPException(status_code=401, detail="Invalid model token")
 
 
@@ -158,6 +163,7 @@ async def model_suggest(body: SuggestRequest, request: Request) -> dict:
 
 
 STATIC_DIR = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/", include_in_schema=False)
@@ -194,27 +200,30 @@ async def login(body: LoginRequest, request: Request) -> dict[str, str | bool]:
             detail="Too many failed login attempts",
             headers={"Retry-After": str(settings.gpuharbor_login_window_seconds)},
         )
-    username_ok = secrets.compare_digest(body.username, settings.gpuharbor_admin_username)
-    password_ok = secrets.compare_digest(body.password, settings.gpuharbor_admin_password.get_secret_value())
+    username_ok = secure_equals(settings.gpuharbor_admin_username, body.username)
+    password_ok = secure_equals(settings.gpuharbor_admin_password.get_secret_value(), body.password)
     if not (username_ok and password_ok):
         login_limiter.failure(client_key)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     login_limiter.success(client_key)
+    sessions.revoke(request.session.get("sid"))
     request.session.clear()
     request.session["authenticated"] = True
+    request.session["sid"] = sessions.create()
     request.session["csrf_token"] = secrets.token_urlsafe(32)
     return {"ok": True, "csrf_token": request.session["csrf_token"]}
 
 
 @app.post("/api/logout", dependencies=[Depends(require_control)])
 async def logout(request: Request) -> dict[str, bool]:
+    sessions.revoke(request.session.get("sid"))
     request.session.clear()
     return {"ok": True}
 
 
 @app.get("/api/me")
 async def me(request: Request) -> dict[str, str | bool]:
-    authenticated = bool(request.session.get("authenticated"))
+    authenticated = session_active(request)
     return {
         "authenticated": authenticated,
         "csrf_token": str(request.session.get("csrf_token", "")) if authenticated else "",
@@ -350,7 +359,7 @@ async def model_ready(request: Request) -> dict:
     """Report whether the runtime gateway in the pod answers `/health`."""
     state = store.read()
     if not state.pod_id:
-        return {"ready": False, "detail": "Kein Pod verwaltet", "model_id": state.model_id}
+        return {"ready": False, "detail": "No managed pod", "model_id": state.model_id}
     try:
         response = await request.app.state.proxy.get(
             f"{proxy_url(state.pod_id)}/health",
@@ -358,11 +367,11 @@ async def model_ready(request: Request) -> dict:
             timeout=8,
         )
     except httpx.HTTPError as error:
-        return {"ready": False, "detail": f"Gateway nicht erreichbar: {error}", "model_id": state.model_id}
+        return {"ready": False, "detail": f"Gateway unreachable: {error}", "model_id": state.model_id}
     if response.status_code == 200:
-        return {"ready": True, "detail": "Modell geladen", "model_id": state.model_id}
+        return {"ready": True, "detail": "Model loaded", "model_id": state.model_id}
     if response.status_code == 503:
-        return {"ready": False, "detail": "Modell lädt noch", "model_id": state.model_id}
+        return {"ready": False, "detail": "Model is still loading", "model_id": state.model_id}
     return {
         "ready": False,
         "detail": f"Gateway HTTP {response.status_code}",
@@ -464,10 +473,10 @@ async def datacenters_for(options: LaunchOptions, request: Request) -> list[str]
     except RunpodError as error:
         raise HTTPException(
             status_code=502,
-            detail=f"Region konnte nicht aufgelöst werden: {error}. Nutze RUNPOD_DATACENTER_IDS oder eine feste Region.",
+            detail=f"Could not resolve the region: {error}. Use RUNPOD_DATACENTER_IDS or a fixed datacenter.",
         ) from error
     if wanted not in grouped:
-        raise HTTPException(status_code=422, detail=f"Unbekannte Region: {options.region}")
+        raise HTTPException(status_code=422, detail=f"Unknown region: {options.region}")
     return grouped[wanted]
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable
@@ -27,6 +28,24 @@ def redact_secrets(value):
     return value
 
 
+def secure_equals(expected: str, supplied: str | None) -> bool:
+    """Constant-time comparison that never raises and never accepts an empty secret.
+
+    ``secrets.compare_digest`` raises ``TypeError`` for non-ASCII ``str`` input,
+    which would turn a crafted header into a 500 instead of a 401.
+    """
+    if not expected or not supplied:
+        return False
+    return secrets.compare_digest(expected.encode("utf-8"), supplied.encode("utf-8"))
+
+
+def bearer_token(authorization: str | None) -> str:
+    """Return the token of an ``Authorization: Bearer`` header, or an empty string."""
+    if authorization and authorization[:7].lower() == "bearer ":
+        return authorization[7:].strip()
+    return ""
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Apply browser hardening headers to the controller and API."""
 
@@ -39,9 +58,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
-            "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+            "connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; "
+            "form-action 'self'"
         )
         if (
             request.url.path == "/"
@@ -83,3 +102,39 @@ class LoginLimiter:
 
     def success(self, key: str) -> None:
         self._failures.pop(key, None)
+
+
+class SessionRegistry:
+    """Server-side list of live sessions so logout really revokes a cookie.
+
+    Session cookies are signed but stateless; without this a copied cookie would
+    stay valid until it expires. State is in memory, so a restart signs everyone out.
+    """
+
+    def __init__(self, lifetime_seconds: int) -> None:
+        self.lifetime_seconds = lifetime_seconds
+        self._live: dict[str, float] = {}
+
+    def _prune(self, now: float) -> None:
+        for sid in [sid for sid, expires in self._live.items() if expires <= now]:
+            del self._live[sid]
+
+    def create(self) -> str:
+        now = time.monotonic()
+        self._prune(now)
+        sid = secrets.token_urlsafe(24)
+        self._live[sid] = now + self.lifetime_seconds
+        return sid
+
+    def valid(self, sid: object) -> bool:
+        if not isinstance(sid, str):
+            return False
+        expires = self._live.get(sid)
+        if expires is None or expires <= time.monotonic():
+            self._live.pop(sid, None)
+            return False
+        return True
+
+    def revoke(self, sid: object) -> None:
+        if isinstance(sid, str):
+            self._live.pop(sid, None)

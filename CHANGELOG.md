@@ -2,7 +2,46 @@
 
 All notable changes will be documented here once releases begin.
 
-## Unreleased
+## 0.1.4 - 2026-09-29
+
+### Security
+
+- Sessions are now tracked server-side: logging out revokes the cookie, so a
+  copied cookie no longer stays valid for 12 hours. A restart signs everyone out.
+- `generate-local-tls` deletes the CA key after signing the server certificate.
+- Dependencies checked with `pip-audit`: no known vulnerabilities.
+
+- Constant-time credential checks no longer raise on non-ASCII input (a crafted
+  header used to cause a 500) and never accept an empty secret. The runtime
+  gateway got the same fix; it ships with the next runtime image build.
+- The controller refuses to start with empty or template-placeholder credentials.
+- Strict Content-Security-Policy: the dashboard and docs no longer use inline
+  scripts, styles or event handlers, so `unsafe-inline` is gone.
+- Status and model messages are rendered with DOM text nodes instead of
+  `innerHTML`, and the update link only accepts `https://` URLs.
+- The nginx overlay rate-limits `/api/login` and forwards the real client address.
+- `GPUHARBOR_UPDATE_REPO` is validated as `owner/name`.
+
+### Added
+
+- `scripts/init-env --show-login` prints the admin user and password;
+  `--reset-password` sets a new one. The docs and README point to both.
+- A third theme, **Harbor light**, for the dashboard and the documentation.
+- Price hint under the GPU picker from the live RunPod catalog.
+- Buttons are disabled while an action runs; model badges are translated; the
+  compact output view is the default.
+
+### Changed
+
+- `runtime-digests.txt` moved to `runtime/digests.txt`.
+
+- Dashboard and docs styles and scripts moved to `/static/`; one shared
+  `theme.css` holds the design tokens for both themes.
+- Dashboard layout cleaned up: consistent spacing and control heights, grouped
+  actions with the destructive one set apart, outlined danger buttons, no
+  truncated region select, tidier editor dialog, better small-screen layout.
+- An expired session now returns to the sign-in form.
+- Server messages are English throughout (some were German).
 
 ## 0.1.3 - 2026-09-29
 

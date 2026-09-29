@@ -15,8 +15,9 @@ def _translation_keys() -> tuple[set[str], set[str], set[str]]:
     import re
 
     html = read("index.html")
+    script = read("app.js")
     used = set(re.findall(r'data-i18n(?:-title)?="([^"]+)"', html))
-    body = html.split("const I18N=", 1)[1].split("let lang=", 1)[0]
+    body = script.split("const I18N=", 1)[1].split("let lang=", 1)[0]
     english_block, german_block = body.split("de:{", 1)
     english = set(re.findall(r'"([a-z][a-z0-9_.]+)":', english_block))
     german = set(re.findall(r'"([a-z][a-z0-9_.]+)":', german_block))
@@ -39,18 +40,18 @@ def test_dictionary_values_contain_no_html_entities():
     """Values are assigned with textContent, so entities would show up literally."""
     import re
 
-    html = read("index.html")
-    body = html.split("const I18N=", 1)[1].split("let lang=", 1)[0]
+    body = read("app.js").split("const I18N=", 1)[1].split("let lang=", 1)[0]
     bad = re.findall(r'"[a-z][a-z0-9_.]+":"[^"]*&(?:amp|nbsp|lt|gt|quot);[^"]*"', body)
     assert not bad, f"HTML entities in translation values: {bad}"
 
 
 def test_dashboard_element_references_resolve():
     html = read("index.html")
+    script = read("app.js")
     ids = set(re.findall(r'\bid="([^"]+)"', html))
-    refs = set(re.findall(r"\$\('([^']+)'\)", html))
-    refs |= set(re.findall(r"getElementById\('([^']+)'\)", html))
-    refs |= set(re.findall(r"document\.querySelector\('#([A-Za-z0-9_-]+)'\)", html))
+    refs = set(re.findall(r"\$\('([^']+)'\)", script))
+    refs |= set(re.findall(r"getElementById\('([^']+)'\)", script))
+    refs |= set(re.findall(r"onChange\('([^']+)'", script))
     assert refs <= ids, f"Dashboard references missing element ids: {sorted(refs - ids)}"
 
 
@@ -62,11 +63,12 @@ def test_dashboard_links_favicon_and_docs():
 
 def test_dashboard_has_both_languages():
     html = read("index.html")
+    script = read("app.js")
     assert 'id="lang-switch"' in html
     assert '<option value="en">' in html and '<option value="de">' in html
-    assert "const I18N=" in html
+    assert "const I18N=" in script
     for key in ("nav.docs", "btn.start", "field.trust"):
-        assert html.count(f'"{key}"') >= 2, f"{key} is not translated in both languages"
+        assert script.count(f'"{key}"') >= 2, f"{key} is not translated in both languages"
 
 
 def test_docs_page_covers_key_topics():
@@ -99,3 +101,27 @@ def test_favicon_is_svg():
     svg = read("favicon.svg")
     assert svg.lstrip().startswith("<svg")
     assert 'viewBox="0 0 64 64"' in svg
+
+
+def test_pages_need_no_inline_code_or_styles():
+    """The CSP forbids inline scripts and styles, so pages must not contain any."""
+    for name in ("index.html", "docs.html", "docs.de.html"):
+        html = read(name)
+        assert not re.search(r"<script(?![^>]*\bsrc=)", html), f"{name} has an inline script"
+        assert "<style" not in html, f"{name} has an inline style block"
+        assert not re.search(r'\sstyle="', html), f"{name} has a style attribute"
+        assert not re.search(r'\son[a-z]+="', html), f"{name} has an inline event handler"
+
+
+def test_content_security_policy_is_strict(app_client):
+    client, _ = app_client
+    policy = client.get("/health").headers["content-security-policy"]
+    assert "unsafe-inline" not in policy
+    assert "script-src 'self'" in policy
+
+
+def test_static_assets_are_served(app_client):
+    client, _ = app_client
+    for name in ("app.js", "app.css", "theme.js", "theme.css", "docs.css", "docs.js"):
+        assert client.get(f"/static/{name}").status_code == 200, name
+    assert client.get("/static/../main.py").status_code in {400, 404}

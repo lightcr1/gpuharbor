@@ -67,7 +67,7 @@ def main() -> int:
         print("  Trust tls/local-ca.crt on the devices that should accept the certificate.")
     print(f"  Dashboard (HTTP) : http://{args.bind_ip if args.bind_ip != '0.0.0.0' else 'localhost'}:8080/")
     print("  Login user       : admin")
-    print("  Login password   : see GPUHARBOR_ADMIN_PASSWORD in .env")
+    print("  Login password   : ./scripts/init-env --show-login")
     print()
     print("Billable RunPod actions stay disabled until you set")
     print("RUNPOD_ALLOW_BILLABLE_ACTIONS=true in .env and restart.")

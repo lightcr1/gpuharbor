@@ -1,0 +1,28 @@
+body{font-size:16px;line-height:1.6}
+.wrap{display:grid;grid-template-columns:260px 1fr;gap:26px;max-width:1200px;margin:auto;padding:26px}
+nav{position:sticky;top:26px;align-self:start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+nav h1{font-size:19px;margin:0 0 10px}
+nav a{display:block;color:var(--muted);text-decoration:none;padding:5px 8px;border-radius:7px;font-size:14px}
+nav a:hover{background:var(--card-2);color:var(--text)}
+main{min-width:0}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
+h2{margin-top:0;font-size:21px;border-bottom:1px solid var(--line);padding-bottom:10px}
+h3{font-size:17px;margin-bottom:6px}
+code{background:var(--input-bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font:13.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{white-space:pre-wrap;background:var(--input-bg);border-radius:9px;padding:14px;overflow:auto}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+th,td{text-align:left;border-bottom:1px solid var(--line);padding:8px 6px;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}.warn{color:var(--warn)}.danger{color:var(--danger)}.ok{color:var(--ok)}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--card-2);color:var(--accent-2)}
+.required{background:#5a2530;color:#ffc9d0}.optional{background:#1f3a2c;color:#b6f0cf}
+.lang{display:flex;gap:8px;margin-top:12px}
+.lang a{color:var(--accent);text-decoration:none;font-weight:600}
+nav a.active{background:var(--card-2);color:var(--text);font-weight:600;box-shadow:inset 3px 0 0 var(--accent)}
+a.link{color:var(--accent)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}nav{position:static}}
+.themes{display:flex;gap:6px;margin-top:8px}
+.themes button{flex:1;background:var(--card-2);border:1px solid var(--line);color:var(--muted);padding:5px 8px;font-size:12px;border-radius:7px;cursor:pointer;font-family:inherit}
+.themes button.active{color:var(--text);border-color:var(--accent)}
+html[data-theme=light] .required{background:#fde3e6;color:#8f1d2c}
+html[data-theme=light] .optional{background:#dff3e8;color:#17663f}

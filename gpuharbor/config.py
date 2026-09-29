@@ -3,10 +3,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+_REPOSITORY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$")
 _DIGEST = re.compile(r"^.+@sha256:[0-9a-fA-F]{64}$")
 
 
@@ -49,6 +50,31 @@ class Settings(BaseSettings):
     runtimes_path: Path = Path("registry/runtimes.json")
     state_path: Path = Path("/data/state.json")
     preferences_path: Path = Path("/data/preferences.json")
+
+    @field_validator("gpuharbor_update_repo")
+    @classmethod
+    def valid_update_repo(cls, value: str) -> str:
+        if not _REPOSITORY.fullmatch(value):
+            raise ValueError("GPUHARBOR_UPDATE_REPO must look like owner/name")
+        return value
+
+    @model_validator(mode="after")
+    def reject_template_credentials(self) -> "Settings":
+        """Refuse to serve with the public placeholder values from .env.example."""
+        credentials = {
+            "CONTROL_TOKEN": self.control_token,
+            "MODEL_ACCESS_TOKEN": self.model_access_token,
+            "RUNTIME_GATEWAY_TOKEN": self.runtime_gateway_token,
+            "GPUHARBOR_ADMIN_PASSWORD": self.gpuharbor_admin_password,
+            "GPUHARBOR_SESSION_SECRET": self.gpuharbor_session_secret,
+        }
+        for name, secret in credentials.items():
+            value = secret.get_secret_value()
+            if not value or value.lower().startswith("replace"):
+                raise ValueError(
+                    f"{name} is empty or still the template placeholder. Run ./scripts/init-env."
+                )
+        return self
 
     @property
     def datacenter_ids(self) -> list[str]:

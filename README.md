@@ -32,13 +32,17 @@ Not affiliated with RunPod.
 
 ## Install
 
+You need Docker with Compose and a [RunPod](https://www.runpod.io/) account (only
+for starting real pods; the dashboard works without one).
+
 ```bash
 git clone https://github.com/lightcr1/gpuharbor.git
 cd gpuharbor
 ./scripts/install
 ```
 
-Then open `http://127.0.0.1:8080`. For a LAN, HTTPS or the interactive variant,
+Then open `http://127.0.0.1:8080`, user `admin`. Show the generated password with
+`./scripts/init-env --show-login`. For a LAN, HTTPS or the interactive variant,
 see [Setup](docs/SETUP.md). The app explains every field at `/docs`.
 
 Nothing touches RunPod until you set `RUNPOD_ALLOW_BILLABLE_ACTIONS=true`.

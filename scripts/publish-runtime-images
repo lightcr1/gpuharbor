@@ -43,7 +43,7 @@ def main() -> int:
     )
     parser.add_argument("--platform", default="linux/amd64", help="expected image platform")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--digests-out", default="runtime-digests.txt", help="where to write digests")
+    parser.add_argument("--digests-out", default="runtime/digests.txt", help="where to write digests")
     args = parser.parse_args()
 
     selected = args.only or sorted(RUNNERS)

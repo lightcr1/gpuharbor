@@ -1,6 +1,6 @@
 # Status
 
-Last checked: 2026-09-28.
+Last checked: 2026-09-29.
 
 ## Working
 
@@ -11,7 +11,7 @@ Last checked: 2026-09-28.
 - OpenAI-compatible endpoint for any client.
 - Optional Open WebUI, OpenHands Agent Canvas and local HTTPS.
 - Published runtime images, so a fresh install does not build anything.
-- 90 tests and a CI workflow on GitHub.
+- 98 tests and a CI workflow on GitHub.
 - Dashboard and docs available in English and German (`/docs` and `/docs/de`),
   the sidebar highlights the current section.
 - Settings dialog with an opt-in update-notification toggle (off by default) and

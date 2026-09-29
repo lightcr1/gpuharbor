@@ -4,75 +4,25 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>GPUHarbor</title>
-<script>try{document.documentElement.dataset.theme=localStorage.getItem('gh-theme')||'blue'}catch(e){}</script>
-<style>
-:root{color-scheme:dark;--bg1:#071022;--bg2:#0f1c3a;--card:#101a33;--card-2:#17244a;--input-bg:#0c1730;--line:#27365e;--text:#eaf1ff;--muted:#9fb0d0;--accent:#5b8cff;--accent-strong:#3f6fe0;--accent-2:#38bdf8;--danger:#ff6b79;--ok:#4ecb8f;--warn:#ffcf6b}
-html[data-theme=runpod]{--bg1:#06040d;--bg2:#150c2e;--card:#161029;--card-2:#221838;--input-bg:#100c22;--line:#2a1f45;--text:#f3f0fa;--muted:#ccc6df;--accent:#9b7dff;--accent-strong:#5d29f0;--accent-2:#bbb6fd;--danger:#d45453;--ok:#76b971;--warn:#f4bd72}
-*{box-sizing:border-box}
-body{margin:0;background:linear-gradient(145deg,var(--bg1),var(--bg2));color:var(--text);font:15px/1.5 system-ui,sans-serif}
-.shell{max-width:1220px;margin:auto;padding:26px}
-header{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap}
-h1{margin:0;font-size:29px}
-h2{font-size:17px;margin-top:0}
-.brand{color:var(--accent)}
-.brand2{color:var(--accent-2)}
-.nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.grid{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}
-.card{background:rgba(21,29,49,.94);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 14px 50px #0004}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
-.row.fields{align-items:flex-start}
-.row.fields .field{align-self:flex-start}
-.field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:150px}
-label{color:var(--muted);font-size:13px}
-.hint{color:var(--muted);font-size:12px;line-height:1.35}
-input,select,textarea,button{font:inherit;color:var(--text);border:1px solid var(--line);border-radius:8px;background:var(--input-bg);padding:9px}
-textarea{resize:vertical}
-button{cursor:pointer;background:var(--accent-strong);border-color:var(--accent);font-weight:650}
-button.secondary{background:var(--card-2)}
-button.danger{background:#8f2436;border-color:var(--danger)}
-button:disabled{opacity:.5;cursor:not-allowed}
-a.link{color:var(--accent);text-decoration:none;font-weight:600}
-pre{white-space:pre-wrap;word-break:break-word;max-height:430px;overflow:auto;background:var(--input-bg);border-radius:8px;padding:13px;font-size:13px}
-.pill{display:inline-block;padding:3px 8px;border-radius:99px;background:var(--card-2);color:var(--text);margin:2px;font-size:12px}
-.warn{color:var(--warn)}.ok{color:var(--ok)}.danger-text{color:var(--danger)}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;background:var(--line)}
-.dot.ok{background:var(--ok)}.dot.wait{background:var(--warn)}.dot.bad{background:var(--danger)}
-dialog{width:min(860px,96vw);background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:14px}
-dialog::backdrop{background:#000a}
-#settings{width:min(760px,96vw)}
-.settings{display:grid;grid-template-columns:190px 1fr;gap:20px}
-.settings-nav{display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--line);padding-right:16px}
-.settings-nav h2{font-size:16px;margin:0 0 6px}
-.settings-tab{background:transparent;border:1px solid transparent;text-align:left;padding:8px 10px;border-radius:8px;color:var(--muted);font-weight:600}
-.settings-tab:hover{background:var(--card-2);color:var(--text)}
-.settings-tab.active{background:var(--card-2);color:var(--text);border-color:var(--line)}
-.settings-main{min-width:0}
-@media(max-width:640px){.settings{grid-template-columns:1fr}.settings-nav{border-right:none;border-bottom:1px solid var(--line);padding:0 0 12px}}
-.gpu-list{max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:10px;background:var(--input-bg)}
-.gpu-list label{display:flex;gap:8px;align-items:center;color:var(--text);font-size:13px;padding:3px 0}
-.mode-switch button{padding:5px 11px;font-size:13px;background:#18243b}
-.mode-switch button.active{background:var(--accent-strong)}
-.login{max-width:390px;margin:12vh auto}
-.hidden{display:none!important}
-.small{font-size:12.5px}
-@media(max-width:860px){.grid{grid-template-columns:1fr}.shell{padding:14px}}
-</style>
+<script src="/static/theme.js"></script>
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
 
 <div id="login" class="login card">
-<h1><span class="brand">GPU</span><span class="brand2">Harbor</span></h1><p class="hint" data-i18n="login.subtitle">Sign in to the local controller.</p>
-<form id="login-form">
-<div class="field"><label for="username" data-i18n="login.username">Username</label><input id="username" autocomplete="username" required></div><br>
-<div class="field"><label for="password" data-i18n="login.password">Password</label><input id="password" type="password" autocomplete="current-password" required></div><br>
-<button data-i18n="login.button">Sign in</button></form><p id="login-error" class="warn"></p>
+<h1 class="logo"><img class="logo-icon" src="/favicon.svg" alt=""><span><span class="brand">GPU</span><span class="brand2">Harbor</span></span></h1><p class="hint" data-i18n="login.subtitle">Sign in to the local controller.</p>
+<form id="login-form" class="stack">
+<div class="field"><label for="username" data-i18n="login.username">Username</label><input id="username" autocomplete="username" required></div>
+<div class="field"><label for="password" data-i18n="login.password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+<button data-i18n="login.button">Sign in</button></form><p id="login-error" class="warn" role="alert"></p>
 </div>
 
 <div id="app" class="shell hidden">
 <header>
-  <div><h1><span class="brand">GPU</span><span class="brand2">Harbor</span></h1><div class="hint" data-i18n="app.subtitle">RunPod model control</div></div>
+  <div><h1 class="logo"><img class="logo-icon" src="/favicon.svg" alt=""><span><span class="brand">GPU</span><span class="brand2">Harbor</span></span></h1><div class="hint" data-i18n="app.subtitle">RunPod model control</div></div>
   <div class="nav">
-    <select id="lang-switch" onchange="setLang(this.value)" aria-label="Language">
+    <select id="lang-switch" aria-label="Language">
       <option value="en">English</option>
       <option value="de">Deutsch</option>
     </select>
@@ -80,8 +30,8 @@ dialog::backdrop{background:#000a}
     <a id="update-pill" class="pill ok hidden" href="#" target="_blank" rel="noopener"></a>
     <span id="billable-pill" class="pill"></span>
     <span id="version-label" class="hint"></span>
-    <button class="secondary" onclick="openSettings()" data-i18n="nav.settings">Settings</button>
-    <button class="secondary" onclick="logout()" data-i18n="nav.logout">Sign out</button>
+    <button class="secondary" data-click="openSettings" data-i18n="nav.settings">Settings</button>
+    <button class="secondary" data-click="logout" data-i18n="nav.logout">Sign out</button>
   </div>
 </header>
 
@@ -89,36 +39,37 @@ dialog::backdrop{background:#000a}
 
 <section class="card"><h2 data-i18n="start.title">Start a model</h2>
 <div class="row">
-  <div class="field" style="flex:2"><label for="model" data-i18n="start.model">Model profile</label><select id="model" onchange="selectModel()"></select></div>
-  <div class="field"><label for="region" data-i18n="start.region">Region</label><select id="region" onchange="regionChanged()"></select></div>
+  <div class="field field-wide"><label for="model" data-i18n="start.model">Model profile</label><select id="model"></select></div>
+  <div class="field"><label for="region" data-i18n="start.region">Region</label><select id="region"></select></div>
   <div class="field"><label for="datacenter" data-i18n="start.datacenter">Datacenter (advanced)</label><select id="datacenter"></select></div>
 </div>
-<p id="model-description" class="hint"></p><div id="badges"></div><br>
+<p id="model-description" class="hint"></p><div id="badges" class="badges"></div>
 <div class="row fields">
   <div class="field"><label for="context" data-i18n="field.context">Context (tokens)</label><input id="context" type="number" min="1024" max="262144" step="1024"><span class="hint" data-i18n="hint.context">Maximum length of one request. More uses more VRAM.</span></div>
   <div class="field"><label for="sequences" data-i18n="field.sequences">Parallel sequences</label><input id="sequences" type="number" min="1" max="32"><span class="hint" data-i18n="hint.sequences">Requests handled at the same time.</span></div>
   <div class="field"><label for="memory" data-i18n="field.memory">GPU utilisation (0–1)</label><input id="memory" type="number" min="0.5" max="0.99" step="0.01"><span class="hint" data-i18n="hint.memory">Share of VRAM the runtime may use.</span></div>
   <div class="field"><label for="volume" data-i18n="field.volume">Volume (GB)</label><input id="volume" type="number" min="10" max="1000"><span class="hint" data-i18n="hint.volume">Space for the model cache.</span></div>
-</div><br>
+</div>
 <div class="row">
-  <div class="field"><label for="gpu" data-i18n="field.gpu">GPU</label><select id="gpu"></select><span class="hint" data-i18n="hint.gpu">Only GPUs allowed by this profile.</span></div>
-</div><br>
-<div class="row">
-  <button onclick="plan()" data-i18n="btn.plan">Check launch plan</button>
-  <button class="secondary" onclick="preflight()" data-i18n="btn.preflight">Check availability</button>
-  <button onclick="startPod()" data-i18n="btn.start">Start pod</button>
-  <button class="secondary" onclick="stopPod()" data-i18n="btn.stop">Stop</button>
-  <button class="danger" onclick="deletePod()" data-i18n="btn.delete">Delete pod and volume</button>
+  <div class="field"><label for="gpu" data-i18n="field.gpu">GPU</label><select id="gpu"></select><span class="hint" data-i18n="hint.gpu">Only GPUs allowed by this profile.</span><span id="gpu-cost" class="hint cost"></span></div>
+</div>
+<div class="actions">
+  <button class="secondary" data-click="plan" data-i18n="btn.plan">Check launch plan</button>
+  <button class="secondary" data-click="preflight" data-i18n="btn.preflight">Check availability</button>
+  <button data-click="startPod" data-i18n="btn.start">Start pod</button>
+  <button class="secondary" data-click="stopPod" data-i18n="btn.stop">Stop</button>
+  <span class="spacer"></span>
+  <button class="danger" data-click="deletePod" data-i18n="btn.delete">Delete pod and volume</button>
 </div>
 </section>
 
 <section class="card">
-<div class="row" style="justify-content:space-between">
-  <h2 style="margin:0" data-i18n="output.title">Output</h2>
+<div class="card-head">
+  <h2 data-i18n="output.title">Output</h2>
   <div class="mode-switch">
-    <button id="mode-simple" onclick="setMode('simple')" data-i18n="output.simple">Simple</button>
-    <button id="mode-pretty" class="active" onclick="setMode('pretty')" data-i18n="output.pretty">Pretty</button>
-    <button id="mode-raw" onclick="setMode('raw')" data-i18n="output.raw">Raw</button>
+    <button id="mode-simple" class="active" data-mode="simple" data-i18n="output.simple">Simple</button>
+    <button id="mode-pretty" data-mode="pretty" data-i18n="output.pretty">Pretty</button>
+    <button id="mode-raw" data-mode="raw" data-i18n="output.raw">Raw</button>
   </div>
 </div>
 <pre id="output"></pre>
@@ -128,16 +79,19 @@ dialog::backdrop{background:#000a}
 
 <section class="card"><h2 data-i18n="status.title">Status</h2>
 <div id="status"><span class="dot"></span><span data-i18n="status.loading">Loading …</span></div>
-<div id="ready" class="small" style="margin-top:8px"><span class="dot"></span><span data-i18n="ready.unknown">Model status unknown</span></div>
-<br><button class="secondary" onclick="refreshStatus()" data-i18n="status.refresh">Refresh</button></section>
+<div id="ready" class="small status-line"><span class="dot"></span><span data-i18n="ready.unknown">Model status unknown</span></div>
+<button class="secondary" data-click="refreshStatus" data-i18n="status.refresh">Refresh</button></section>
 
 <section class="card"><h2 data-i18n="catalog.title">Model catalog</h2>
 <p class="hint" data-i18n="catalog.hint">Shipped profiles survive upgrades; your profiles and overrides are stored separately.</p>
-<button onclick="newModel()" data-i18n="catalog.new">New model</button>
-<button class="secondary" onclick="editModel()" data-i18n="catalog.edit">Edit selected</button><br><br>
-<button class="secondary" onclick="exportModels()" data-i18n="catalog.export">Export</button>
-<button class="secondary" onclick="$('import-file').click()" data-i18n="catalog.import">Import</button>
-<input id="import-file" class="hidden" type="file" accept="application/json" onchange="importModels(this.files[0])"></section>
+<div class="actions">
+<button data-click="newModel" data-i18n="catalog.new">New model</button>
+<button class="secondary" data-click="editModel" data-i18n="catalog.edit">Edit selected</button>
+</div>
+<div class="actions">
+<button class="secondary" data-click="exportModels" data-i18n="catalog.export">Export</button>
+<button class="secondary" data-click="pickImport" data-i18n="catalog.import">Import</button>
+<input id="import-file" class="hidden" type="file" accept="application/json"></div></section>
 
 <section class="card"><h2 data-i18n="runtimes.title">Runtime images</h2><div id="runtime-list" class="small"><span class="hint" data-i18n="status.loading">Loading …</span></div></section>
 
@@ -147,543 +101,79 @@ dialog::backdrop{background:#000a}
 
 </aside></div></div>
 
-<dialog id="editor"><form id="model-form">
+<dialog id="editor"><form id="model-form" class="stack">
 <h2 id="editor-title" data-i18n="editor.new_title">Model profile</h2>
-<div class="field"><label for="e-preset" data-i18n="editor.preset">Template</label><select id="e-preset" onchange="applyPreset()"></select><span class="hint" data-i18n="hint.preset">Fills in sensible starting values. Everything stays editable.</span></div><br>
+<div class="field"><label for="e-preset" data-i18n="editor.preset">Template</label><select id="e-preset"></select><span class="hint" data-i18n="hint.preset">Fills in sensible starting values. Everything stays editable.</span></div>
 <div class="row">
   <div class="field"><label for="e-id" data-i18n="field.id">ID</label><input id="e-id" pattern="[a-z0-9][a-z0-9-]{1,62}[a-z0-9]" required><span class="hint" data-i18n="hint.id">Lowercase letters, digits and hyphen. Cannot be changed later.</span></div>
   <div class="field"><label for="e-name" data-i18n="field.name">Name</label><input id="e-name" required><span class="hint" data-i18n="hint.name">Display name.</span></div>
-</div><br>
-<div class="field"><label for="e-description" data-i18n="field.description">Description</label><textarea id="e-description" rows="2"></textarea></div><br>
+</div>
+<div class="field"><label for="e-description" data-i18n="field.description">Description</label><textarea id="e-description" rows="2"></textarea></div>
 <div class="row">
-  <div class="field"><label for="e-model-id" data-i18n="field.model_id">Hugging Face repository</label><input id="e-model-id" placeholder="owner/repository" required><button type="button" class="secondary" onclick="lookupModel()" data-i18n="lookup.button">Look up on Hugging Face</button><span class="hint" data-i18n="hint.model_id">For example Qwen/Qwen3.8-27B-FP8.</span><span id="lookup-result" class="hint"></span></div>
-  <div class="field"><label for="e-runtime" data-i18n="field.runtime">Runtime</label><select id="e-runtime" onchange="runtimeChanged()"></select><span class="hint" data-i18n="hint.runtime">vLLM for FP8/BF16, llama.cpp for GGUF.</span></div>
-</div><br>
-<div class="field"><label for="e-gguf" data-i18n="field.gguf">GGUF file</label><input id="e-gguf"><span class="hint" data-i18n="hint.gguf">GGUF runtimes only: the exact filename from the repository.</span></div><br>
+  <div class="field"><label for="e-model-id" data-i18n="field.model_id">Hugging Face repository</label><input id="e-model-id" placeholder="owner/repository" required><button type="button" class="secondary" data-click="lookupModel" data-i18n="lookup.button">Look up on Hugging Face</button><span class="hint" data-i18n="hint.model_id">For example Qwen/Qwen3.8-27B-FP8.</span><span id="lookup-result" class="hint"></span></div>
+  <div class="field"><label for="e-runtime" data-i18n="field.runtime">Runtime</label><select id="e-runtime"></select><span class="hint" data-i18n="hint.runtime">vLLM for FP8/BF16, llama.cpp for GGUF.</span></div>
+</div>
+<div class="field"><label for="e-gguf" data-i18n="field.gguf">GGUF file</label><input id="e-gguf"><span class="hint" data-i18n="hint.gguf">GGUF runtimes only: the exact filename from the repository.</span></div>
 <div class="row">
   <div class="field"><label for="e-aliases" data-i18n="field.aliases">Served names (comma)</label><input id="e-aliases" required><span class="hint" data-i18n="hint.aliases">For example default, chat, code.</span></div>
   <div class="field"><label for="e-capabilities" data-i18n="field.capabilities">Capabilities (comma)</label><input id="e-capabilities"><span class="hint" data-i18n="hint.capabilities">chat, code, tools, vision — labels only.</span></div>
-</div><br>
+</div>
 <div class="row">
   <div class="field"><label for="e-context" data-i18n="field.context">Context</label><input id="e-context" type="number" min="1024" max="262144" required></div>
   <div class="field"><label for="e-sequences" data-i18n="field.sequences">Sequences</label><input id="e-sequences" type="number" min="1" max="32" required></div>
   <div class="field"><label for="e-memory" data-i18n="field.memory">GPU utilisation</label><input id="e-memory" type="number" min="0.5" max="0.99" step="0.01" required></div>
   <div class="field"><label for="e-volume" data-i18n="field.volume_gb">Volume GB</label><input id="e-volume" type="number" min="10" max="1000" required></div>
-</div><br>
+</div>
 <div class="field"><label data-i18n="field.gpus">Allowed GPUs</label><div id="e-gpu-list" class="gpu-list"><span class="hint" data-i18n="gpu.loading">Loading catalog …</span></div>
-<span class="hint" data-i18n="hint.gpus">Only these GPUs may run the profile. Availability comes from the RunPod catalog.</span></div><br>
-<div class="field"><label for="e-gpus" data-i18n="field.gpus_extra">Other GPUs (one per line)</label><textarea id="e-gpus" rows="2"></textarea><span class="hint" data-i18n="hint.gpus_extra">For GPUs missing from the catalog, use the exact RunPod name.</span></div><br>
+<span class="hint" data-i18n="hint.gpus">Only these GPUs may run the profile. Availability comes from the RunPod catalog.</span></div>
+<div class="field"><label for="e-gpus" data-i18n="field.gpus_extra">Other GPUs (one per line)</label><textarea id="e-gpus" rows="2"></textarea><span class="hint" data-i18n="hint.gpus_extra">For GPUs missing from the catalog, use the exact RunPod name.</span></div>
 <div class="row">
   <div class="field"><label for="e-license" data-i18n="field.license">License</label><input id="e-license" value="unknown"><span class="hint" data-i18n="hint.license">Display only, for example Apache-2.0.</span></div>
   <div class="field"><label for="e-status" data-i18n="field.status">Status</label><select id="e-status"><option>stable</option><option>experimental</option><option>disabled</option></select><span class="hint" data-i18n="hint.status">disabled means it cannot start.</span></div>
 </div>
-<div class="row" style="margin-top:8px">
+<div class="row checks">
   <label class="small"><input id="e-gated" type="checkbox"> <span data-i18n="field.gated">Restricted access (gated)</span></label>
   <label class="small"><input id="e-verified" type="checkbox"> <span data-i18n="field.verified">Verified on a real GPU</span></label>
-</div><br>
+</div>
 <div id="vllm-options">
-<h3 class="small" style="margin:0 0 6px" data-i18n="vllm.title">vLLM options</h3>
+<h3 class="subhead" data-i18n="vllm.title">vLLM options</h3>
 <div class="row">
   <label class="small" data-i18n-title="tip.trust"><input id="e-trust-remote-code" type="checkbox"> <span data-i18n="field.trust">Trust Hugging Face remote code</span></label>
   <label class="small" data-i18n-title="tip.reasoning"><input id="e-reasoning" type="checkbox"> <span data-i18n="field.reasoning">Qwen3 reasoning parser</span></label>
   <label class="small" data-i18n-title="tip.tools"><input id="e-tools" type="checkbox"> <span data-i18n="field.tools">Qwen3 tool parser and auto tool choice</span></label>
 </div>
 <p class="hint" data-i18n="hint.vllm">"Trust remote code" runs Python shipped inside the model repository. Only enable it for repositories you trust.</p>
-</div><br>
-<div class="row">
-  <button data-i18n="btn.save">Save</button>
-  <button id="remove-model" type="button" class="danger" onclick="removeModel()" data-i18n="btn.delete_profile">Delete profile</button>
-  <button type="button" class="secondary" onclick="editor.close()" data-i18n="btn.cancel">Cancel</button>
 </div>
-<p id="editor-error" class="warn"></p></form></dialog>
+<div class="actions">
+  <button data-i18n="btn.save">Save</button>
+  <span class="spacer"></span>
+  <button id="remove-model" type="button" class="danger" data-click="removeModel" data-i18n="btn.delete_profile">Delete profile</button>
+  <button type="button" class="secondary" data-click="closeEditor" data-i18n="btn.cancel">Cancel</button>
+</div>
+<p id="editor-error" class="warn" role="alert"></p></form></dialog>
 
 <dialog id="settings"><div class="settings">
   <nav class="settings-nav">
     <h2 data-i18n="settings.title">Settings</h2>
-    <button type="button" class="settings-tab active" onclick="showSettingsTab('updates',this)" data-i18n="settings.updates">Updates</button>
-    <button type="button" class="settings-tab" onclick="showSettingsTab('design',this)" data-i18n="settings.appearance">Appearance</button>
+    <button type="button" class="settings-tab active" data-tab="updates" data-i18n="settings.updates">Updates</button>
+    <button type="button" class="settings-tab" data-tab="design" data-i18n="settings.appearance">Appearance</button>
   </nav>
   <div class="settings-main">
     <section id="settings-updates">
       <h3 data-i18n="settings.updates">Updates</h3>
-      <label class="small"><input id="set-update-notifications" type="checkbox" onchange="saveUpdateSetting()"> <span data-i18n="settings.notifications">Show update notifications</span></label>
+      <label class="small"><input id="set-update-notifications" type="checkbox"> <span data-i18n="settings.notifications">Show update notifications</span></label>
       <p class="hint" data-i18n="settings.notifications_hint">When on, GPUHarbor asks the public GitHub releases API once a day and shows a link when a newer version exists. Only that request leaves the machine; no token is sent.</p>
     </section>
     <section id="settings-design" class="hidden">
       <h3 data-i18n="settings.appearance">Appearance</h3>
-      <label class="small"><input type="radio" name="theme" value="blue" onchange="setTheme('blue')"> <span data-i18n="settings.theme_blue">Harbor blue</span></label><br>
-      <label class="small"><input type="radio" name="theme" value="runpod" onchange="setTheme('runpod')"> <span data-i18n="settings.theme_runpod">RunPod violet</span></label>
+      <label class="small"><input type="radio" name="theme" value="blue"> <span data-i18n="settings.theme_blue">Harbor blue</span></label>
+      <label class="small"><input type="radio" name="theme" value="light"> <span data-i18n="settings.theme_light">Harbor light</span></label>
+      <label class="small"><input type="radio" name="theme" value="runpod"> <span data-i18n="settings.theme_runpod">RunPod violet</span></label>
       <p class="hint" data-i18n="settings.theme_hint">Applies to the dashboard and the documentation.</p>
     </section>
     <p id="settings-saved" class="hint ok"></p>
-    <button type="button" class="secondary" onclick="settingsDialog.close()" data-i18n="settings.close">Close</button>
+    <button type="button" class="secondary" data-click="closeSettings" data-i18n="settings.close">Close</button>
   </div>
 </div></dialog>
 
-<script>
-const I18N={
-en:{
- "app.subtitle":"RunPod model control","nav.docs":"Documentation","nav.logout":"Sign out","nav.settings":"Settings",
- "pill.billable_on":"Billable actions ENABLED","pill.billable_off":"Cost lock active",
- "pill.update":"Update available: ","pill.update_title":"Open the release page",
- "settings.title":"Settings","settings.updates":"Updates","settings.notifications":"Show update notifications","settings.notifications_hint":"When on, GPUHarbor asks the public GitHub releases API once a day and shows a link when a newer version exists. Only that request leaves the machine; no token is sent.","settings.saved":"Saved.","settings.close":"Close","settings.appearance":"Appearance","settings.theme_blue":"Harbor blue","settings.theme_runpod":"RunPod violet","settings.theme_hint":"Applies to the dashboard and the documentation.",
- "login.subtitle":"Sign in to the local controller.","login.username":"Username","login.password":"Password","login.button":"Sign in","login.failed":"Sign-in failed.",
- "start.title":"Start a model","start.model":"Model profile","start.region":"Region","start.datacenter":"Datacenter (advanced)",
- "start.auto_region":"Automatic (configured locations)","start.auto_dc":"Automatic","start.auto_gpu":"Automatic by priority",
- "field.context":"Context (tokens)","field.sequences":"Parallel sequences","field.memory":"GPU utilisation (0–1)","field.volume":"Volume (GB)","field.gpu":"GPU",
- "hint.context":"Maximum length of one request. More uses more VRAM.","hint.sequences":"Requests handled at the same time.",
- "hint.memory":"Share of VRAM the runtime may use.","hint.volume":"Space for the model cache.","hint.gpu":"Only GPUs allowed by this profile.",
- "btn.plan":"Check launch plan","btn.preflight":"Check availability","btn.start":"Start pod","btn.stop":"Stop","btn.delete":"Delete pod and volume",
- "btn.save":"Save","btn.cancel":"Cancel","btn.delete_profile":"Delete profile","btn.reset":"Reset to default",
- "lookup.button":"Look up on Hugging Face","lookup.busy":"Looking up …","lookup.found":"Found: ","lookup.failed":"Lookup failed: ","lookup.gguf":"GGUF files: ",
- "output.title":"Output","output.simple":"Simple","output.pretty":"Pretty","output.raw":"Raw","output.ready":"Ready. Billable actions are locked by default.","output.wait":"Please wait …",
- "status.title":"Status","status.loading":"Loading …","status.refresh":"Refresh","status.none":"No managed pod","status.error":"Error: ",
- "ready.unknown":"Model status unknown","ready.none":"No pod — model status n/a","ready.loaded":"Model loaded","ready.loading":"Model loading …","ready.label":"Model status",
- "catalog.title":"Model catalog","catalog.hint":"Shipped profiles survive upgrades; your profiles and overrides are stored separately.",
- "catalog.new":"New model","catalog.edit":"Edit selected","catalog.export":"Export","catalog.import":"Import",
- "integrations.title":"Optional integrations","integrations.hint":"Enabled through separate Compose files. Details are in the documentation.",
- "runtimes.title":"Runtime images","runtimes.ready":"ready","runtimes.missing":"no digest configured",
- "editor.new_title":"New model profile","editor.edit_title":"Edit model","editor.preset":"Template",
- "gpu.loading":"Loading catalog …","gpu.none":"No GPU catalog available — use the text field below.",
- "field.id":"ID","field.name":"Name","field.description":"Description","field.model_id":"Hugging Face repository","field.runtime":"Runtime",
- "field.gguf":"GGUF file","field.aliases":"Served names (comma)","field.capabilities":"Capabilities (comma)","field.gpus":"Allowed GPUs","field.volume_gb":"Volume GB",
- "field.gpus_extra":"Other GPUs (one per line)","field.license":"License","field.status":"Status","field.gated":"Restricted access (gated)",
- "field.verified":"Verified on a real GPU","field.trust":"Trust Hugging Face remote code","field.reasoning":"Qwen3 reasoning parser","field.tools":"Qwen3 tool parser and auto tool choice",
- "hint.id":"Lowercase letters, digits and hyphen. Cannot be changed later.","hint.name":"Display name.",
- "hint.model_id":"For example Qwen/Qwen3.8-27B-FP8.","hint.runtime":"vLLM for FP8/BF16, llama.cpp for GGUF.",
- "hint.gguf":"GGUF runtimes only: the exact filename from the repository.","hint.aliases":"For example default, chat, code.",
- "hint.capabilities":"chat, code, tools, vision — labels only.","hint.gpus":"Only these GPUs may run the profile. Availability comes from the RunPod catalog.",
- "hint.gpus_extra":"For GPUs missing from the catalog, use the exact RunPod name.","hint.license":"Display only, for example Apache-2.0.",
- "hint.status":"disabled means it cannot start.","hint.preset":"Fills in sensible starting values. Everything stays editable.",
- "hint.vllm":"\"Trust remote code\" runs Python shipped inside the model repository. Only enable it for repositories you trust.",
- "vllm.title":"vLLM options",
- "tip.trust":"Runs model-supplied Python on the pod","tip.reasoning":"Splits thinking into the reasoning field","tip.tools":"Lets the model emit tool calls",
- "confirm.start":"Start the pod? Depending on your settings this begins GPU billing immediately.",
- "confirm.delete":"Delete the pod and its volume? The model cache is lost, but all costs stop.",
- "confirm.remove":"Delete profile {id}?","confirm.reset":"Discard your changes to {id} and restore the shipped default?",
- "confirm.import":"Merge profiles and overrides from this file?",
- "msg.imported":"Model catalog imported.","msg.export_error":"Export failed: ","msg.import_error":"Import failed: ","msg.error":"Error: ",
- "sum.plan":"Launch plan","sum.billable":"Billable actions: ","sum.allowed":"allowed","sum.locked":"locked","sum.candidates":"Candidates: ",
- "sum.first":"First choice: ","sum.config_errors":"Configuration errors: ","sum.none":"none",
- "sum.preflight":"Availability (free, nothing started)","sum.pods":"Pods in the account: ",
- "sum.ready":"Model ready: ","sum.yes":"yes","sum.no":"no","sum.pod":"Pod: ","sum.status":"Status: ","sum.model":"Model: ",
- "sum.no_pod":"No managed pod."
-},
-de:{
- "app.subtitle":"RunPod-Modellsteuerung","nav.docs":"Dokumentation","nav.logout":"Abmelden","nav.settings":"Einstellungen",
- "pill.billable_on":"Kostenpflichtig AKTIV","pill.billable_off":"Kostensperre aktiv",
- "pill.update":"Update verfügbar: ","pill.update_title":"Release-Seite öffnen",
- "settings.title":"Einstellungen","settings.updates":"Updates","settings.notifications":"Update-Hinweise anzeigen","settings.notifications_hint":"Wenn aktiv, fragt GPUHarbor einmal täglich die öffentliche GitHub-Releases-API und zeigt einen Link, wenn eine neuere Version existiert. Nur diese Anfrage verlässt den Rechner; kein Token wird gesendet.","settings.saved":"Gespeichert.","settings.close":"Schließen","settings.appearance":"Design","settings.theme_blue":"Harbor-Blau","settings.theme_runpod":"RunPod-Lila","settings.theme_hint":"Gilt für Dashboard und Dokumentation.",
- "login.subtitle":"Am lokalen Controller anmelden.","login.username":"Benutzername","login.password":"Passwort","login.button":"Anmelden","login.failed":"Anmeldung fehlgeschlagen.",
- "start.title":"Modell starten","start.model":"Modellprofil","start.region":"Region","start.datacenter":"Rechenzentrum (erweitert)",
- "start.auto_region":"Automatisch (konfigurierte Standorte)","start.auto_dc":"Automatisch","start.auto_gpu":"Automatisch nach Priorität",
- "field.context":"Kontext (Token)","field.sequences":"Parallele Sequenzen","field.memory":"GPU-Nutzung (0–1)","field.volume":"Volume (GB)","field.gpu":"GPU",
- "hint.context":"Maximale Länge einer Anfrage. Mehr braucht mehr VRAM.","hint.sequences":"Gleichzeitig bearbeitete Anfragen.",
- "hint.memory":"Anteil des VRAM, den die Runtime nutzen darf.","hint.volume":"Speicher für den Modell-Cache.","hint.gpu":"Nur GPUs, die dieses Profil erlaubt.",
- "btn.plan":"Startplan prüfen","btn.preflight":"Verfügbarkeit prüfen","btn.start":"Pod starten","btn.stop":"Stoppen","btn.delete":"Pod & Volume löschen",
- "btn.save":"Speichern","btn.cancel":"Abbrechen","btn.delete_profile":"Profil löschen","btn.reset":"Auf Standard zurücksetzen",
- "lookup.button":"Bei Hugging Face nachsehen","lookup.busy":"Suche läuft …","lookup.found":"Gefunden: ","lookup.failed":"Suche fehlgeschlagen: ","lookup.gguf":"GGUF-Dateien: ",
- "output.title":"Ausgabe","output.simple":"Einfach","output.pretty":"Schön","output.raw":"Roh","output.ready":"Bereit. Kostenpflichtige Aktionen sind standardmäßig gesperrt.","output.wait":"Bitte warten …",
- "status.title":"Status","status.loading":"Wird geladen …","status.refresh":"Aktualisieren","status.none":"Kein Pod verwaltet","status.error":"Fehler: ",
- "ready.unknown":"Modellstatus unbekannt","ready.none":"Kein Pod — Modellstatus n/a","ready.loaded":"Modell geladen","ready.loading":"Modell lädt …","ready.label":"Modellstatus",
- "catalog.title":"Modellkatalog","catalog.hint":"Mitgelieferte Profile überleben Updates; eigene Profile und Anpassungen liegen getrennt.",
- "catalog.new":"Neues Modell","catalog.edit":"Gewähltes bearbeiten","catalog.export":"Exportieren","catalog.import":"Importieren",
- "integrations.title":"Optionale Integrationen","integrations.hint":"Über getrennte Compose-Dateien aktivierbar. Details stehen in der Dokumentation.",
- "runtimes.title":"Runtime-Images","runtimes.ready":"bereit","runtimes.missing":"kein Digest konfiguriert",
- "editor.new_title":"Neues Modellprofil","editor.edit_title":"Modell bearbeiten","editor.preset":"Vorlage",
- "gpu.loading":"Katalog wird geladen …","gpu.none":"Kein GPU-Katalog verfügbar — nutze das Textfeld unten.",
- "field.id":"ID","field.name":"Name","field.description":"Beschreibung","field.model_id":"Hugging-Face-Repository","field.runtime":"Runtime",
- "field.gguf":"GGUF-Datei","field.aliases":"API-Namen (Komma)","field.capabilities":"Fähigkeiten (Komma)","field.gpus":"Erlaubte GPUs","field.volume_gb":"Volume GB",
- "field.gpus_extra":"Weitere GPUs (eine pro Zeile)","field.license":"Lizenz","field.status":"Status","field.gated":"Zugriff eingeschränkt (gated)",
- "field.verified":"Auf echter GPU geprüft","field.trust":"Hugging-Face Remote-Code vertrauen","field.reasoning":"Qwen3 Reasoning-Parser","field.tools":"Qwen3 Tool-Parser + Auto-Tool-Wahl",
- "hint.id":"Kleinbuchstaben, Zahlen und Bindestrich. Später nicht änderbar.","hint.name":"Anzeigename.",
- "hint.model_id":"Zum Beispiel Qwen/Qwen3.8-27B-FP8.","hint.runtime":"vLLM für FP8/BF16, llama.cpp für GGUF.",
- "hint.gguf":"Nur bei GGUF-Runtimes: exakter Dateiname aus dem Repository.","hint.aliases":"Zum Beispiel default, chat, code.",
- "hint.capabilities":"chat, code, tools, vision — nur Beschriftung.","hint.gpus":"Nur diese GPUs dürfen das Profil starten. Verfügbarkeit kommt aus dem RunPod-Katalog.",
- "hint.gpus_extra":"Für GPUs, die nicht im Katalog stehen: exakter RunPod-Name.","hint.license":"Nur Anzeige, zum Beispiel Apache-2.0.",
- "hint.status":"disabled bedeutet: nicht startbar.","hint.preset":"Setzt sinnvolle Startwerte. Danach frei anpassbar.",
- "hint.vllm":"„Remote-Code vertrauen“ führt Python aus dem Modell-Repository aus. Nur bei geprüften Repos aktivieren.",
- "vllm.title":"vLLM-Optionen",
- "tip.trust":"Führt modell-eigenen Python-Code auf dem Pod aus","tip.reasoning":"Trennt die Denk-Ausgabe ins Feld reasoning","tip.tools":"Erlaubt Tool-Aufrufe",
- "confirm.start":"Pod starten? Je nach Einstellung beginnt sofort die GPU-Abrechnung.",
- "confirm.delete":"Pod und Volume löschen? Der Modell-Cache geht verloren, alle Kosten enden.",
- "confirm.remove":"Profil {id} löschen?","confirm.reset":"Anpassungen an {id} verwerfen und Standard wiederherstellen?",
- "confirm.import":"Profile und Overrides aus dieser Datei zusammenführen?",
- "msg.imported":"Modellkatalog importiert.","msg.export_error":"Exportfehler: ","msg.import_error":"Importfehler: ","msg.error":"Fehler: ",
- "sum.plan":"Startplan","sum.billable":"Kosten erlaubt: ","sum.allowed":"ja","sum.locked":"nein (gesperrt)","sum.candidates":"Kandidaten: ",
- "sum.first":"Erste Wahl: ","sum.config_errors":"Konfigurationsfehler: ","sum.none":"keine",
- "sum.preflight":"Verfügbarkeit (kostenlos, nichts gestartet)","sum.pods":"Pods im Konto: ",
- "sum.ready":"Modell bereit: ","sum.yes":"ja","sum.no":"nein","sum.pod":"Pod: ","sum.status":"Status: ","sum.model":"Modell: ",
- "sum.no_pod":"Kein Pod verwaltet."
-}};
-
-let lang=localStorage.getItem('gh-lang');
-if(!lang)lang=(navigator.language||'en').toLowerCase().startsWith('de')?'de':'en';
-function t(key){const table=I18N[lang]||I18N.en;return table[key]||I18N.en[key]||key}
-function setLang(value){
-  lang=I18N[value]?value:'en';
-  localStorage.setItem('gh-lang',lang);
-  applyLang();
-  // Option labels are built from settings, so they have to be rebuilt too.
-  loadCatalog().then(()=>render(lastKey?t(lastKey):lastRaw)).catch(()=>{});
-}
-function applyLang(){
-  document.documentElement.lang=lang;
-  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n)});
-  document.querySelectorAll('[data-i18n-title]').forEach(el=>{el.title=t(el.dataset.i18nTitle)});
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{el.placeholder=t(el.dataset.i18nPlaceholder)});
-  $('lang-switch').value=lang;
-  updateBillablePill();
-  renderUpdatePill();
-}
-
-let models={},runtimes={},settingsData={},gpuOptions=[],regions=[],presets={},csrfToken='',podActive=false,lastRaw='',lastKey=null,updateInfo=null,theme=document.documentElement.dataset.theme||'blue';
-let mode='pretty';
-const $=id=>document.getElementById(id), output=$('output'), editor=$('editor'), settingsDialog=$('settings');
-
-async function api(path,options={}){
-  const method=(options.method||'GET').toUpperCase();
-  const csrf=csrfToken&&!['GET','HEAD','OPTIONS'].includes(method)?{'X-CSRF-Token':csrfToken}:{};
-  const r=await fetch(path,{...options,headers:{'Content-Type':'application/json',...csrf,...(options.headers||{})}});
-  const text=await r.text();let data;
-  try{data=JSON.parse(text)}catch{data=text}
-  if(!r.ok)throw new Error(typeof data==='object'?JSON.stringify(data.detail??data):data);
-  return data;
-}
-function updateBillablePill(){
-  const on=!!settingsData.billable_actions_enabled;
-  $('billable-pill').textContent=on?t('pill.billable_on'):t('pill.billable_off');
-  $('billable-pill').className='pill '+(on?'danger-text':'ok');
-}
-function renderUpdatePill(){
-  const a=$('update-pill');
-  if(!updateInfo||!updateInfo.update_available){a.classList.add('hidden');return}
-  a.textContent=t('pill.update')+(updateInfo.latest||'');
-  a.title=t('pill.update_title');
-  a.href=updateInfo.url||'#';
-  a.classList.remove('hidden');
-}
-async function checkUpdate(){
-  if(!settingsData.update_check_enabled){updateInfo=null;renderUpdatePill();return}
-  try{updateInfo=await api('/api/update-check')}catch{updateInfo=null}
-  renderUpdatePill();
-}
-async function openSettings(){
-  try{const s=await api('/api/settings');$('set-update-notifications').checked=!!s.update_notifications}catch{}
-  $('settings-saved').textContent='';
-  const el=document.querySelector('input[name="theme"][value="'+theme+'"]');if(el)el.checked=true;
-  settingsDialog.showModal();
-}
-function setTheme(value){
-  theme=value==='runpod'?'runpod':'blue';
-  try{localStorage.setItem('gh-theme',theme)}catch(e){}
-  document.documentElement.dataset.theme=theme;
-  const el=document.querySelector('input[name="theme"][value="'+theme+'"]');if(el)el.checked=true;
-}
-function showSettingsTab(name,button){
-  for(const b of document.querySelectorAll('.settings-tab'))b.classList.toggle('active',b===button);
-  $('settings-updates').classList.toggle('hidden',name!=='updates');
-  $('settings-design').classList.toggle('hidden',name!=='design');
-}
-async function saveUpdateSetting(){
-  const value=$('set-update-notifications').checked;
-  try{
-    await api('/api/settings',{method:'PUT',body:JSON.stringify({update_notifications:value})});
-    settingsData.update_check_enabled=value;
-    updateInfo=null;renderUpdatePill();
-    if(value)checkUpdate();
-    $('settings-saved').textContent=t('settings.saved');
-  }catch(err){$('settings-saved').textContent=t('msg.error')+err.message}
-}
-function showMessage(key){lastKey=key;render(t(key))}
-function setMode(m){mode=m;for(const n of ['simple','pretty','raw'])$('mode-'+n).classList.toggle('active',n===m);render(lastRaw)}
-function render(text){
-  lastRaw=text;
-  if(mode==='raw'){output.textContent=text;return}
-  if(mode==='pretty'){try{output.textContent=JSON.stringify(JSON.parse(text),null,2)}catch{output.textContent=text}return}
-  output.textContent=summarize(text);
-}
-function summarize(text){
-  let d;try{d=JSON.parse(text)}catch{return text}
-  if(!d||typeof d!=='object')return text;
-  if(d.pod_id)return t('sum.pod')+(d.pod_id||'?')+"\n"+t('sum.status')+(d.status||'?')+"\n"+t('sum.model')+(d.model_id||'?');
-  if(d.candidates){
-    const c=d.candidates[0]||{};
-    return t('sum.plan')+"\n"+t('sum.billable')+(d.billable_actions_enabled?t('sum.allowed'):t('sum.locked'))+
-      "\n"+t('sum.candidates')+d.candidates.length+"\n"+t('sum.first')+(c.gpu_type_id||'?')+" / "+(c.datacenter_id||'?')+
-      "\n"+t('sum.config_errors')+(((d.configuration_errors||[]).join('; '))||t('sum.none'));
-  }
-  if(d.gpu_catalog){
-    const rows=d.gpu_catalog.map(g=>(g.id||g.name)+": "+(g.availability||'?'));
-    return t('sum.preflight')+"\n"+t('sum.pods')+(d.pods_total??'-')+"\n"+rows.join("\n");
-  }
-  if('ready' in d)return t('sum.ready')+(d.ready?t('sum.yes'):t('sum.no'))+"\n"+(d.detail||'');
-  if(d.pod)return t('sum.pod')+(d.pod.id||'?')+"\n"+t('sum.status')+(d.pod.status||'?')+"\n"+t('sum.model')+(d.model_id||'?');
-  if(d.pod===null)return t('sum.no_pod');
-  if(d.ok!==undefined)return d.ok?t('msg.imported'):JSON.stringify(d);
-  return text;
-}
-async function action(path,method='POST',body=null){
-  showMessage('output.wait');
-  try{
-    const data=await api(path,{method,body:body?JSON.stringify(body):undefined});
-    lastKey=null;
-    render(typeof data==='string'?data:JSON.stringify(data));
-    await refreshStatus();
-    return data;
-  }catch(err){lastKey=null;render(t('msg.error')+err.message);return null}
-}
-$('login-form').onsubmit=async e=>{e.preventDefault();
-  try{await api('/api/login',{method:'POST',body:JSON.stringify({username:$('username').value,password:$('password').value})});await boot()}
-  catch(err){$('login-error').textContent=t('login.failed')+' '+err.message}};
-async function boot(){
-  applyLang();
-  showMessage('output.ready');
-  const me=await api('/api/me');
-  if(!me.authenticated)return;
-  csrfToken=me.csrf_token;
-  $('login').classList.add('hidden');$('app').classList.remove('hidden');
-  await loadCatalog();
-  await Promise.all([loadStatus(),loadReady()]);
-}
-async function logout(){await api('/api/logout',{method:'POST'});location.reload()}
-
-async function loadCatalog(){
-  const [m,r,s,g,reg,p]=await Promise.all([
-    api('/api/models'),api('/api/runtimes'),api('/api/controller-settings'),
-    api('/api/gpu-options'),api('/api/regions'),api('/api/model-presets')]);
-  models=m;runtimes=r;settingsData=s;gpuOptions=g.gpus||[];regions=reg.regions||[];presets=p;
-  const old=$('model').value;
-  $('model').replaceChildren();
-  for(const [id,mm] of Object.entries(models)){
-    const o=document.createElement('option');o.value=id;
-    o.textContent=mm.name+' · '+(runtimes[mm.runtime]?.label||mm.runtime)+(mm.verified?' ✓':'');
-    $('model').append(o);
-  }
-  $('model').value=models[old]?old:(Object.keys(models).find(id=>models[id].active)||Object.keys(models)[0]||'');
-  $('region').replaceChildren(new Option(t('start.auto_region'),''));
-  for(const item of regions){const o=document.createElement('option');o.value=item.id;o.textContent=item.label;$('region').append(o)}
-  $('e-runtime').replaceChildren();
-  for(const [id,rr] of Object.entries(runtimes)){const o=document.createElement('option');o.value=id;o.textContent=rr.label;$('e-runtime').append(o)}
-  $('e-preset').replaceChildren(new Option('— '+t('editor.preset')+' —',''));
-  for(const [id,pp] of Object.entries(presets)){const o=document.createElement('option');o.value=id;o.textContent=pp.label;$('e-preset').append(o)}
-  $('version-label').textContent=settingsData.version?'v'+settingsData.version:'';
-  updateBillablePill();
-  checkUpdate();
-  renderRuntimes();
-  renderGpuOptions();
-  regionChanged();
-  selectModel();
-}
-function renderGpuOptions(selected){
-  const list=$('e-gpu-list');list.replaceChildren();
-  const chosen=new Set(selected||[]);
-  if(!gpuOptions.length){const span=document.createElement('span');span.className='hint';span.textContent=t('gpu.none');list.append(span);return}
-  for(const g of gpuOptions){
-    const id=g.id||g.name;if(!id)continue;
-    const label=document.createElement('label');
-    const cb=document.createElement('input');cb.type='checkbox';cb.value=id;cb.checked=chosen.has(id);
-    const mem=g.memory?g.memory+' GB':'';
-    const price=g.secure_price!=null?' · '+g.secure_price+' $/h':'';
-    const avail=g.availability?' · '+g.availability:'';
-    label.append(cb,document.createTextNode(' '+(g.name||id)+' ('+mem+price+avail+')'));
-    list.append(label);
-  }
-}
-function renderRuntimes(){
-  const list=$('runtime-list');list.replaceChildren();
-  for(const [id,rt] of Object.entries(runtimes)){
-    const line=document.createElement('div');
-    line.style.margin='3px 0';
-    const short=rt.image?rt.image.split('@')[1]?.slice(0,19)+'…':'';
-    line.innerHTML='<span class="dot '+(rt.ready?'ok':'bad')+'"></span>'+rt.label+
-      ' <span class="hint">'+(rt.ready?t('runtimes.ready'):t('runtimes.missing'))+(short?' · '+short:'')+'</span>';
-    list.append(line);
-  }
-}
-function regionChanged(){
-  const selected=$('region').value;
-  $('datacenter').replaceChildren(new Option(t('start.auto_dc'),''));
-  const source=selected?regions.find(r=>r.id===selected):null;
-  const dcs=source?source.datacenters:(settingsData.datacenter_ids||[]);
-  for(const dc of dcs)$('datacenter').append(new Option(dc,dc));
-  $('datacenter').disabled=!dcs.length;
-}
-function selectModel(){
-  const m=models[$('model').value];
-  if(!m)return;
-  $('model-description').textContent=m.description||'';
-  $('badges').replaceChildren();
-  [m.status,m.license,m.source,m.overridden?'override':null,m.gated?'gated':null,
-   m.verified?'verified':'not verified',runtimes[m.runtime]?.label]
-   .filter(Boolean).forEach(x=>{const s=document.createElement('span');s.className='pill';s.textContent=x;$('badges').append(s)});
-  $('context').value=m.context_length;
-  $('sequences').value=m.max_sequences;
-  $('memory').value=m.gpu_memory_utilization;
-  $('volume').value=m.volume_gb;
-  $('gpu').replaceChildren(new Option(t('start.auto_gpu'),''));
-  (m.gpu_type_ids||[]).forEach(g=>$('gpu').append(new Option(g,g)));
-}
-function launch(){
-  return {
-    model_id:$('model').value,
-    context_length:+$('context').value,
-    max_sequences:+$('sequences').value,
-    gpu_memory_utilization:+$('memory').value,
-    gpu_type_id:$('gpu').value||null,
-    datacenter_id:$('datacenter').value||null,
-    region:$('region').value||null,
-    volume_gb:+$('volume').value
-  };
-}
-const plan=()=>action('/api/pod/plan','POST',launch());
-const preflight=()=>action('/api/runpod/preflight','POST',launch());
-async function startPod(){if(!confirm(t('confirm.start')))return;await action('/api/pod/start','POST',launch())}
-const stopPod=()=>action('/api/pod/stop');
-async function deletePod(){if(confirm(t('confirm.delete')))await action('/api/pod','DELETE')}
-async function loadStatus(){
-  try{
-    const s=await api('/api/status');
-    podActive=!!s.pod;
-    const label=s.pod?((s.pod.status||'UNKNOWN')+(s.model_id?' · '+s.model_id:'')):t('status.none');
-    $('status').innerHTML='<span class="dot '+(s.pod?'ok':'')+'"></span>'+label;
-    return s;
-  }catch(err){$('status').innerHTML='<span class="dot bad"></span>'+t('status.error')+err.message}
-}
-async function loadReady(){
-  if(!podActive){ $('ready').innerHTML='<span class="dot"></span>'+t('ready.none'); return }
-  try{
-    const d=await api('/api/model/ready');
-    $('ready').innerHTML='<span class="dot '+(d.ready?'ok':'wait')+'"></span>'+(d.ready?t('ready.loaded'):t('ready.loading'))+' — '+(d.detail||'');
-  }catch(err){$('ready').innerHTML='<span class="dot bad"></span>'+t('ready.unknown')+': '+err.message}
-}
-async function refreshStatus(){await loadStatus();await loadReady()}
-function fillEditor(id,m){
-  $('editor-error').textContent='';
-  $('editor-title').textContent=m?(t('editor.edit_title')+': '+(m.name||id)):t('editor.new_title');
-  $('e-id').value=id||'';$('e-id').disabled=!!id;
-  $('e-name').value=m?.name||'';
-  $('e-description').value=m?.description||'';
-  $('e-model-id').value=m?.model_id||'';
-  $('e-runtime').value=m?.runtime||'vllm';
-  $('e-gguf').value=m?.gguf_file||'';
-  $('e-aliases').value=(m?.served_names||[]).join(', ');
-  $('e-capabilities').value=(m?.capabilities||[]).join(', ');
-  $('e-context').value=m?.context_length||32768;
-  $('e-sequences').value=m?.max_sequences||2;
-  $('e-memory').value=m?.gpu_memory_utilization||0.9;
-  $('e-volume').value=m?.volume_gb||64;
-  $('e-license').value=m?.license||'unknown';
-  $('e-status').value=m?.status||'experimental';
-  $('e-gated').checked=!!m?.gated;
-  $('e-verified').checked=!!m?.verified;
-  $('e-trust-remote-code').checked=!!m?.trust_remote_code;
-  $('e-reasoning').checked=!!m?.reasoning_parser;
-  $('e-tools').checked=!!m?.tool_call_parser;
-  $('e-preset').value='';
-  const known=new Set(gpuOptions.map(g=>g.id));
-  const allowed=m?.gpu_type_ids||[];
-  renderGpuOptions(allowed);
-  $('e-gpus').value=allowed.filter(g=>!known.has(g)).join('\n');
-  const removable=!!m&&(m.source==='custom'||m.source==='orphaned-override'||m.overridden);
-  $('remove-model').disabled=!removable;
-  $('remove-model').textContent=m?.overridden?t('btn.reset'):t('btn.delete_profile');
-  runtimeChanged();
-  editor.showModal();
-}
-const newModel=()=>fillEditor('',null);
-function editModel(){const id=$('model').value;if(id)fillEditor(id,models[id])}
-async function lookupModel(){
-  const repo=$('e-model-id').value.trim();
-  const result=$('lookup-result');
-  if(!repo){result.textContent='';return}
-  result.textContent=t('lookup.busy');
-  try{
-    const d=await api('/api/model-suggest',{method:'POST',body:JSON.stringify({model_id:repo})});
-    if(d.suggested_runtime)$('e-runtime').value=d.suggested_runtime;
-    if(d.context_length)$('e-context').value=d.context_length;
-    if(d.suggested_volume_gb)$('e-volume').value=d.suggested_volume_gb;
-    if(d.license&&d.license!=='unknown')$('e-license').value=d.license;
-    $('e-gated').checked=!!d.gated;
-    if(d.gguf_files&&d.gguf_files.length)$('e-gguf').value=d.gguf_files[0];
-    const known=new Set(gpuOptions.map(g=>g.id));
-    const suggested=d.suggested_gpus||[];
-    $('e-gpu-list').querySelectorAll('input').forEach(cb=>{cb.checked=suggested.includes(cb.value)});
-    $('e-gpus').value=suggested.filter(g=>!known.has(g)).join('\n');
-    runtimeChanged();
-    const parts=[t('lookup.found')+(d.model_id||repo)];
-    if(d.estimated_size_gb)parts.push(d.estimated_size_gb+' GB');
-    if(d.notes&&d.notes.length)parts.push(d.notes.join(' '));
-    if(d.gguf_files&&d.gguf_files.length>1)parts.push(t('lookup.gguf')+d.gguf_files.slice(0,4).join(', '));
-    result.textContent=parts.join(' · ');
-  }catch(err){result.textContent=t('lookup.failed')+err.message}
-}
-function applyPreset(){
-  const p=presets[$('e-preset').value];if(!p)return;
-  $('e-runtime').value=p.runtime;
-  $('e-context').value=p.defaults.context_length;
-  $('e-sequences').value=p.defaults.max_sequences;
-  $('e-memory').value=p.defaults.gpu_memory_utilization;
-  $('e-volume').value=p.defaults.volume_gb;
-  if(!$('e-description').value)$('e-description').value=p.description;
-  runtimeChanged();
-}
-function runtimeChanged(){
-  const rt=runtimes[$('e-runtime').value];
-  $('e-gguf').disabled=!rt?.supports_gguf;
-  if(!rt?.supports_gguf)$('e-gguf').value='';
-  $('vllm-options').classList.toggle('hidden',$('e-runtime').value!=='vllm');
-  if($('e-runtime').value!=='vllm'){$('e-trust-remote-code').checked=false;$('e-reasoning').checked=false;$('e-tools').checked=false}
-}
-$('model-form').onsubmit=async e=>{
-  e.preventDefault();
-  const id=$('e-id').value;
-  const split=(v,sep)=>v.split(sep).map(x=>x.trim()).filter(Boolean);
-  const checked=[...$('e-gpu-list').querySelectorAll('input:checked')].map(c=>c.value);
-  const manual=$('e-gpus').value.split('\n').map(x=>x.trim()).filter(Boolean);
-  const body={
-    name:$('e-name').value,description:$('e-description').value,model_id:$('e-model-id').value,
-    runtime:$('e-runtime').value,gguf_file:$('e-gguf').value||null,
-    served_names:split($('e-aliases').value,','),capabilities:split($('e-capabilities').value,','),
-    context_length:+$('e-context').value,max_sequences:+$('e-sequences').value,
-    gpu_memory_utilization:+$('e-memory').value,volume_gb:+$('e-volume').value,
-    gpu_type_ids:[...new Set([...checked,...manual])],
-    status:$('e-status').value,license:$('e-license').value,
-    gated:$('e-gated').checked,verified:$('e-verified').checked,
-    trust_remote_code:$('e-trust-remote-code').checked,
-    reasoning_parser:$('e-reasoning').checked?'qwen3':null,
-    tool_call_parser:$('e-tools').checked?'qwen3_coder':null,
-    enable_auto_tool_choice:$('e-tools').checked
-  };
-  try{
-    await api('/api/models/'+encodeURIComponent(id),{method:'PUT',body:JSON.stringify(body)});
-    editor.close();await loadCatalog();$('model').value=id;selectModel();
-  }catch(err){$('editor-error').textContent=err.message}
-};
-async function removeModel(){
-  const id=$('e-id').value,m=models[id];if(!id)return;
-  const reset=!!m?.overridden;
-  const question=(reset?t('confirm.reset'):t('confirm.remove')).replace('{id}',id);
-  if(!confirm(question))return;
-  try{await api('/api/models/'+encodeURIComponent(id)+(reset?'/reset':''),{method:reset?'POST':'DELETE'});editor.close();await loadCatalog()}
-  catch(err){$('editor-error').textContent=err.message}
-}
-async function exportModels(){
-  try{
-    const data=await api('/api/models-export');
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gpuharbor-user-models.json';a.click();URL.revokeObjectURL(a.href);
-  }catch(err){render(t('msg.export_error')+err.message)}
-}
-async function importModels(file){
-  if(!file)return;
-  try{
-    const catalog=JSON.parse(await file.text());
-    if(!confirm(t('confirm.import')))return;
-    await api('/api/models-import',{method:'POST',body:JSON.stringify({catalog,replace:false})});
-    await loadCatalog();render(t('msg.imported'));
-  }catch(err){render(t('msg.import_error')+err.message)}finally{$('import-file').value=''}
-}
-boot().catch(()=>{});
-setInterval(()=>{if(!$('app').classList.contains('hidden'))refreshStatus()},30000);
-</script></body></html>
+<script src="/static/app.js"></script></body></html>

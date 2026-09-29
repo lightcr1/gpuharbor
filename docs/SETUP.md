@@ -26,8 +26,10 @@ Manual equivalent, if you want to see every step:
 docker compose up --build -d
 ```
 
-Open `http://127.0.0.1:8080`. User is `admin`; the password is
-`GPUHARBOR_ADMIN_PASSWORD` in `.env`.
+Open `http://127.0.0.1:8080`. User is `admin`. The install script generated a
+random password; show it with `./scripts/init-env --show-login` and set a new one
+with `./scripts/init-env --reset-password`. The controller refuses to start with
+the placeholder values from `.env.example`.
 
 Stop with `docker compose down`.
 

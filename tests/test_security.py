@@ -43,3 +43,56 @@ def test_recursive_secret_redaction():
     redacted = redact_secrets(value)
     assert redacted["env"] == {"HF_TOKEN": "***", "MODEL_ID": "safe"}
     assert redacted["nested"][0]["apiKey"] == "***"
+
+
+def test_secure_equals_handles_non_ascii_and_empty_values():
+    from gpuharbor.security import bearer_token, secure_equals
+
+    assert secure_equals("secret", "secret")
+    assert not secure_equals("secret", "secrèt")
+    assert not secure_equals("secret", None)
+    assert not secure_equals("", "")
+    assert bearer_token("bearer abc") == "abc"
+    assert bearer_token("Basic abc") == ""
+    assert bearer_token(None) == ""
+
+
+def test_non_ascii_credentials_are_rejected_not_crashed(app_client):
+    client, _ = app_client
+    assert client.get("/api/status", headers={"X-Control-Token": "tökén".encode()}).status_code == 401
+    assert client.get("/v1/models", headers={"Authorization": "Bearer tökén".encode()}).status_code == 401
+    login = client.post("/api/login", json={"username": "ädmin", "password": "pässword"})
+    assert login.status_code == 401
+
+
+def test_template_placeholder_credentials_are_refused(monkeypatch):
+    import pytest
+    from gpuharbor.config import Settings
+
+    values = {
+        "RUNPOD_API_KEY": "r" * 40,
+        "CONTROL_TOKEN": "c" * 40,
+        "MODEL_ACCESS_TOKEN": "m" * 40,
+        "RUNTIME_GATEWAY_TOKEN": "g" * 40,
+        "GPUHARBOR_ADMIN_PASSWORD": "replace-with-a-long-random-password",
+        "GPUHARBOR_SESSION_SECRET": "s" * 40,
+    }
+    for key, value in values.items():
+        monkeypatch.setenv(key, value)
+    with pytest.raises(ValueError, match="GPUHARBOR_ADMIN_PASSWORD"):
+        Settings(_env_file=None)
+
+
+def test_logout_revokes_a_copied_session_cookie(app_client):
+    client, _ = app_client
+    login = client.post("/api/login", json={"username": "admin", "password": "p" * 40})
+    assert login.status_code == 200
+    stolen = client.cookies.get("gpuharbor_session")
+    csrf = login.json()["csrf_token"]
+    assert client.post("/api/logout", headers={"X-CSRF-Token": csrf}).status_code == 200
+
+    from fastapi.testclient import TestClient
+
+    with TestClient(client.app, cookies={"gpuharbor_session": stolen}) as other:
+        assert other.get("/api/status").status_code == 401
+        assert other.get("/api/me").json()["authenticated"] is False

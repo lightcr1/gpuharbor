@@ -3,40 +3,10 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GPUHarbor · Documentation</title>
-<script>try{document.documentElement.dataset.theme=localStorage.getItem('gh-theme')||'blue'}catch(e){}</script>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<style>
-:root{color-scheme:dark;--bg1:#071022;--bg2:#0f1c3a;--card:#101a33;--card-2:#17244a;--input-bg:#0c1730;--line:#27365e;--text:#eaf1ff;--muted:#9fb0d0;--accent:#5b8cff;--accent-2:#38bdf8;--warn:#ffcf6b;--danger:#ff6b79;--ok:#4ecb8f}
-html[data-theme=runpod]{--bg1:#06040d;--bg2:#150c2e;--card:#161029;--card-2:#221838;--input-bg:#100c22;--line:#2a1f45;--text:#f3f0fa;--muted:#ccc6df;--accent:#9b7dff;--accent-2:#bbb6fd;--warn:#f4bd72;--danger:#d45453;--ok:#76b971}
-*{box-sizing:border-box}
-body{margin:0;background:linear-gradient(145deg,var(--bg1),var(--bg2));color:var(--text);font:16px/1.6 system-ui,sans-serif}
-.brand{color:var(--accent)}.brand2{color:var(--accent-2)}
-.wrap{display:grid;grid-template-columns:260px 1fr;gap:26px;max-width:1200px;margin:auto;padding:26px}
-nav{position:sticky;top:26px;align-self:start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
-nav h1{font-size:19px;margin:0 0 10px}
-nav a{display:block;color:var(--muted);text-decoration:none;padding:5px 8px;border-radius:7px;font-size:14px}
-nav a:hover{background:var(--card-2);color:var(--text)}
-main{min-width:0}
-section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
-h2{margin-top:0;font-size:21px;border-bottom:1px solid var(--line);padding-bottom:10px}
-h3{font-size:17px;margin-bottom:6px}
-code{background:var(--input-bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:14px}
-pre{white-space:pre-wrap;background:var(--input-bg);border-radius:9px;padding:14px;overflow:auto}
-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
-th,td{text-align:left;border-bottom:1px solid var(--line);padding:8px 6px;vertical-align:top}
-th{color:var(--muted);font-weight:600}
-.muted{color:var(--muted)}.warn{color:var(--warn)}.danger{color:var(--danger)}.ok{color:var(--ok)}
-.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--card-2);color:var(--accent-2)}
-.required{background:#5a2530;color:#ffc9d0}.optional{background:#1f3a2c;color:#b6f0cf}
-.lang{display:flex;gap:8px;margin-top:12px}
-.lang a{color:var(--accent);text-decoration:none;font-weight:600}
-nav a.active{background:var(--card-2);color:var(--text);font-weight:600;box-shadow:inset 3px 0 0 var(--accent)}
-a.link{color:var(--accent)}
-@media(max-width:900px){.wrap{grid-template-columns:1fr}nav{position:static}}
-.themes{display:flex;gap:6px;margin-top:8px}
-.themes button{flex:1;background:var(--card-2);border:1px solid var(--line);color:var(--muted);padding:5px 8px;font-size:12px;border-radius:7px;cursor:pointer;font-family:inherit}
-.themes button.active{color:var(--text);border-color:var(--accent)}
-</style>
+<script src="/static/theme.js"></script>
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/docs.css">
 </head>
 <body>
 <div class="wrap">
@@ -63,6 +33,7 @@ a.link{color:var(--accent)}
   <div class="lang"><a href="/docs/de">Deutsch</a></div>
   <div class="themes">
     <button type="button" data-theme="blue">Blue</button>
+    <button type="button" data-theme="light">Light</button>
     <button type="button" data-theme="runpod">Violet</button>
   </div>
 </nav>
@@ -93,7 +64,8 @@ prints the address. For other machines use
 <code>http://&lt;your-ip&gt;:8080</code>. For a secure connection see
 <a class="link" href="#https">HTTPS</a>.</li>
 <li><strong>Log in.</strong> User <code>admin</code>. The password was generated
-for you and is in <code>.env</code> — see the next block.</li>
+for you. Show it with <code>./scripts/init-env --show-login</code> or set a new
+one with <code>--reset-password</code>.</li>
 <li><strong>Optional: store the RunPod key.</strong> Free read-only checks work
 right away:
 <pre>./scripts/set-runpod-key</pre></li>
@@ -372,34 +344,6 @@ proxy. Import <code>tls/local-ca.crt</code> on your devices, then open
 
 </main>
 </div>
-<script>
-(function(){
-  var links=[].slice.call(document.querySelectorAll('nav a[href^="#"]'));
-  var sections=[].slice.call(document.querySelectorAll('main section[id]'));
-  if(!sections.length)return;
-  function setActive(id){links.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+id);});}
-  function onScroll(){
-    var threshold=140,current=sections[0].id;
-    sections.forEach(function(s){if(s.getBoundingClientRect().top<=threshold)current=s.id;});
-    setActive(current);
-  }
-  window.addEventListener('scroll',onScroll,{passive:true});
-  window.addEventListener('resize',onScroll);
-  window.addEventListener('hashchange',onScroll);
-  onScroll();
-})();
-(function(){
-  function apply(value){
-    var t=value==='runpod'?'runpod':'blue';
-    document.documentElement.dataset.theme=t;
-    try{localStorage.setItem('gh-theme',t)}catch(e){}
-    var buttons=document.querySelectorAll('.themes button');
-    for(var i=0;i<buttons.length;i++)buttons[i].classList.toggle('active',buttons[i].dataset.theme===t);
-  }
-  window.setTheme=apply;
-  document.querySelectorAll('.themes button').forEach(function(b){b.addEventListener('click',function(){apply(b.dataset.theme)})});
-  apply(document.documentElement.dataset.theme||'blue');
-})();
-</script>
+<script src="/static/docs.js"></script>
 </body>
 </html>
