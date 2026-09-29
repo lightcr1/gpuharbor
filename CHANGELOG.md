@@ -2,6 +2,14 @@
 
 All notable changes will be documented here once releases begin.
 
+## Unreleased
+
+### Security
+
+- The controller now refuses to start when any credential is a template placeholder or
+  shorter than 16 characters. This covers the Open WebUI and OpenHands secrets in
+  `.env` as well, so a copied `.env.example` can never run. `doctor` reports the same.
+
 ## 0.1.5 - 2026-09-29
 
 The goal of this release: install with one command, and have the models work in Open

@@ -91,7 +91,13 @@ def check_env(env_path: Path) -> dict[str, str]:
         ok(".env is private")
     secrets_ = ["CONTROL_TOKEN", "MODEL_ACCESS_TOKEN", "RUNTIME_GATEWAY_TOKEN",
                 "GPUHARBOR_ADMIN_PASSWORD", "GPUHARBOR_SESSION_SECRET"]
-    weak = [key for key in secrets_ if not values.get(key) or values[key].lower().startswith("replace")]
+    compose = values.get("COMPOSE_FILE", "")
+    if "openwebui" in compose:
+        secrets_.append("WEBUI_SECRET_KEY")
+    if "openhands" in compose:
+        secrets_.append("OPENHANDS_BACKEND_API_KEY")
+    weak = [key for key in secrets_ if not values.get(key) or values[key].lower().startswith("replace")
+            or len(values[key]) < 16]
     if weak:
         bad(f"Not set up yet: {', '.join(weak)}.", "Run ./scripts/init-env")
     else:

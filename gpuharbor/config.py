@@ -9,6 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPOSITORY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$")
 INTERNAL_HOSTS = ("controller",)
+MINIMUM_SECRET_LENGTH = 16
 _DIGEST = re.compile(r"^.+@sha256:[0-9a-fA-F]{64}$")
 
 
@@ -42,6 +43,7 @@ class Settings(BaseSettings):
     # Set by compose.openhands.yml; empty means OpenHands is not part of this stack.
     openhands_url: str = ""
     openhands_backend_api_key: SecretStr | None = None
+    webui_secret_key: SecretStr | None = None
     # Dashboard links, "scheme:port", set by the Open WebUI / OpenHands overlays.
     gpuharbor_link_openwebui: str = ""
     gpuharbor_link_openhands: str = ""
@@ -68,7 +70,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def reject_template_credentials(self) -> "Settings":
-        """Refuse to serve with the public placeholder values from .env.example."""
+        """Refuse to run with placeholder or weak credentials, e.g. a copied .env.example."""
         credentials = {
             "CONTROL_TOKEN": self.control_token,
             "MODEL_ACCESS_TOKEN": self.model_access_token,
@@ -76,11 +78,23 @@ class Settings(BaseSettings):
             "GPUHARBOR_ADMIN_PASSWORD": self.gpuharbor_admin_password,
             "GPUHARBOR_SESSION_SECRET": self.gpuharbor_session_secret,
         }
+        # Secrets of the optional apps also live in .env and reach this container; they
+        # only count when they are set (a plain install does not have them).
+        optional = {
+            "OPENHANDS_BACKEND_API_KEY": self.openhands_backend_api_key,
+            "WEBUI_SECRET_KEY": self.webui_secret_key,
+        }
+        credentials.update({name: secret for name, secret in optional.items() if secret is not None})
         for name, secret in credentials.items():
             value = secret.get_secret_value()
             if not value or value.lower().startswith("replace"):
                 raise ValueError(
                     f"{name} is empty or still the template placeholder. Run ./scripts/init-env."
+                )
+            if len(value) < MINIMUM_SECRET_LENGTH:
+                raise ValueError(
+                    f"{name} is too short (at least {MINIMUM_SECRET_LENGTH} characters). "
+                    "Run ./scripts/init-env --force, or ./scripts/init-env --reset-password for the admin password."
                 )
         return self
 

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from gpuharbor.idle import should_stop_for_idle
 import pytest
 
@@ -96,3 +98,45 @@ def test_logout_revokes_a_copied_session_cookie(app_client):
     with TestClient(client.app, cookies={"gpuharbor_session": stolen}) as other:
         assert other.get("/api/status").status_code == 401
         assert other.get("/api/me").json()["authenticated"] is False
+
+
+def _settings_env(monkeypatch, **overrides):
+    values = {
+        "RUNPOD_API_KEY": "r" * 40, "CONTROL_TOKEN": "c" * 40, "MODEL_ACCESS_TOKEN": "m" * 40,
+        "RUNTIME_GATEWAY_TOKEN": "g" * 40, "GPUHARBOR_ADMIN_PASSWORD": "p" * 24, "GPUHARBOR_SESSION_SECRET": "s" * 40,
+    }
+    values.update(overrides)
+    for key, value in values.items():
+        monkeypatch.setenv(key, value)
+
+
+def test_every_credential_from_env_example_is_refused(monkeypatch):
+    """Copying .env.example unchanged must never produce a running controller."""
+    import pytest
+    from gpuharbor.config import Settings
+
+    example = {}
+    for line in (Path(__file__).parents[1] / ".env.example").read_text().splitlines():
+        if line.strip() and not line.startswith("#") and "=" in line:
+            key, _, value = line.partition("=")
+            example[key] = value
+    placeholders = [key for key, value in example.items() if value.startswith("replace")]
+    assert {"CONTROL_TOKEN", "MODEL_ACCESS_TOKEN", "RUNTIME_GATEWAY_TOKEN", "GPUHARBOR_ADMIN_PASSWORD",
+            "GPUHARBOR_SESSION_SECRET", "WEBUI_SECRET_KEY", "OPENHANDS_BACKEND_API_KEY"} <= set(placeholders)
+    for key in placeholders:
+        if key == "RUNPOD_API_KEY":
+            continue  # a placeholder key is harmless: it cannot start a pod
+        _settings_env(monkeypatch, **{key: example[key]})
+        with pytest.raises(ValueError, match=key):
+            Settings(_env_file=None)
+
+
+def test_short_credentials_are_refused_at_startup(monkeypatch):
+    import pytest
+    from gpuharbor.config import Settings
+
+    _settings_env(monkeypatch, GPUHARBOR_ADMIN_PASSWORD="admin123")
+    with pytest.raises(ValueError, match="too short"):
+        Settings(_env_file=None)
+    _settings_env(monkeypatch)
+    assert Settings(_env_file=None).gpuharbor_admin_password.get_secret_value() == "p" * 24
