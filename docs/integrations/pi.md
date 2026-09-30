@@ -25,9 +25,12 @@ in GPUHarbor, then pick it in PI with `/model`, or `pi --provider gpuharbor --mo
 
 Run it again after you add, edit or delete a model profile.
 
-If PI reports a certificate error over HTTPS, start it with
-`NODE_EXTRA_CA_CERTS=<GPUHarbor folder>/tls/local-ca.crt pi` (Node does not use the
-system certificate store the way `./scripts/trust-ca` sets it up).
+PI runs on the same computer, so the script uses GPUHarbor's local port
+`http://127.0.0.1:8080`. With HTTPS that port is reachable from this machine only, and no
+certificate is involved. For GPUHarbor on another machine use
+`--url https://<host>:<port>` and start PI with
+`NODE_EXTRA_CA_CERTS=<GPUHarbor folder>/tls/local-ca.crt` (Node ignores the system
+certificate store that `./scripts/trust-ca` fills).
 
 ## What it changes, and what it does not
 

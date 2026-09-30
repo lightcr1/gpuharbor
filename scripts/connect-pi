@@ -47,9 +47,11 @@ def env_values(path: Path) -> dict[str, str]:
 
 
 def default_url(env: dict[str, str]) -> str:
-    """HTTPS on the local proxy when it is set up, otherwise the plain controller port."""
-    if (ROOT / "tls" / "server.crt").exists() or (ROOT / "tls").is_dir():
-        return f"https://localhost:{env.get('TLS_PORT', '8443')}"
+    """PI runs on this computer: use the controller's loopback port (no certificate involved).
+
+    With HTTPS the plain port is bound to 127.0.0.1 only, so the token never leaves the machine.
+    Node, which PI runs on, does not trust GPUHarbor's local CA, so HTTPS would fail there.
+    """
     return "http://127.0.0.1:8080"
 
 
@@ -257,7 +259,7 @@ def main() -> int:
         print("Token: " + ("read from .env on every request." if args.token_from_env else "stored in that file (mode 600); run this script again after changing it."))
         print("Start the model in GPUHarbor, then pick it in PI with /model or `pi --provider gpuharbor`.")
         if url.startswith("https://") and LOCAL_CA.exists():
-            print(f"If PI reports a certificate error, start it with NODE_EXTRA_CA_CERTS={LOCAL_CA}")
+            print(f"PI does not trust the local certificate by itself; start it with NODE_EXTRA_CA_CERTS={LOCAL_CA}")
         print("PI can run commands and change files: use it in a dedicated workspace.")
     return 0
 

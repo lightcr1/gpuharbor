@@ -177,7 +177,8 @@ def main() -> int:
     dashboard = f"https://{shown}:{args.tls_port}/" if https_host else "http://localhost:8080/"
     authority = ROOT / "tls" / "local-ca.crt" if https_host else None
 
-    base_url = dashboard.rstrip("/")
+    # PI runs on this computer: use the loopback port; Node does not trust the local HTTPS certificate.
+    base_url = "http://127.0.0.1:8080" if https_host else dashboard.rstrip("/")
     if args.dry_run:
         if args.pi:
             print("+", sys.executable, "scripts/connect-pi", "--url", base_url)
