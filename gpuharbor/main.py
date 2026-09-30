@@ -314,6 +314,25 @@ async def pi_models_endpoint() -> dict:
     return {"models": pi_models(catalog), "without_tool_calls": pi_without_tools(catalog)}
 
 
+@app.get("/api/running-model", dependencies=[Depends(require_model_token)])
+async def running_model() -> dict:
+    """Which model runs now (PI's /modelinfo). Inference token only; no pod or account details."""
+    state = store.read()
+    profile = registry.models().get(state.model_id) if state.pod_id else None
+    if profile is None:
+        return {"running": False}
+    return {
+        "running": True,
+        "profile": state.model_id,
+        "name": profile.name,
+        "model_id": profile.model_id,
+        "runtime": profile.runtime,
+        "served_names": profile.served_names,
+        "context_length": profile.context_length,
+        "gpu": state.gpu_type_id,
+    }
+
+
 @app.get("/api/settings", dependencies=[Depends(require_control)])
 async def get_settings() -> dict:
     return {

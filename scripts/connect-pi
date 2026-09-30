@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Connect the PI coding agent to your GPUHarbor models.
 
-Adds one provider named "gpuharbor" to PI's models.json. The inference token is
-not copied: PI runs a small command that reads it from this folder's .env each
-time, so rotating the token needs no second step. Every other provider in
-models.json is left as it is, and a backup is made first.
+Adds one provider named "gpuharbor" to PI's models.json, with the inference token
+stored in the file (mode 600, like PI's own auth.json). With --token-from-env the
+token is not copied; PI runs a small command that reads it from this folder's .env
+on every request instead. Every other provider in models.json is left as it is,
+and a backup is made first.
 
     ./scripts/connect-pi                 # write the provider
     ./scripts/connect-pi --dry-run       # show the result, change nothing
-    ./scripts/connect-pi --remove        # take the provider out again
+    ./scripts/connect-pi --with-modelinfo   # also add /modelinfo (asked for when run in a terminal)
+    ./scripts/connect-pi --remove        # take the provider (and /modelinfo) out again
     ./scripts/connect-pi --url https://localhost:8443
 
 Only the model-only inference token is used. It cannot start, stop or delete pods.
@@ -30,6 +32,8 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 PROVIDER = "gpuharbor"
+EXTENSION_SOURCE = ROOT / "pi-extension" / "gpuharbor-modelinfo.ts"
+EXTENSION_MARKER = "Installed by ./scripts/connect-pi"
 LOOPBACK = {"localhost", "127.0.0.1", "::1"}
 
 
@@ -54,23 +58,27 @@ def agent_dir() -> Path:
     return Path(override).expanduser() if override else Path.home() / ".pi" / "agent"
 
 
-def fetch_models(url: str, token: str, insecure_ca: bool) -> dict:
+LOCAL_CA = ROOT / "tls" / "local-ca.crt"
+
+
+def fetch_models(url: str, token: str) -> dict:
     context = None
-    if url.startswith("https://") and insecure_ca:
-        context = ssl.create_default_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
+    if url.startswith("https://") and LOCAL_CA.exists():
+        # Trust GPUHarbor's own CA for this request even if it is not in the system store yet.
+        context = ssl.create_default_context(cafile=str(LOCAL_CA))
     request = urllib.request.Request(f"{url}/api/pi-models", headers={"Authorization": f"Bearer {token}"})
     with urllib.request.urlopen(request, timeout=15, context=context) as response:  # noqa: S310 - scheme checked
         return json.loads(response.read())
 
 
-def provider_entry(url: str, models: list[dict], env_path: Path, script: Path) -> dict:
-    token_command = f"!{shlex.quote(sys.executable)} {shlex.quote(str(script))} --print-token --env {shlex.quote(str(env_path))}"
+def provider_entry(url: str, models: list[dict], token: str, env_path: Path | None, script: Path) -> dict:
+    api_key = token
+    if env_path is not None:
+        api_key = f"!{shlex.quote(sys.executable)} {shlex.quote(str(script))} --print-token --env {shlex.quote(str(env_path))}"
     return {
         "baseUrl": f"{url}/v1",
         "api": "openai-completions",
-        "apiKey": token_command,
+        "apiKey": api_key,
         # vLLM and llama.cpp take the classic system role and max_tokens, and know no reasoning_effort or store.
         "compat": {
             "supportsDeveloperRole": False,
@@ -95,6 +103,31 @@ def write_atomic(path: Path, text: str) -> None:
         raise
 
 
+def extension_path(models_file: Path) -> Path:
+    return models_file.parent / "extensions" / EXTENSION_SOURCE.name
+
+
+def is_ours(path: Path) -> bool:
+    try:
+        return EXTENSION_MARKER in path.read_text(encoding="utf-8").split("\n", 1)[0]
+    except OSError:
+        return False
+
+
+def want_modelinfo(args: argparse.Namespace, installed: bool) -> bool:
+    if args.with_modelinfo:
+        return True
+    if args.no_modelinfo:
+        return False
+    if installed:
+        return True  # keep what the user chose earlier
+    if not sys.stdin.isatty():
+        return False
+    print("\nOptional: add a /modelinfo command to PI. It shows which model GPUHarbor is running")
+    print("and only works while a GPUHarbor model is selected. It is one small file in ~/.pi/agent/extensions/.")
+    return input("Add /modelinfo? [y/N] ").strip().lower() in {"y", "yes", "j", "ja"}
+
+
 def merge(existing: dict, entry: dict | None) -> dict:
     """Add, replace or (entry None) remove only providers.gpuharbor."""
     result = dict(existing)
@@ -112,6 +145,9 @@ def main() -> int:
     parser.add_argument("--env", default=str(ROOT / ".env"), help="path to GPUHarbor's .env")
     parser.add_argument("--url", help="GPUHarbor address (default: this machine)")
     parser.add_argument("--models-file", help="PI models.json (default: ~/.pi/agent/models.json)")
+    parser.add_argument("--token-from-env", action="store_true", help="do not store the token; PI reads it from .env on every request")
+    parser.add_argument("--with-modelinfo", action="store_true", help="also install the /modelinfo command")
+    parser.add_argument("--no-modelinfo", action="store_true", help="do not install /modelinfo and do not ask")
     parser.add_argument("--remove", action="store_true", help="remove the gpuharbor provider")
     parser.add_argument("--dry-run", action="store_true", help="print the result and change nothing")
     parser.add_argument("--print-token", action="store_true", help=argparse.SUPPRESS)
@@ -159,7 +195,7 @@ def main() -> int:
             )
             return 1
         try:
-            info = fetch_models(url, token, insecure_ca=False)
+            info = fetch_models(url, token)
         except ssl.SSLError as error:
             print(f"The HTTPS certificate is not trusted here: {error}\nRun ./scripts/trust-ca and try again.", file=sys.stderr)
             return 1
@@ -178,14 +214,32 @@ def main() -> int:
         if not models:
             print("GPUHarbor lists no enabled models.", file=sys.stderr)
             return 1
-        entry = provider_entry(url, models, env_path.resolve(), Path(__file__).resolve())
+        entry = provider_entry(url, models, token, env_path.resolve() if args.token_from_env else None, Path(__file__).resolve())
         for served in info.get("without_tool_calls", []):
             print(f"Note: '{served}' does not parse tool calls, so PI's tools will not work with it.")
 
     text = json.dumps(merge(existing, entry), indent=2) + "\n"
+    ext = extension_path(target)
+    if ext.exists() and not is_ours(ext):
+        print(f"{ext} exists and was not made by this script; leaving it alone.", file=sys.stderr)
+        modelinfo = False
+    else:
+        modelinfo = entry is not None and want_modelinfo(args, ext.exists())
     if args.dry_run:
         print(text, end="")
+        if modelinfo:
+            print(f"(would also install {ext})")
         return 0
+    if entry is None and ext.exists() and is_ours(ext):
+        ext.unlink()
+        print(f"Removed {ext}.")
+    elif entry is not None and not modelinfo and ext.exists() and is_ours(ext) and args.no_modelinfo:
+        ext.unlink()
+        print(f"Removed {ext}.")
+    if modelinfo:
+        ext.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(EXTENSION_SOURCE, ext)
+        print(f"Installed /modelinfo ({ext}).")
     if target.exists():
         backup = target.with_name(target.name + ".bak")
         shutil.copy2(target, backup)
@@ -196,7 +250,10 @@ def main() -> int:
     else:
         names = ", ".join(model["id"] for model in entry["models"])
         print(f"Added provider 'gpuharbor' ({names}) to {target}.")
+        print("Token: " + ("read from .env on every request." if args.token_from_env else "stored in that file (mode 600); run this script again after changing it."))
         print("Start the model in GPUHarbor, then pick it in PI with /model or `pi --provider gpuharbor`.")
+        if url.startswith("https://") and LOCAL_CA.exists():
+            print(f"If PI reports a certificate error, start it with NODE_EXTRA_CA_CERTS={LOCAL_CA}")
         print("PI can run commands and change files: use it in a dedicated workspace.")
     return 0
 

@@ -57,7 +57,8 @@ everything and waits until it answers. Then:
 3. Follow the **Getting started** checklist in the dashboard: store your RunPod key
    (`./scripts/set-runpod-key`), pick a model, start a pod.
 
-Add `--webui` and/or `--openhands` to the install command for the apps. Something
+Add `--webui` and/or `--openhands` to the install command for the apps, and `--pi` to
+connect the [PI coding agent](docs/integrations/pi.md) on this computer. Something
 not working? Run `./scripts/doctor`. For a LAN or the interactive variant see
 [Setup](docs/SETUP.md). The app explains every field at `/docs`.
 

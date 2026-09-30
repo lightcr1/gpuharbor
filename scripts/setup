@@ -64,6 +64,7 @@ def main() -> int:
     parser.add_argument("--https-port", default="8443", help="host port for the HTTPS proxy")
     parser.add_argument("--webui", action="store_true", help="include Open WebUI")
     parser.add_argument("--openhands", action="store_true", help="include OpenHands Agent Canvas")
+    parser.add_argument("--pi", action="store_true", help="connect the PI coding agent")
     parser.add_argument("--start", action="store_true", help="start the stack after setup")
     parser.add_argument("--dry-run", action="store_true", help="print the commands without running them")
     args = parser.parse_args()
@@ -92,9 +93,11 @@ def main() -> int:
 
     webui = args.webui
     openhands = args.openhands
+    pi = args.pi
     if interactive:
         webui = ask_bool("Open WebUI mitinstallieren?", webui)
         openhands = ask_bool("OpenHands mitinstallieren? (führt Code aus)", openhands)
+        pi = ask_bool("PI Coding Agent (auf diesem Rechner) mit den Modellen verbinden?", pi)
 
     start = args.start
     if interactive and not start:
@@ -105,6 +108,7 @@ def main() -> int:
     print(f"HTTPS        : {https_host or 'nein'}" + (f" (Port {args.https_port})" if https_host else ""))
     print(f"Open WebUI   : {'ja' if webui else 'nein'}")
     print(f"OpenHands    : {'ja' if openhands else 'nein'}")
+    print(f"PI Agent     : {'ja' if pi else 'nein'}")
     print(f"Starten      : {'ja' if start else 'nein'}")
     print("-" * 40)
 
@@ -119,6 +123,8 @@ def main() -> int:
         command.append("--webui")
     if openhands:
         command.append("--openhands")
+    if pi:
+        command.append("--pi")
     if not start:
         command.append("--no-start")
     if args.dry_run:

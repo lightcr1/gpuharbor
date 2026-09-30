@@ -31,6 +31,7 @@ Your `.env` and data are kept.
 ```bash
 ./scripts/install                                  # local, HTTPS by default
 ./scripts/install --webui --openhands              # plus the integrations, also over HTTPS
+./scripts/install --pi                             # also connect the PI coding agent (checks PI is installed)
 ./scripts/install --no-https                       # plain HTTP on localhost
 ./scripts/install --trust                          # also trust the certificate without asking
 ./scripts/install --bind-ip 192.0.2.10             # reachable on LAN or VPN
@@ -42,7 +43,7 @@ Your `.env` and data are kept.
 ## setup
 
 The same as `install`, but it asks questions (bind address, HTTPS, Open WebUI,
-OpenHands, start now). Every answer can also be given as a flag, so it works
+OpenHands, PI, start now). Every answer can also be given as a flag, so it works
 unattended with `--yes`.
 
 ```bash
@@ -119,13 +120,15 @@ restarted afterwards unless you pass `--no-restart`.
 
 ## connect-pi
 
-Adds a `gpuharbor` provider with your models to PI's `models.json`. The token is
-read from `.env` when PI needs it and is not copied. Other providers are left alone.
+Adds a `gpuharbor` provider with your models to PI's `models.json`. The inference
+token is stored there too (mode 600); `--token-from-env` reads it from `.env` instead.
+Other providers are left alone.
 See [integrations/pi.md](integrations/pi.md).
 
 ```bash
 ./scripts/connect-pi
 ./scripts/connect-pi --dry-run
+./scripts/connect-pi --with-modelinfo     # also the optional /modelinfo command
 ./scripts/connect-pi --remove
 ```
 

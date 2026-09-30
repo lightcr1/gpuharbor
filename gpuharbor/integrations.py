@@ -73,9 +73,12 @@ def pi_models(models: dict[str, ModelDefinition]) -> list[dict[str, Any]]:
 
 
 def pi_without_tools(models: dict[str, ModelDefinition]) -> list[str]:
-    """Served names of the entries above whose profile does not parse tool calls (PI's tools would not work)."""
+    """Served names of vLLM profiles that run without tool-call parsing (PI's tools would not work).
+
+    The flag is a vLLM setting. llama.cpp profiles are not listed: whether their tool calls work depends on the model's chat template.
+    """
     listed = {entry["id"] for entry in pi_models(models)}
-    return sorted({m.served_names[0] for m in models.values() if not m.enable_auto_tool_choice} & listed)
+    return sorted({m.served_names[0] for m in models.values() if m.runtime == "vllm" and not m.enable_auto_tool_choice} & listed)
 
 
 def desired_profiles(models: dict[str, ModelDefinition], token: str) -> dict[str, dict[str, Any]]:

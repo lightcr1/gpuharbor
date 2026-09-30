@@ -61,3 +61,14 @@ def test_setup_yes_uses_defaults():
     result = run("--yes", "--dry-run")
     assert "Bind-Adresse : 127.0.0.1" in result.stdout
     assert "Open WebUI   : nein" in result.stdout
+
+
+def test_setup_dry_run_can_connect_pi():
+    result = run("--dry-run", "--bind", "127.0.0.1", "--pi", "--start")
+    assert "scripts/install" in result.stdout and "--pi" in result.stdout
+    assert "scripts/connect-pi --url https://localhost:8443" in result.stdout
+
+
+def test_setup_dry_run_does_not_touch_pi_by_default():
+    result = run("--dry-run", "--bind", "127.0.0.1", "--start")
+    assert "--pi" not in result.stdout and "connect-pi" not in result.stdout

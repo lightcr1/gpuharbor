@@ -26,6 +26,7 @@ Run it again any time, for example after `git pull`. Add the apps you want:
 ./scripts/install --webui              # chat interface
 ./scripts/install --openhands          # coding agent (runs generated code)
 ./scripts/install --webui --openhands  # both
+./scripts/install --pi                 # connect the PI coding agent on this computer
 ```
 
 Prefer questions and checkboxes: `./scripts/setup`.
@@ -52,6 +53,9 @@ running model. Any OpenAI-compatible tool works with them.
 - **OpenHands** (`--openhands`): GPUHarbor writes an LLM profile for every model into
   OpenHands and activates the one for the running model. Nothing to configure. Profiles
   you create yourself are never touched.
+- **PI coding agent** (`--pi`, or `./scripts/connect-pi` any time): adds the models to
+  PI on this computer and can add an optional `/modelinfo` command. It asks before
+  installing anything extra; see [integrations/pi.md](integrations/pi.md).
 
 ## When something does not work
 

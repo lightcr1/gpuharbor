@@ -24,7 +24,7 @@ def test_pi_models_endpoint_needs_the_inference_token(app_client):
     assert ids[:2] == ["default", "coding-max"] and len(ids) == len(set(ids))
     first = body["models"][0]
     assert first["contextWindow"] == 65536 and first["maxTokens"] == 8192
-    assert "default" not in body["without_tool_calls"] and set(body["without_tool_calls"]) <= set(ids)
+    assert body["without_tool_calls"] == [], "llama.cpp profiles are not flagged; the vLLM ones have tool parsing"
     assert TOKEN not in json.dumps(body) and "c" * 40 not in json.dumps(body)
 
 
@@ -77,11 +77,21 @@ def test_writes_provider_and_keeps_everything_else(tmp_path, controller, env_fil
     provider = data["providers"]["gpuharbor"]
     assert provider["baseUrl"] == f"{controller}/v1" and provider["api"] == "openai-completions"
     assert provider["models"][0]["id"] == "default"
-    assert TOKEN not in models.read_text(encoding="utf-8"), "the token must not be copied into models.json"
-    assert provider["apiKey"].startswith("!") and "--print-token" in provider["apiKey"]
+    assert provider["apiKey"] == TOKEN
     assert (models.stat().st_mode & 0o777) == 0o600
     assert json.loads((tmp_path / "models.json.bak").read_text(encoding="utf-8")) == other
     assert "does not parse tool calls" in result.stdout
+
+
+def test_token_from_env_keeps_the_token_out_of_the_file(tmp_path, controller, env_file):
+    models = tmp_path / "models.json"
+    run("--env", str(env_file), "--url", controller, "--models-file", str(models), "--token-from-env")
+    text = models.read_text(encoding="utf-8")
+    assert TOKEN not in text
+    api_key = json.loads(text)["providers"]["gpuharbor"]["apiKey"]
+    assert api_key.startswith("!") and "--print-token" in api_key
+    # PI runs this through a shell; it must print the token.
+    assert subprocess.run(api_key[1:], shell=True, capture_output=True, text=True).stdout == TOKEN
 
 
 def test_token_command_prints_the_token(env_file):
@@ -126,3 +136,46 @@ def test_wrong_token_gives_a_hint(tmp_path, controller):
     env.write_text("MODEL_ACCESS_TOKEN=" + "x" * 40 + "\n", encoding="utf-8")
     result = run("--env", str(env), "--url", controller, "--models-file", str(tmp_path / "m.json"), check=False)
     assert result.returncode == 1 and "401" in result.stderr
+
+
+def test_modelinfo_is_opt_in(tmp_path, controller, env_file):
+    models = tmp_path / "agent" / "models.json"
+    ext = tmp_path / "agent" / "extensions" / "gpuharbor-modelinfo.ts"
+    args = ("--env", str(env_file), "--url", controller, "--models-file", str(models))
+
+    run(*args)  # not a terminal, no flag: nothing is installed and nothing is asked
+    assert not ext.exists()
+
+    run(*args, "--with-modelinfo")
+    assert ext.exists() and "registerCommand" in ext.read_text(encoding="utf-8")
+
+    run(*args)  # a later run keeps the user's earlier choice
+    assert ext.exists()
+
+    run(*args, "--no-modelinfo")
+    assert not ext.exists()
+
+    run(*args, "--with-modelinfo")
+    run("--env", str(env_file), "--models-file", str(models), "--remove")
+    assert not ext.exists()
+
+
+def test_foreign_extension_with_the_same_name_is_never_touched(tmp_path, controller, env_file):
+    models = tmp_path / "agent" / "models.json"
+    ext = tmp_path / "agent" / "extensions" / "gpuharbor-modelinfo.ts"
+    ext.parent.mkdir(parents=True)
+    ext.write_text("// my own\n", encoding="utf-8")
+    run("--env", str(env_file), "--url", controller, "--models-file", str(models), "--with-modelinfo")
+    run("--env", str(env_file), "--models-file", str(models), "--remove")
+    assert ext.read_text(encoding="utf-8") == "// my own\n"
+
+
+def test_running_model_endpoint(app_client):
+    client, main = app_client
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+    assert client.get("/api/running-model").status_code == 401
+    assert client.get("/api/running-model", headers=headers).json() == {"running": False}
+    main.store.write(main.ControllerState(pod_id="pod-1", model_id="qwen38-27b-fp8", gpu_type_id="NVIDIA A40"))
+    info = client.get("/api/running-model", headers=headers).json()
+    assert info["running"] and info["served_names"][0] == "default" and info["gpu"] == "NVIDIA A40"
+    assert "pod-1" not in json.dumps(info)
