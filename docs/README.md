@@ -12,7 +12,7 @@ Start here.
 - [Licensing](LICENSING.md)
 - [Third-party components](THIRD_PARTY.md)
 - [TLS details](TLS.md)
-- Integrations: [Open WebUI](integrations/open-webui.md), [OpenHands](integrations/openhands.md)
+- Integrations: [Open WebUI](integrations/open-webui.md), [OpenHands](integrations/openhands.md), [PI](integrations/pi.md)
 
 The running app also serves a short reference at `/docs`, for example
 `http://127.0.0.1:8080/docs`.

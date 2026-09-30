@@ -16,6 +16,7 @@ with your own LAN or VPN address.
 | [`init-env`](#init-env) | Create or update `.env` (secrets, addresses) |
 | [`add-host`](#add-host) | Allow more addresses to reach the dashboard |
 | [`set-runpod-key`](#set-runpod-key) | Store the RunPod API key safely |
+| [`connect-pi`](#connect-pi) | Add GPUHarbor's models to the PI coding agent |
 | [`generate-local-tls`](#generate-local-tls) | Create the local HTTPS certificate |
 | [`check-compose`](#check-compose) | Validate the Compose files |
 | [`check-local-release`](#check-local-release) | Run all checks before releasing |
@@ -114,6 +115,18 @@ restarted afterwards unless you pass `--no-restart`.
 
 ```bash
 ./scripts/set-runpod-key
+```
+
+## connect-pi
+
+Adds a `gpuharbor` provider with your models to PI's `models.json`. The token is
+read from `.env` when PI needs it and is not copied. Other providers are left alone.
+See [integrations/pi.md](integrations/pi.md).
+
+```bash
+./scripts/connect-pi
+./scripts/connect-pi --dry-run
+./scripts/connect-pi --remove
 ```
 
 ## generate-local-tls

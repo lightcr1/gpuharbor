@@ -4,6 +4,13 @@ All notable changes will be documented here once releases begin.
 
 ## Unreleased
 
+### Added
+
+- **PI coding agent.** `./scripts/connect-pi` adds your models to PI as a `gpuharbor`
+  provider. The inference token stays in `.env` and is read by a command PI runs; it is
+  not copied into PI's `models.json`. New endpoint `GET /api/pi-models` (inference token
+  only) lists the models for it. See `docs/integrations/pi.md`.
+
 ### Security
 
 - The controller now refuses to start when any credential is a template placeholder or

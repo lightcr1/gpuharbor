@@ -22,7 +22,7 @@ from .catalog import GPU_FALLBACK, MODEL_PRESETS, group_datacenters, region_labe
 from .config import Settings
 from .huggingface import LookupError, lookup as hf_lookup
 from .idle import should_stop_for_idle
-from .integrations import IntegrationSync, sync_openhands
+from .integrations import IntegrationSync, pi_models, pi_without_tools, sync_openhands
 from .registry import ModelDefinition, Registry
 from .runpod import LaunchOptions, RunpodClient, RunpodError, pod_status, proxy_url, resolve_launch
 from .security import LoginLimiter, SecurityHeadersMiddleware, SessionRegistry, bearer_token, redact_secrets, secure_equals
@@ -305,6 +305,13 @@ async def connection() -> dict:
     models_ = registry.models()
     served = models_[state.model_id].served_names if state.model_id in models_ else []
     return {"base_path": "/v1", "served_names": served, "model_id": state.model_id, "token": settings.model_access_token.get_secret_value()}
+
+
+@app.get("/api/pi-models", dependencies=[Depends(require_model_token)])
+async def pi_models_endpoint() -> dict:
+    """Models for PI (scripts/connect-pi). Readable with the inference token only; no secrets."""
+    catalog = registry.models()
+    return {"models": pi_models(catalog), "without_tool_calls": pi_without_tools(catalog)}
 
 
 @app.get("/api/settings", dependencies=[Depends(require_control)])

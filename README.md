@@ -32,6 +32,7 @@ Not affiliated with RunPod.
 - Add Open WebUI, OpenHands, both, or neither. Both are connected to your models
   automatically: Open WebUI finds the running model by itself, and OpenHands gets a
   ready-made profile for every model.
+- Use the models in the PI coding agent with one command: `./scripts/connect-pi`.
 - HTTPS by default, with a one-command check (`./scripts/doctor`) when something
   does not work.
 

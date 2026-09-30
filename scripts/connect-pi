@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+"""Connect the PI coding agent to your GPUHarbor models.
+
+Adds one provider named "gpuharbor" to PI's models.json. The inference token is
+not copied: PI runs a small command that reads it from this folder's .env each
+time, so rotating the token needs no second step. Every other provider in
+models.json is left as it is, and a backup is made first.
+
+    ./scripts/connect-pi                 # write the provider
+    ./scripts/connect-pi --dry-run       # show the result, change nothing
+    ./scripts/connect-pi --remove        # take the provider out again
+    ./scripts/connect-pi --url https://localhost:8443
+
+Only the model-only inference token is used. It cannot start, stop or delete pods.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shlex
+import shutil
+import ssl
+import sys
+import tempfile
+import urllib.error
+import urllib.request
+from pathlib import Path
+from urllib.parse import urlparse
+
+ROOT = Path(__file__).resolve().parents[1]
+PROVIDER = "gpuharbor"
+LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+
+
+def env_values(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip() and not line.lstrip().startswith("#") and "=" in line:
+            key, _, value = line.partition("=")
+            values[key.strip()] = value.strip().strip("'\"")
+    return values
+
+
+def default_url(env: dict[str, str]) -> str:
+    """HTTPS on the local proxy when it is set up, otherwise the plain controller port."""
+    if (ROOT / "tls" / "server.crt").exists() or (ROOT / "tls").is_dir():
+        return f"https://localhost:{env.get('TLS_PORT', '8443')}"
+    return "http://127.0.0.1:8080"
+
+
+def agent_dir() -> Path:
+    override = os.environ.get("PI_CODING_AGENT_DIR")
+    return Path(override).expanduser() if override else Path.home() / ".pi" / "agent"
+
+
+def fetch_models(url: str, token: str, insecure_ca: bool) -> dict:
+    context = None
+    if url.startswith("https://") and insecure_ca:
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+    request = urllib.request.Request(f"{url}/api/pi-models", headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(request, timeout=15, context=context) as response:  # noqa: S310 - scheme checked
+        return json.loads(response.read())
+
+
+def provider_entry(url: str, models: list[dict], env_path: Path, script: Path) -> dict:
+    token_command = f"!{shlex.quote(sys.executable)} {shlex.quote(str(script))} --print-token --env {shlex.quote(str(env_path))}"
+    return {
+        "baseUrl": f"{url}/v1",
+        "api": "openai-completions",
+        "apiKey": token_command,
+        # vLLM and llama.cpp take the classic system role and max_tokens, and know no reasoning_effort or store.
+        "compat": {
+            "supportsDeveloperRole": False,
+            "supportsReasoningEffort": False,
+            "supportsStore": False,
+            "maxTokensField": "max_tokens",
+        },
+        "models": models,
+    }
+
+
+def write_atomic(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle, temp = tempfile.mkstemp(dir=path.parent, prefix=".models-", suffix=".tmp")
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as file:
+            file.write(text)
+        os.chmod(temp, 0o600)
+        os.replace(temp, path)
+    except BaseException:
+        Path(temp).unlink(missing_ok=True)
+        raise
+
+
+def merge(existing: dict, entry: dict | None) -> dict:
+    """Add, replace or (entry None) remove only providers.gpuharbor."""
+    result = dict(existing)
+    providers = dict(result.get("providers") or {})
+    if entry is None:
+        providers.pop(PROVIDER, None)
+    else:
+        providers[PROVIDER] = entry
+    result["providers"] = providers
+    return result
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Connect the PI coding agent to GPUHarbor")
+    parser.add_argument("--env", default=str(ROOT / ".env"), help="path to GPUHarbor's .env")
+    parser.add_argument("--url", help="GPUHarbor address (default: this machine)")
+    parser.add_argument("--models-file", help="PI models.json (default: ~/.pi/agent/models.json)")
+    parser.add_argument("--remove", action="store_true", help="remove the gpuharbor provider")
+    parser.add_argument("--dry-run", action="store_true", help="print the result and change nothing")
+    parser.add_argument("--print-token", action="store_true", help=argparse.SUPPRESS)
+    args = parser.parse_args()
+
+    env_path = Path(args.env)
+    if not env_path.exists():
+        print(f"{env_path} does not exist. Run ./scripts/install first.", file=sys.stderr)
+        return 1
+    env = env_values(env_path)
+    token = env.get("MODEL_ACCESS_TOKEN", "")
+    if args.print_token:
+        sys.stdout.write(token)
+        return 0 if token else 1
+
+    agent = agent_dir()
+    target = Path(args.models_file) if args.models_file else agent / "models.json"
+    if not args.models_file and not (shutil.which("pi") or agent.exists()):
+        print("PI was not found (no `pi` command and no ~/.pi/agent). Install PI first, then run this again.", file=sys.stderr)
+        return 1
+
+    try:
+        existing = json.loads(target.read_text(encoding="utf-8")) if target.exists() else {}
+        if not isinstance(existing, dict):
+            raise ValueError("top level is not an object")
+    except (ValueError, OSError) as error:
+        print(f"Cannot read {target}: {error}. Nothing was changed.", file=sys.stderr)
+        return 1
+
+    entry = None
+    if not args.remove:
+        if not token or "replace" in token or len(token) < 16:
+            print("MODEL_ACCESS_TOKEN in .env is missing or a placeholder. Run ./scripts/init-env.", file=sys.stderr)
+            return 1
+        url = (args.url or default_url(env)).rstrip("/")
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            print(f"Not a usable address: {url}", file=sys.stderr)
+            return 1
+        if parsed.scheme == "http" and parsed.hostname not in LOOPBACK:
+            print(
+                f"Refusing to send the token in plain HTTP to {parsed.hostname}. "
+                "Use https:// (see docs/TLS.md), or a VPN address over https.",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            info = fetch_models(url, token, insecure_ca=False)
+        except ssl.SSLError as error:
+            print(f"The HTTPS certificate is not trusted here: {error}\nRun ./scripts/trust-ca and try again.", file=sys.stderr)
+            return 1
+        except urllib.error.HTTPError as error:
+            hint = " The token in .env does not match the running controller; restart it." if error.code == 401 else ""
+            print(f"GPUHarbor answered HTTP {error.code}.{hint}", file=sys.stderr)
+            return 1
+        except (urllib.error.URLError, OSError, ValueError) as error:
+            reason = getattr(error, "reason", error)
+            if isinstance(reason, ssl.SSLError):
+                print(f"The HTTPS certificate is not trusted here: {reason}\nRun ./scripts/trust-ca and try again.", file=sys.stderr)
+            else:
+                print(f"Cannot reach GPUHarbor at {url}: {reason}. Is it running? (./scripts/doctor)", file=sys.stderr)
+            return 1
+        models = info.get("models") or []
+        if not models:
+            print("GPUHarbor lists no enabled models.", file=sys.stderr)
+            return 1
+        entry = provider_entry(url, models, env_path.resolve(), Path(__file__).resolve())
+        for served in info.get("without_tool_calls", []):
+            print(f"Note: '{served}' does not parse tool calls, so PI's tools will not work with it.")
+
+    text = json.dumps(merge(existing, entry), indent=2) + "\n"
+    if args.dry_run:
+        print(text, end="")
+        return 0
+    if target.exists():
+        backup = target.with_name(target.name + ".bak")
+        shutil.copy2(target, backup)
+        os.chmod(backup, 0o600)
+    write_atomic(target, text)
+    if entry is None:
+        print(f"Removed the gpuharbor provider from {target}.")
+    else:
+        names = ", ".join(model["id"] for model in entry["models"])
+        print(f"Added provider 'gpuharbor' ({names}) to {target}.")
+        print("Start the model in GPUHarbor, then pick it in PI with /model or `pi --provider gpuharbor`.")
+        print("PI can run commands and change files: use it in a dedicated workspace.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

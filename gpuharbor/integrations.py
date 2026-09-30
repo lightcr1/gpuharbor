@@ -46,6 +46,38 @@ def openhands_llm(model: ModelDefinition, token: str, base_url: str = CONTROLLER
     }
 
 
+def pi_models(models: dict[str, ModelDefinition]) -> list[dict[str, Any]]:
+    """Model entries for the ``gpuharbor`` provider in PI's models.json.
+
+    One entry per profile, named by its first served name. A served name that an
+    earlier profile already uses is skipped so the ids stay unique.
+    """
+    entries: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for model in models.values():
+        served = model.served_names[0]
+        if model.status == "disabled" or served in seen:
+            continue
+        seen.add(served)
+        entries.append(
+            {
+                "id": served,
+                "name": model.name,
+                "reasoning": False,
+                "input": ["text", "image"] if "vision" in model.capabilities else ["text"],
+                "contextWindow": model.context_length,
+                "maxTokens": max(1024, min(8192, model.context_length // 4)),
+            }
+        )
+    return entries
+
+
+def pi_without_tools(models: dict[str, ModelDefinition]) -> list[str]:
+    """Served names of the entries above whose profile does not parse tool calls (PI's tools would not work)."""
+    listed = {entry["id"] for entry in pi_models(models)}
+    return sorted({m.served_names[0] for m in models.values() if not m.enable_auto_tool_choice} & listed)
+
+
 def desired_profiles(models: dict[str, ModelDefinition], token: str) -> dict[str, dict[str, Any]]:
     desired: dict[str, dict[str, Any]] = {}
     for model_id, model in models.items():
