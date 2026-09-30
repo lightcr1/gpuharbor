@@ -32,6 +32,7 @@ Not affiliated with RunPod.
 - Add Open WebUI, OpenHands, both, or neither. Both are connected to your models
   automatically: Open WebUI finds the running model by itself, and OpenHands gets a
   ready-made profile for every model.
+- Use the models in the PI coding agent with one command: `./scripts/connect-pi`.
 - HTTPS by default, with a one-command check (`./scripts/doctor`) when something
   does not work.
 
@@ -56,7 +57,8 @@ everything and waits until it answers. Then:
 3. Follow the **Getting started** checklist in the dashboard: store your RunPod key
    (`./scripts/set-runpod-key`), pick a model, start a pod.
 
-Add `--webui` and/or `--openhands` to the install command for the apps. Something
+Add `--webui` and/or `--openhands` to the install command for the apps, and `--pi` to
+connect the [PI coding agent](docs/integrations/pi.md) on this computer. Something
 not working? Run `./scripts/doctor`. For a LAN or the interactive variant see
 [Setup](docs/SETUP.md). The app explains every field at `/docs`.
 

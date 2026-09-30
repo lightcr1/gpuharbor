@@ -250,7 +250,7 @@ Image wäre beliebige Codeausführung.</p>
 <table>
 <tr><th>Skript</th><th>Zweck</th></tr>
 <tr><td><code>./scripts/install</code></td><td>Installieren oder aktualisieren; erzeugt <code>.env</code> und startet.</td></tr>
-<tr><td><code>./scripts/setup</code></td><td>Interaktive Rückfragen (Bind-Adresse, HTTPS, Open WebUI, OpenHands).</td></tr>
+<tr><td><code>./scripts/setup</code></td><td>Interaktive Rückfragen (Bind-Adresse, HTTPS, Open WebUI, OpenHands, PI).</td></tr>
 <tr><td><code>./scripts/doctor</code></td><td>Installation prüfen und in einfachen Worten sagen, was zu tun ist.</td></tr>
 <tr><td><code>./scripts/trust-ca</code></td><td>Lokales HTTPS-Zertifikat auf diesem Rechner vertrauen (fragt vor sudo).</td></tr>
 <tr><td><code>./scripts/init-env</code></td><td><code>.env</code> mit zufälligen Secrets und Adressen anlegen/aktualisieren.</td></tr>
@@ -291,6 +291,13 @@ Von Hand: Als Anbieter
 <code>http://controller:8080/v1</code> und <code>MODEL_ACCESS_TOKEN</code> nutzen.</p>
 <p class="muted">OpenHands kann Code ausführen und Dateien ändern. Nur mit einem
 leeren, eigenen Arbeitsverzeichnis verwenden.</p>
+<h3>PI Coding Agent (auf deinem Rechner)</h3>
+<pre>./scripts/install --pi      # oder jederzeit: ./scripts/connect-pi</pre>
+<p>Installiert eine kleine Erweiterung in PI, die die Modelle, die GPUHarbor gerade
+betreibt, als Anbieter <code>gpuharbor</code> (jedes mit eigenem Namen) auflistet und
+<code>/modelinfo</code> ergänzt. Sie prüft, ob PI installiert ist, und nutzt nur
+<code>MODEL_ACCESS_TOKEN</code>. Details in
+<code>docs/integrations/pi.md</code>.</p>
 </section>
 
 <section id="https">

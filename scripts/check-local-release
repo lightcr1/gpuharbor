@@ -15,10 +15,12 @@ import re
 for path in Path('.').rglob('*.json'):
     json.loads(path.read_text(encoding='utf-8'))
 html = Path('gpuharbor/static/index.html').read_text(encoding='utf-8')
-scripts = re.findall(r'<script>(.*?)</script>', html, re.S)
+scripts = re.findall(r'<script src="/static/([^"]+\.js)"', html)
 if not scripts:
     raise SystemExit('Dashboard JavaScript not found')
-Path('/tmp/gpuharbor-ui.js').write_text('\n'.join(scripts), encoding='utf-8')
+for name in scripts:
+    if not Path('gpuharbor/static', name).exists():
+        raise SystemExit(f'Dashboard script missing: {name}')
 missing = []
 markdown = sorted(path for path in Path('.').rglob('*.md') if '.git' not in path.parts)
 for doc in markdown:
@@ -31,16 +33,27 @@ for doc in markdown:
 if missing:
     raise SystemExit(f'Missing documentation links: {missing}')
 PY
-node --check /tmp/gpuharbor-ui.js
+for script in gpuharbor/static/*.js; do node --check "$script"; done
 ./scripts/check-compose
 
-if rg -n --hidden --glob '!*.pyc' --glob '!__pycache__/**' \
-  --glob '!.pytest_cache/**' --glob '!tls/**' \
-  '(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|rp_[A-Za-z0-9]{20,}|hf_[A-Za-z0-9]{20,})' .; then
+# ripgrep when available, plain grep otherwise, so the scans never silently do nothing.
+search() {
+  pattern=$1
+  shift
+  if command -v rg >/dev/null 2>&1; then
+    rg -n --hidden --glob '!*.pyc' --glob '!__pycache__/**' --glob '!.git/**' \
+      --glob '!.pytest_cache/**' --glob '!tls/**' "$@" -e "$pattern" .
+  else
+    grep -rInE --exclude-dir=.git --exclude-dir=tls --exclude-dir=.pytest_cache \
+      --exclude-dir=__pycache__ --exclude='*.pyc' "$@" -e "$pattern" .
+  fi
+}
+
+if search '(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|rp_[A-Za-z0-9]{20,}|hf_[A-Za-z0-9]{20,})'; then
   echo 'Potential secret found.' >&2
   exit 1
 fi
-if rg -n -i --hidden --glob '!*.pyc' --glob '!.pytest_cache/**' 'pod''deck|pod'' deck' .; then
+if search 'pod''deck|pod'' deck' -i; then
   echo 'Stale project name found.' >&2
   exit 1
 fi

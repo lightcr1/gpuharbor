@@ -247,7 +247,7 @@ image would mean arbitrary code execution.</p>
 <table>
 <tr><th>Script</th><th>Purpose</th></tr>
 <tr><td><code>./scripts/install</code></td><td>Install or update; creates <code>.env</code> and starts the stack.</td></tr>
-<tr><td><code>./scripts/setup</code></td><td>Interactive questions (bind address, HTTPS, Open WebUI, OpenHands).</td></tr>
+<tr><td><code>./scripts/setup</code></td><td>Interactive questions (bind address, HTTPS, Open WebUI, OpenHands, PI).</td></tr>
 <tr><td><code>./scripts/doctor</code></td><td>Check the installation and say in plain words what to fix.</td></tr>
 <tr><td><code>./scripts/trust-ca</code></td><td>Trust the local HTTPS certificate on this computer (asks before sudo).</td></tr>
 <tr><td><code>./scripts/init-env</code></td><td>Create or update <code>.env</code> with random secrets and addresses.</td></tr>
@@ -287,6 +287,12 @@ running model. Profiles you made yourself are never touched. By hand, as the pro
 <code>http://controller:8080/v1</code> and <code>MODEL_ACCESS_TOKEN</code>.</p>
 <p class="muted">OpenHands can run code and change files. Use an empty, dedicated
 workspace.</p>
+<h3>PI coding agent (on your computer)</h3>
+<pre>./scripts/install --pi      # or, any time: ./scripts/connect-pi</pre>
+<p>Installs a small extension into PI that lists the models GPUHarbor is running as the
+provider <code>gpuharbor</code> (each with its own name) and adds <code>/modelinfo</code>.
+It checks that PI is installed and uses only <code>MODEL_ACCESS_TOKEN</code>. Details in
+<code>docs/integrations/pi.md</code>.</p>
 </section>
 
 <section id="https">

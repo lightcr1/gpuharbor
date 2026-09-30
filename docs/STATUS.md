@@ -13,8 +13,9 @@ Last checked: 2026-09-29.
 - Open WebUI: verified with a running pod on a real GPU.
 - OpenHands: the profile sync is tested against a real OpenHands container and a full Compose stack.
 - Optional Open WebUI, OpenHands Agent Canvas and local HTTPS.
+- PI coding agent: `./scripts/connect-pi`, also offered by `install` and `setup`. Verified with a running pod.
 - Published runtime images, so a fresh install does not build anything.
-- 121 tests and a CI workflow on GitHub.
+- 137 tests and a CI workflow on GitHub.
 - Dashboard and docs available in English and German (`/docs` and `/docs/de`),
   the sidebar highlights the current section.
 - Settings dialog with an opt-in update-notification toggle (off by default) and

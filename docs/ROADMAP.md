@@ -5,6 +5,7 @@
 - Controller, dashboard, cost lock, model catalog with overrides.
 - Curated vLLM, llama.cpp and Bonsai profiles.
 - Optional Open WebUI, OpenHands and local HTTPS.
+- PI coding agent: `scripts/connect-pi` (live model list, `/modelinfo`).
 - Update-safe catalog, import/export, region selection, GPU picker.
 - Bilingual dashboard and docs (English and German) with a current-section
   sidebar highlight.
@@ -13,7 +14,7 @@
 - Settings dialog with an opt-in update-notification toggle and an update pill.
 - `scripts/add-host` and `docs/SCRIPTS.md`.
 - Published runtime images.
-- CI and 121 tests.
+- CI and 137 tests.
 
 ## Next
 

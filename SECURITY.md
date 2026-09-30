@@ -55,6 +55,8 @@ Open WebUI or OpenHands on the public internet.
 
 Open WebUI gets only the inference token. OpenHands gets its own backend key and
 can run code, so give it an empty workspace and review what it changes.
+The PI coding agent (`scripts/connect-pi`) also gets only the inference token, stored in
+PI's `gpuharbor.json` with mode 600. PI can run commands too; use a dedicated workspace.
 
 ## Reporting
 

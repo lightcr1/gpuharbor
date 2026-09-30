@@ -54,7 +54,7 @@ en:{
  "onb.ready":"Model is loaded","onb.ready_hint":"Wait until the status on the right says the model is loaded, then use it from any app.",
  "connect.title":"Connect an app","connect.hint":"Any OpenAI-compatible app can use the running model with these values.",
  "connect.url":"Base URL","connect.model":"Model name","connect.token":"API key","connect.copy":"Copy","connect.copied":"Copied","connect.reveal":"Show","connect.hide":"Hide",
- "connect.apps_none":"Open WebUI and OpenHands are optional: ./scripts/install --webui --openhands",
+ "connect.apps_none":"Open WebUI and OpenHands are optional: ./scripts/install --webui --openhands","connect.pi":"PI coding agent on this computer: ./scripts/connect-pi",
  "connect.owui":"Open WebUI finds the model by itself while a pod runs.","connect.oh":"OpenHands has a profile for every model; the one for the running model is active.","connect.oh_wait":"OpenHands is being connected …",
  "sum.no_pod":"No managed pod."
 },
@@ -113,7 +113,7 @@ de:{
  "onb.ready":"Modell ist geladen","onb.ready_hint":"Warten, bis rechts „Modell geladen“ steht, dann in jeder App nutzen.",
  "connect.title":"App verbinden","connect.hint":"Jede OpenAI-kompatible App kann das laufende Modell mit diesen Werten nutzen.",
  "connect.url":"Basis-URL","connect.model":"Modellname","connect.token":"API-Key","connect.copy":"Kopieren","connect.copied":"Kopiert","connect.reveal":"Anzeigen","connect.hide":"Verbergen",
- "connect.apps_none":"Open WebUI und OpenHands sind optional: ./scripts/install --webui --openhands",
+ "connect.apps_none":"Open WebUI und OpenHands sind optional: ./scripts/install --webui --openhands","connect.pi":"PI Coding Agent auf diesem Rechner: ./scripts/connect-pi",
  "connect.owui":"Open WebUI findet das Modell selbst, solange ein Pod läuft.","connect.oh":"OpenHands hat ein Profil für jedes Modell; das zum laufenden Modell ist aktiv.","connect.oh_wait":"OpenHands wird verbunden …",
  "sum.no_pod":"Kein Pod verwaltet."
 }};
@@ -427,7 +427,9 @@ function renderConnectApps(){
   const lines=[];
   if(integrations.openwebui)lines.push(t('connect.owui'));
   if(integrations.openhands)lines.push(integrations.openhands.auto_configured?t('connect.oh'):t('connect.oh_wait'));
-  $('conn-apps').textContent=lines.length?lines.join(' '):t('connect.apps_none');
+  if(!lines.length)lines.push(t('connect.apps_none'));
+  lines.push(t('connect.pi'));
+  $('conn-apps').textContent=lines.join(' ');
 }
 async function loadConnection(){
   try{connection=await api('/api/connection')}catch{connection=null;return}

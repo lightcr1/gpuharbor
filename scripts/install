@@ -5,6 +5,7 @@ Examples:
     ./scripts/install                              # localhost, HTTPS (local certificate)
     ./scripts/install --webui                      # plus Open WebUI over HTTPS
     ./scripts/install --webui --openhands          # both apps; models are wired up for you
+    ./scripts/install --pi                         # also connect the PI coding agent on this computer
     ./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-port 9443
     ./scripts/install --bind-ip 0.0.0.0 --https 192.0.2.10 --tls-name 100.64.0.7 --tls-bind 0.0.0.0
     ./scripts/install --no-https                   # plain HTTP on localhost only
@@ -17,6 +18,7 @@ settings and secrets. Nothing here touches RunPod or spends money.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shutil
 import ssl
@@ -74,6 +76,23 @@ def env_value(name: str, default: str) -> str:
     return found
 
 
+def pi_available() -> bool:
+    override = os.environ.get("PI_CODING_AGENT_DIR")
+    agent = Path(override).expanduser() if override else Path.home() / ".pi" / "agent"
+    return shutil.which("pi") is not None or agent.exists()
+
+
+def connect_pi(base_url: str) -> None:
+    """Run scripts/connect-pi."""
+    if not pi_available():
+        print("\nPI was not found on this computer (no `pi` command, no ~/.pi/agent).")
+        print("Install PI first, then run:  ./scripts/connect-pi")
+        return
+    print("\nConnecting PI ...")
+    if run([sys.executable, "scripts/connect-pi", "--url", base_url], check=False).returncode != 0:
+        print("PI was not connected. Fix the message above and run:  ./scripts/connect-pi")
+
+
 def wait_until_healthy(url: str, authority: Path | None, seconds: int = 150) -> bool:
     context = ssl.create_default_context(cafile=str(authority)) if authority else None
     deadline = time.monotonic() + seconds
@@ -99,6 +118,8 @@ def main() -> int:
     parser.add_argument("--tls-port", default="8443", help="host port for the controller over HTTPS")
     parser.add_argument("--webui", action="store_true", help="also start Open WebUI")
     parser.add_argument("--openhands", action="store_true", help="also start OpenHands (runs generated code)")
+    parser.add_argument("--pi", action="store_true", help="also connect the PI coding agent (scripts/connect-pi)")
+    parser.add_argument("--no-pi", action="store_true", help="do not offer to connect the PI coding agent")
     parser.add_argument("--trust", action="store_true", help="trust the local certificate on this computer without asking")
     parser.add_argument("--no-trust", action="store_true", help="do not offer to trust the local certificate")
     parser.add_argument("--no-start", action="store_true", help="prepare .env/certs but do not start")
@@ -156,7 +177,11 @@ def main() -> int:
     dashboard = f"https://{shown}:{args.tls_port}/" if https_host else "http://localhost:8080/"
     authority = ROOT / "tls" / "local-ca.crt" if https_host else None
 
+    # PI runs on this computer: use the loopback port; Node does not trust the local HTTPS certificate.
+    base_url = "http://127.0.0.1:8080" if https_host else dashboard.rstrip("/")
     if args.dry_run:
+        if args.pi:
+            print("+", sys.executable, "scripts/connect-pi", "--url", base_url)
         return 0
 
     healthy = None
@@ -199,6 +224,18 @@ def main() -> int:
                 print("Later: ./scripts/trust-ca   (other devices: see docs/TLS.md)")
         else:
             print("Trust it with: ./scripts/trust-ca   (other devices: see docs/TLS.md)")
+
+    if not args.no_pi:
+        if args.pi and started:
+            connect_pi(base_url)
+        elif args.pi:
+            print("\nPI is connected once GPUHarbor runs:  ./scripts/connect-pi")
+        elif started and sys.stdin.isatty() and pi_available():
+            answer = input("\nPI coding agent found. Add GPUHarbor's models to it? [y/N] ").strip().lower()
+            if answer in {"y", "yes", "j", "ja"}:
+                connect_pi(base_url)
+            else:
+                print("Later: ./scripts/connect-pi")
 
     print("\nBilling stays locked until you set RUNPOD_ALLOW_BILLABLE_ACTIONS=true in .env")
     print("and run: docker compose up -d")

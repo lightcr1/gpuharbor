@@ -4,8 +4,28 @@ All notable changes will be documented here once releases begin.
 
 ## Unreleased
 
+## 0.1.6 - 2026-09-30
+
+### Added
+
+- **PI coding agent.** `./scripts/connect-pi` installs a small PI extension that lists the
+  models GPUHarbor is running right now as the provider `gpuharbor`, each with its own
+  name, so you pick and switch them in `/model`. It also adds `/modelinfo`. The token is
+  stored in `gpuharbor.json` (mode 600); `--token-from-env` reads it from `.env` instead.
+  `install --pi` and `setup` can connect it too (they check that PI is installed). New
+  endpoint `GET /api/running-model` (inference token only). See `docs/integrations/pi.md`.
+- The dashboard's *Connect an app* card points to `./scripts/connect-pi`.
+
+### Fixed
+
+- `./scripts/check-local-release` checked for inline dashboard scripts that no longer exist;
+  it now syntax-checks every `gpuharbor/static/*.js`.
+- The secret and stale-name scans in that script fell back to doing nothing when `rg` was not
+  installed; they now use `grep` instead.
+
 ### Security
 
+- The PI integration uses only the inference token, stored with mode 600; see `docs/integrations/pi.md`.
 - The controller now refuses to start when any credential is a template placeholder or
   shorter than 16 characters. This covers the Open WebUI and OpenHands secrets in
   `.env` as well, so a copied `.env.example` can never run. `doctor` reports the same.

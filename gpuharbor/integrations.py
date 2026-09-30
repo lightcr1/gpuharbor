@@ -46,6 +46,44 @@ def openhands_llm(model: ModelDefinition, token: str, base_url: str = CONTROLLER
     }
 
 
+def pi_models(models: dict[str, ModelDefinition]) -> list[dict[str, Any]]:
+    """Model entries for the ``gpuharbor`` provider in PI's models.json.
+
+    One entry per profile, named by its first served name. A served name that an
+    earlier profile already uses is skipped so the ids stay unique.
+    """
+    entries: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for model in models.values():
+        served = model.served_names[0]
+        if model.status == "disabled" or served in seen:
+            continue
+        seen.add(served)
+        entries.append(
+            {
+                "id": served,
+                "name": model.name,
+                "reasoning": False,
+                "input": ["text", "image"] if "vision" in model.capabilities else ["text"],
+                "contextWindow": model.context_length,
+                "maxTokens": max(1024, min(8192, model.context_length // 4)),
+                # vLLM and llama.cpp take the classic system role and max_tokens, and know no reasoning_effort or store.
+                "compat": {
+                    "supportsDeveloperRole": False,
+                    "supportsReasoningEffort": False,
+                    "supportsStore": False,
+                    "maxTokensField": "max_tokens",
+                },
+            }
+        )
+    return entries
+
+
+def pi_tool_calls(model: ModelDefinition) -> bool | None:
+    """Whether PI's tools can work: vLLM needs tool-call parsing; for llama.cpp it depends on the template (unknown)."""
+    return bool(model.enable_auto_tool_choice) if model.runtime == "vllm" else None
+
+
 def desired_profiles(models: dict[str, ModelDefinition], token: str) -> dict[str, dict[str, Any]]:
     desired: dict[str, dict[str, Any]] = {}
     for model_id, model in models.items():
