@@ -200,7 +200,11 @@ def main() -> int:
             print(f"The HTTPS certificate is not trusted here: {error}\nRun ./scripts/trust-ca and try again.", file=sys.stderr)
             return 1
         except urllib.error.HTTPError as error:
-            hint = " The token in .env does not match the running controller; restart it." if error.code == 401 else ""
+            hint = ""
+            if error.code == 401:
+                hint = " The token in .env does not match the running controller; restart it."
+            elif error.code == 404:
+                hint = " The running controller is older than this script. Update it: docker compose up -d --build controller"
             print(f"GPUHarbor answered HTTP {error.code}.{hint}", file=sys.stderr)
             return 1
         except (urllib.error.URLError, OSError, ValueError) as error:

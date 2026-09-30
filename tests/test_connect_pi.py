@@ -179,3 +179,21 @@ def test_running_model_endpoint(app_client):
     info = client.get("/api/running-model", headers=headers).json()
     assert info["running"] and info["served_names"][0] == "default" and info["gpu"] == "NVIDIA A40"
     assert "pod-1" not in json.dumps(info)
+
+
+def test_old_controller_gets_an_update_hint(tmp_path, env_file):
+    class Old(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            self.send_response(404)
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Old)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        result = run("--env", str(env_file), "--url", f"http://127.0.0.1:{server.server_port}", "--models-file", str(tmp_path / "m.json"), check=False)
+    finally:
+        server.shutdown()
+    assert result.returncode == 1 and "--build controller" in result.stderr
