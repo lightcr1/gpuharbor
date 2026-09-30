@@ -54,8 +54,8 @@ running model. Any OpenAI-compatible tool works with them.
   OpenHands and activates the one for the running model. Nothing to configure. Profiles
   you create yourself are never touched.
 - **PI coding agent** (`--pi`, or `./scripts/connect-pi` any time): adds the models to
-  PI on this computer and can add an optional `/modelinfo` command. It asks before
-  installing anything extra; see [integrations/pi.md](integrations/pi.md).
+  PI on this computer: PI lists the models that run, each with its own name, and gets a
+  `/modelinfo` command. See [integrations/pi.md](integrations/pi.md).
 
 ## When something does not work
 

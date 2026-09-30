@@ -83,7 +83,7 @@ def pi_available() -> bool:
 
 
 def connect_pi(base_url: str) -> None:
-    """Run scripts/connect-pi; it asks about /modelinfo itself when this is a terminal."""
+    """Run scripts/connect-pi."""
     if not pi_available():
         print("\nPI was not found on this computer (no `pi` command, no ~/.pi/agent).")
         print("Install PI first, then run:  ./scripts/connect-pi")

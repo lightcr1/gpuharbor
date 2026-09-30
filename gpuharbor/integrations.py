@@ -67,18 +67,21 @@ def pi_models(models: dict[str, ModelDefinition]) -> list[dict[str, Any]]:
                 "input": ["text", "image"] if "vision" in model.capabilities else ["text"],
                 "contextWindow": model.context_length,
                 "maxTokens": max(1024, min(8192, model.context_length // 4)),
+                # vLLM and llama.cpp take the classic system role and max_tokens, and know no reasoning_effort or store.
+                "compat": {
+                    "supportsDeveloperRole": False,
+                    "supportsReasoningEffort": False,
+                    "supportsStore": False,
+                    "maxTokensField": "max_tokens",
+                },
             }
         )
     return entries
 
 
-def pi_without_tools(models: dict[str, ModelDefinition]) -> list[str]:
-    """Served names of vLLM profiles that run without tool-call parsing (PI's tools would not work).
-
-    The flag is a vLLM setting. llama.cpp profiles are not listed: whether their tool calls work depends on the model's chat template.
-    """
-    listed = {entry["id"] for entry in pi_models(models)}
-    return sorted({m.served_names[0] for m in models.values() if m.runtime == "vllm" and not m.enable_auto_tool_choice} & listed)
+def pi_tool_calls(model: ModelDefinition) -> bool | None:
+    """Whether PI's tools can work: vLLM needs tool-call parsing; for llama.cpp it depends on the template (unknown)."""
+    return bool(model.enable_auto_tool_choice) if model.runtime == "vllm" else None
 
 
 def desired_profiles(models: dict[str, ModelDefinition], token: str) -> dict[str, dict[str, Any]]:

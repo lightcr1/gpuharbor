@@ -1,4 +1,4 @@
-"""PI integration: the model list endpoint and scripts/connect-pi against a fake controller."""
+"""PI integration: the running-model endpoint and scripts/connect-pi against a fake controller."""
 from __future__ import annotations
 
 import json
@@ -15,28 +15,40 @@ SCRIPT = ROOT / "scripts" / "connect-pi"
 TOKEN = "m" * 40
 
 
-def test_pi_models_endpoint_needs_the_inference_token(app_client):
-    app_client, _ = app_client
-    assert app_client.get("/api/pi-models").status_code == 401
-    assert app_client.get("/api/pi-models", headers={"Authorization": "Bearer " + "c" * 40}).status_code == 401
-    body = app_client.get("/api/pi-models", headers={"Authorization": f"Bearer {TOKEN}"}).json()
-    ids = [model["id"] for model in body["models"]]
-    assert ids[:2] == ["default", "coding-max"] and len(ids) == len(set(ids))
-    first = body["models"][0]
-    assert first["contextWindow"] == 65536 and first["maxTokens"] == 8192
-    assert body["without_tool_calls"] == [], "llama.cpp profiles are not flagged; the vLLM ones have tool parsing"
-    assert TOKEN not in json.dumps(body) and "c" * 40 not in json.dumps(body)
+def test_running_model_endpoint(app_client):
+    client, main = app_client
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+    assert client.get("/api/running-model").status_code == 401
+    assert client.get("/api/running-model", headers={"Authorization": "Bearer " + "c" * 40}).status_code == 401
+    assert client.get("/api/running-model", headers=headers).json() == {"running": False, "pi_models": []}
+
+    main.store.write(main.ControllerState(pod_id="pod-1", model_id="qwen38-27b-fp8", gpu_type_id="NVIDIA A40"))
+    info = client.get("/api/running-model", headers=headers).json()
+    assert info["running"] and info["served_names"][0] == "default" and info["gpu"] == "NVIDIA A40"
+    assert info["tool_calls"] is True
+    [entry] = info["pi_models"]
+    assert entry["id"] == "default" and entry["name"] == "Qwen3.8 27B FP8"
+    assert entry["contextWindow"] == 65536 and entry["maxTokens"] == 8192
+    assert entry["compat"]["maxTokensField"] == "max_tokens"
+    text = json.dumps(info)
+    assert "pod-1" not in text and TOKEN not in text and "c" * 40 not in text
+
+
+def test_only_the_running_model_is_listed(app_client):
+    client, main = app_client
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+    main.store.write(main.ControllerState(pod_id="pod-1", model_id="qwen3-coder-30b-fp8"))
+    ids = [m["id"] for m in client.get("/api/running-model", headers=headers).json()["pi_models"]]
+    assert ids == ["coding-max"]
 
 
 class FakeController(BaseHTTPRequestHandler):
-    payload = {"models": [{"id": "default", "name": "Qwen", "reasoning": False, "input": ["text"], "contextWindow": 65536, "maxTokens": 8192}], "without_tool_calls": ["default"]}
-
     def do_GET(self):  # noqa: N802
-        if self.path != "/api/pi-models" or self.headers.get("Authorization") != f"Bearer {TOKEN}":
+        if self.path != "/api/running-model" or self.headers.get("Authorization") != f"Bearer {TOKEN}":
             self.send_response(401)
             self.end_headers()
             return
-        data = json.dumps(self.payload).encode()
+        data = json.dumps({"running": False, "pi_models": []}).encode()
         self.send_response(200)
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
@@ -46,10 +58,15 @@ class FakeController(BaseHTTPRequestHandler):
         pass
 
 
+def serve(handler):
+    server = HTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
 @pytest.fixture()
 def controller():
-    server = HTTPServer(("127.0.0.1", 0), FakeController)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    server = serve(FakeController)
     yield f"http://127.0.0.1:{server.server_port}"
     server.shutdown()
 
@@ -65,120 +82,85 @@ def run(*args, check=True):
     return subprocess.run([sys.executable, str(SCRIPT), *args], capture_output=True, text=True, check=check)
 
 
-def test_writes_provider_and_keeps_everything_else(tmp_path, controller, env_file):
-    models = tmp_path / "models.json"
-    other = {"providers": {"openai-codex": {"modelOverrides": {"x": {"contextWindow": 1}}}}}
-    models.write_text(json.dumps(other), encoding="utf-8")
+def args_for(tmp_path, env_file, controller):
+    return ("--env", str(env_file), "--url", controller, "--agent-dir", str(tmp_path / "agent"))
 
-    result = run("--env", str(env_file), "--url", controller, "--models-file", str(models))
 
-    data = json.loads(models.read_text(encoding="utf-8"))
-    assert data["providers"]["openai-codex"] == other["providers"]["openai-codex"]
-    provider = data["providers"]["gpuharbor"]
-    assert provider["baseUrl"] == f"{controller}/v1" and provider["api"] == "openai-completions"
-    assert provider["models"][0]["id"] == "default"
-    assert provider["apiKey"] == TOKEN
-    assert (models.stat().st_mode & 0o777) == 0o600
-    assert json.loads((tmp_path / "models.json.bak").read_text(encoding="utf-8")) == other
-    assert "does not parse tool calls" in result.stdout
+def test_installs_extension_and_settings(tmp_path, controller, env_file):
+    agent = tmp_path / "agent"
+    run(*args_for(tmp_path, env_file, controller))
+
+    settings = agent / "gpuharbor.json"
+    assert json.loads(settings.read_text(encoding="utf-8")) == {"url": controller, "apiKey": TOKEN}
+    assert (settings.stat().st_mode & 0o777) == 0o600
+    extension = (agent / "extensions" / "gpuharbor.ts").read_text(encoding="utf-8")
+    assert "registerProvider" in extension and "/modelinfo" not in extension.split("\n", 1)[0]
+    assert not (agent / "models.json").exists(), "models.json is not touched when there is no old entry"
 
 
 def test_token_from_env_keeps_the_token_out_of_the_file(tmp_path, controller, env_file):
-    models = tmp_path / "models.json"
-    run("--env", str(env_file), "--url", controller, "--models-file", str(models), "--token-from-env")
-    text = models.read_text(encoding="utf-8")
+    run(*args_for(tmp_path, env_file, controller), "--token-from-env")
+    text = (tmp_path / "agent" / "gpuharbor.json").read_text(encoding="utf-8")
     assert TOKEN not in text
-    api_key = json.loads(text)["providers"]["gpuharbor"]["apiKey"]
+    api_key = json.loads(text)["apiKey"]
     assert api_key.startswith("!") and "--print-token" in api_key
-    # PI runs this through a shell; it must print the token.
     assert subprocess.run(api_key[1:], shell=True, capture_output=True, text=True).stdout == TOKEN
 
 
-def test_token_command_prints_the_token(env_file):
-    assert run("--env", str(env_file), "--print-token").stdout == TOKEN
+def test_old_models_json_entry_is_moved_out_and_others_are_kept(tmp_path, controller, env_file):
+    agent = tmp_path / "agent"
+    agent.mkdir()
+    other = {"providers": {"openai-codex": {"modelOverrides": {"x": {"contextWindow": 1}}}}}
+    (agent / "models.json").write_text(json.dumps({"providers": {**other["providers"], "gpuharbor": {"baseUrl": "x"}}}), encoding="utf-8")
+
+    run(*args_for(tmp_path, env_file, controller))
+
+    assert json.loads((agent / "models.json").read_text(encoding="utf-8")) == other
+    assert "gpuharbor" in (agent / "models.json.bak").read_text(encoding="utf-8")
 
 
-def test_remove_only_removes_our_provider(tmp_path, controller, env_file):
-    models = tmp_path / "models.json"
-    models.write_text(json.dumps({"providers": {"mine": {"baseUrl": "http://x"}}, "other": 1}), encoding="utf-8")
-    run("--env", str(env_file), "--url", controller, "--models-file", str(models))
-    run("--env", str(env_file), "--models-file", str(models), "--remove")
-    assert json.loads(models.read_text(encoding="utf-8")) == {"providers": {"mine": {"baseUrl": "http://x"}}, "other": 1}
+def test_remove_takes_everything_of_ours_out(tmp_path, controller, env_file):
+    agent = tmp_path / "agent"
+    run(*args_for(tmp_path, env_file, controller))
+    run("--env", str(env_file), "--agent-dir", str(agent), "--remove")
+    assert not (agent / "gpuharbor.json").exists()
+    assert not (agent / "extensions" / "gpuharbor.ts").exists()
 
 
-def test_dry_run_changes_nothing(tmp_path, controller, env_file):
-    models = tmp_path / "models.json"
-    result = run("--env", str(env_file), "--url", controller, "--models-file", str(models), "--dry-run")
-    assert "gpuharbor" in result.stdout and not models.exists()
+def test_foreign_extension_with_the_same_name_is_never_touched(tmp_path, controller, env_file):
+    ext = tmp_path / "agent" / "extensions" / "gpuharbor.ts"
+    ext.parent.mkdir(parents=True)
+    ext.write_text("// my own\n", encoding="utf-8")
+    result = run(*args_for(tmp_path, env_file, controller), check=False)
+    assert result.returncode == 1 and ext.read_text(encoding="utf-8") == "// my own\n"
+    assert not (tmp_path / "agent" / "gpuharbor.json").exists()
+    run("--env", str(env_file), "--agent-dir", str(tmp_path / "agent"), "--remove")
+    assert ext.read_text(encoding="utf-8") == "// my own\n"
 
 
-def test_broken_models_file_is_never_overwritten(tmp_path, controller, env_file):
-    models = tmp_path / "models.json"
-    models.write_text("{not json", encoding="utf-8")
-    result = run("--env", str(env_file), "--url", controller, "--models-file", str(models), check=False)
-    assert result.returncode == 1 and models.read_text(encoding="utf-8") == "{not json"
+def test_dry_run_changes_nothing_and_hides_the_token(tmp_path, controller, env_file):
+    result = run(*args_for(tmp_path, env_file, controller), "--dry-run")
+    assert TOKEN not in result.stdout and "<token>" in result.stdout
+    assert not (tmp_path / "agent").exists()
 
 
 def test_refuses_plain_http_to_a_remote_host(tmp_path, env_file):
-    result = run("--env", str(env_file), "--url", "http://192.0.2.10:8080", "--models-file", str(tmp_path / "m.json"), check=False)
+    result = run("--env", str(env_file), "--url", "http://192.0.2.10:8080", "--agent-dir", str(tmp_path / "a"), check=False)
     assert result.returncode == 1 and "plain HTTP" in result.stderr
 
 
 def test_refuses_placeholder_token(tmp_path, controller):
     env = tmp_path / ".env"
     env.write_text("MODEL_ACCESS_TOKEN=replace-with-a-model-only-random-secret\n", encoding="utf-8")
-    result = run("--env", str(env), "--url", controller, "--models-file", str(tmp_path / "m.json"), check=False)
-    assert result.returncode == 1 and not (tmp_path / "m.json").exists()
+    result = run("--env", str(env), "--url", controller, "--agent-dir", str(tmp_path / "a"), check=False)
+    assert result.returncode == 1 and not (tmp_path / "a").exists()
 
 
 def test_wrong_token_gives_a_hint(tmp_path, controller):
     env = tmp_path / ".env"
     env.write_text("MODEL_ACCESS_TOKEN=" + "x" * 40 + "\n", encoding="utf-8")
-    result = run("--env", str(env), "--url", controller, "--models-file", str(tmp_path / "m.json"), check=False)
+    result = run("--env", str(env), "--url", controller, "--agent-dir", str(tmp_path / "a"), check=False)
     assert result.returncode == 1 and "401" in result.stderr
-
-
-def test_modelinfo_is_opt_in(tmp_path, controller, env_file):
-    models = tmp_path / "agent" / "models.json"
-    ext = tmp_path / "agent" / "extensions" / "gpuharbor-modelinfo.ts"
-    args = ("--env", str(env_file), "--url", controller, "--models-file", str(models))
-
-    run(*args)  # not a terminal, no flag: nothing is installed and nothing is asked
-    assert not ext.exists()
-
-    run(*args, "--with-modelinfo")
-    assert ext.exists() and "registerCommand" in ext.read_text(encoding="utf-8")
-
-    run(*args)  # a later run keeps the user's earlier choice
-    assert ext.exists()
-
-    run(*args, "--no-modelinfo")
-    assert not ext.exists()
-
-    run(*args, "--with-modelinfo")
-    run("--env", str(env_file), "--models-file", str(models), "--remove")
-    assert not ext.exists()
-
-
-def test_foreign_extension_with_the_same_name_is_never_touched(tmp_path, controller, env_file):
-    models = tmp_path / "agent" / "models.json"
-    ext = tmp_path / "agent" / "extensions" / "gpuharbor-modelinfo.ts"
-    ext.parent.mkdir(parents=True)
-    ext.write_text("// my own\n", encoding="utf-8")
-    run("--env", str(env_file), "--url", controller, "--models-file", str(models), "--with-modelinfo")
-    run("--env", str(env_file), "--models-file", str(models), "--remove")
-    assert ext.read_text(encoding="utf-8") == "// my own\n"
-
-
-def test_running_model_endpoint(app_client):
-    client, main = app_client
-    headers = {"Authorization": f"Bearer {TOKEN}"}
-    assert client.get("/api/running-model").status_code == 401
-    assert client.get("/api/running-model", headers=headers).json() == {"running": False}
-    main.store.write(main.ControllerState(pod_id="pod-1", model_id="qwen38-27b-fp8", gpu_type_id="NVIDIA A40"))
-    info = client.get("/api/running-model", headers=headers).json()
-    assert info["running"] and info["served_names"][0] == "default" and info["gpu"] == "NVIDIA A40"
-    assert "pod-1" not in json.dumps(info)
 
 
 def test_old_controller_gets_an_update_hint(tmp_path, env_file):
@@ -190,10 +172,9 @@ def test_old_controller_gets_an_update_hint(tmp_path, env_file):
         def log_message(self, *args):
             pass
 
-    server = HTTPServer(("127.0.0.1", 0), Old)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    server = serve(Old)
     try:
-        result = run("--env", str(env_file), "--url", f"http://127.0.0.1:{server.server_port}", "--models-file", str(tmp_path / "m.json"), check=False)
+        result = run("--env", str(env_file), "--url", f"http://127.0.0.1:{server.server_port}", "--agent-dir", str(tmp_path / "a"), check=False)
     finally:
         server.shutdown()
     assert result.returncode == 1 and "--build controller" in result.stderr

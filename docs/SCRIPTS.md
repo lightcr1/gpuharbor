@@ -120,15 +120,14 @@ restarted afterwards unless you pass `--no-restart`.
 
 ## connect-pi
 
-Adds a `gpuharbor` provider with your models to PI's `models.json`. The inference
-token is stored there too (mode 600); `--token-from-env` reads it from `.env` instead.
-Other providers are left alone.
+Installs a small extension into PI that lists the models GPUHarbor is running as the
+provider `gpuharbor` and adds `/modelinfo`. Settings go to `gpuharbor.json` (token, mode
+600; `--token-from-env` reads it from `.env` instead). PI's `models.json` is not touched.
 See [integrations/pi.md](integrations/pi.md).
 
 ```bash
 ./scripts/connect-pi
 ./scripts/connect-pi --dry-run
-./scripts/connect-pi --with-modelinfo     # also the optional /modelinfo command
 ./scripts/connect-pi --remove
 ```
 

@@ -289,9 +289,9 @@ running model. Profiles you made yourself are never touched. By hand, as the pro
 workspace.</p>
 <h3>PI coding agent (on your computer)</h3>
 <pre>./scripts/install --pi      # or, any time: ./scripts/connect-pi</pre>
-<p>Adds your models to PI as the provider <code>gpuharbor</code> and checks that PI is
-installed. Only <code>MODEL_ACCESS_TOKEN</code> is used. The script can also add an
-optional <code>/modelinfo</code> command; it asks first. Details in
+<p>Installs a small extension into PI that lists the models GPUHarbor is running as the
+provider <code>gpuharbor</code> (each with its own name) and adds <code>/modelinfo</code>.
+It checks that PI is installed and uses only <code>MODEL_ACCESS_TOKEN</code>. Details in
 <code>docs/integrations/pi.md</code>.</p>
 </section>
 

@@ -6,10 +6,12 @@ All notable changes will be documented here once releases begin.
 
 ### Added
 
-- **PI coding agent.** `./scripts/connect-pi` adds your models to PI as a `gpuharbor`
-  provider. The inference token is stored in PI's `models.json` (mode 600); with
-  `--token-from-env` it is read from `.env` on every request instead. New endpoint `GET /api/pi-models` (inference token
-  only) lists the models for it. `install --pi` and `setup` can connect it too (they check that PI is installed). Optional `/modelinfo` command for PI (asked for by the script, off by default). See `docs/integrations/pi.md`.
+- **PI coding agent.** `./scripts/connect-pi` installs a small PI extension that lists the
+  models GPUHarbor is running right now as the provider `gpuharbor`, each with its own
+  name, so you pick and switch them in `/model`. It also adds `/modelinfo`. The token is
+  stored in `gpuharbor.json` (mode 600); `--token-from-env` reads it from `.env` instead.
+  `install --pi` and `setup` can connect it too (they check that PI is installed). New
+  endpoint `GET /api/running-model` (inference token only). See `docs/integrations/pi.md`.
 
 ### Security
 
