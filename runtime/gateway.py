@@ -56,22 +56,48 @@ def build_vllm_command() -> list[str]:
     return command + validated
 
 
+# Fixed sampler presets (Qwen's recommendations). llama.cpp's own defaults differ
+# (temp 0.8, top-k 40, min-p 0.05); a client that sends its own values still wins.
+SAMPLING_PRESETS = {
+    "qwen-thinking": ["--temp", "1.0", "--top-k", "20", "--top-p", "0.95", "--min-p", "0", "--presence-penalty", "0"],
+    "qwen-instruct": [
+        "--temp", "0.7", "--top-k", "20", "--top-p", "0.8", "--min-p", "0", "--presence-penalty", "1.5",
+        "--reasoning", "off",
+    ],
+}
+
+
 def build_llama_command(model_path: str) -> list[str]:
     context = int(os.getenv("MAX_MODEL_LEN", "32768"))
     parallel = int(os.getenv("MAX_NUM_SEQS", "2"))
     if context < 1 or parallel < 1:
         raise ValueError("Context and parallelism must be positive")
-    return [
+    command = [
         "/app/llama-server", "--model", model_path, "--host", "127.0.0.1", "--port", "8001",
         "--ctx-size", str(context * parallel), "--parallel", str(parallel), "--n-gpu-layers", "99",
         "--alias", os.environ["SERVED_MODEL_NAMES"],
     ]
+    speculative = os.getenv("SPECULATIVE", "")
+    if speculative:
+        if speculative != "mtp":
+            raise ValueError("Unsupported speculative mode")
+        # Embedded multi-token prediction; the output is identical, only faster.
+        command += ["--spec-type", "draft-mtp", "--spec-draft-n-max", "3"]
+    preset = os.getenv("SAMPLING_PRESET", "")
+    if preset:
+        if preset not in SAMPLING_PRESETS:
+            raise ValueError("Unsupported sampling preset")
+        command += SAMPLING_PRESETS[preset]
+    return command
 
 
 async def runtime_command() -> list[str]:
     backend = os.getenv("RUNTIME_BACKEND", "vllm")
     if backend == "vllm":
         return build_vllm_command()
+    if backend == "diffusers":
+        # The media server loads the pipeline itself and reports 503 on /health until it is ready.
+        return ["python3", "/opt/gpuharbor/media_server.py"]
     if backend not in {"llama", "bonsai"}:
         raise ValueError("Unknown runtime backend")
     from huggingface_hub import hf_hub_download
@@ -115,14 +141,20 @@ def authorize(value: str | None) -> None:
 
 
 @app.get("/health")
-async def health(authorization: str | None = Header(default=None)) -> dict[str, str]:
+async def health(authorization: str | None = Header(default=None)) -> dict[str, object]:
     authorize(authorization)
     try:
         response = await app.state.client.get(f"{INTERNAL_URL}/health", timeout=3)
         response.raise_for_status()
     except httpx.HTTPError as error:
         raise HTTPException(status_code=503, detail=f"Model loading: {error}") from error
-    return {"status": "ready"}
+    result: dict[str, object] = {"status": "ready"}
+    try:
+        # The media server reports a running render; the controller must not stop the pod then.
+        result["busy"] = bool(response.json().get("busy"))
+    except (ValueError, AttributeError):
+        pass
+    return result
 
 
 @app.api_route("/v1/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])

@@ -23,6 +23,15 @@ CONTROLLER_V1 = "http://controller:8080/v1"
 _PROFILE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 
+def output_limit(context_length: int) -> int:
+    """Largest answer a client may ask for: half the context, at most 32k.
+
+    Thinking models spend thousands of tokens before the first visible word, and a
+    single file write can be long; a small cap cuts the answer off mid tool call.
+    """
+    return max(1024, min(32768, context_length // 2))
+
+
 def profile_name(model_id: str) -> str:
     return f"{PROFILE_PREFIX}{model_id}"[:64].rstrip("-.")
 
@@ -36,7 +45,7 @@ def openhands_llm(model: ModelDefinition, token: str, base_url: str = CONTROLLER
         # Native tool calls need the server to run with --enable-auto-tool-choice.
         # Everywhere else OpenHands falls back to prompt-based function calling.
         "native_tool_calling": bool(model.enable_auto_tool_choice),
-        "max_output_tokens": max(1024, min(8192, model.context_length // 4)),
+        "max_output_tokens": output_limit(model.context_length),
         # A cold pod can take minutes to load weights before the first answer.
         "timeout": 600,
         # Options meant for hosted providers; a local OpenAI-compatible server ignores or rejects them.
@@ -56,7 +65,8 @@ def pi_models(models: dict[str, ModelDefinition]) -> list[dict[str, Any]]:
     seen: set[str] = set()
     for model in models.values():
         served = model.served_names[0]
-        if model.status == "disabled" or served in seen:
+        # Image and video models are not chat models; PI would list them as something to talk to.
+        if model.status == "disabled" or model.slot == "media" or served in seen:
             continue
         seen.add(served)
         entries.append(
@@ -66,7 +76,7 @@ def pi_models(models: dict[str, ModelDefinition]) -> list[dict[str, Any]]:
                 "reasoning": False,
                 "input": ["text", "image"] if "vision" in model.capabilities else ["text"],
                 "contextWindow": model.context_length,
-                "maxTokens": max(1024, min(8192, model.context_length // 4)),
+                "maxTokens": output_limit(model.context_length),
                 # vLLM and llama.cpp take the classic system role and max_tokens, and know no reasoning_effort or store.
                 "compat": {
                     "supportsDeveloperRole": False,
@@ -87,7 +97,7 @@ def pi_tool_calls(model: ModelDefinition) -> bool | None:
 def desired_profiles(models: dict[str, ModelDefinition], token: str) -> dict[str, dict[str, Any]]:
     desired: dict[str, dict[str, Any]] = {}
     for model_id, model in models.items():
-        if model.status == "disabled":
+        if model.status == "disabled" or model.slot == "media":
             continue
         name = profile_name(model_id)
         if _PROFILE_NAME.fullmatch(name):

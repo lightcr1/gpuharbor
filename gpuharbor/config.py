@@ -34,6 +34,7 @@ class Settings(BaseSettings):
 
     runpod_api_base: str = "https://api.runpod.io/v2"
     runpod_pod_name: str = "gpuharbor-model"
+    runpod_media_pod_name: str = "gpuharbor-media"
     runpod_datacenter_ids: str = "EU-SE-1,CA-MTL-1"
     runpod_container_disk_gb: int = 20
     runpod_idle_stop_minutes: int = 30
@@ -51,6 +52,7 @@ class Settings(BaseSettings):
     runtime_image_vllm: str = ""
     runtime_image_llama_cpp: str = ""
     runtime_image_bonsai: str = ""
+    runtime_image_diffusers: str = ""
     huggingface_token: SecretStr | None = None
 
     # models_path is the legacy mutable catalog and is migrated once if present.
@@ -59,6 +61,7 @@ class Settings(BaseSettings):
     bundled_models_path: Path = Path("registry/models.json")
     runtimes_path: Path = Path("registry/runtimes.json")
     state_path: Path = Path("/data/state.json")
+    media_state_path: Path = Path("/data/state-media.json")
     preferences_path: Path = Path("/data/preferences.json")
 
     @field_validator("gpuharbor_update_repo")
@@ -112,11 +115,15 @@ class Settings(BaseSettings):
         hosts = self.configured_hosts
         return hosts + [name for name in INTERNAL_HOSTS if name not in hosts]
 
+    def pod_name(self, slot: str) -> str:
+        return self.runpod_media_pod_name if slot == "media" else self.runpod_pod_name
+
     def runtime_image(self, runtime_id: str) -> str:
         return {
             "vllm": self.runtime_image_vllm,
             "llama-cpp": self.runtime_image_llama_cpp,
             "bonsai": self.runtime_image_bonsai,
+            "diffusers": self.runtime_image_diffusers,
         }.get(runtime_id, "")
 
     def runtime_image_ready(self, runtime_id: str) -> bool:

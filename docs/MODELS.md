@@ -31,7 +31,8 @@ filename list. Nothing is saved until you press Save.
 The important fields:
 
 - **Runtime** — `vllm` for safetensors (FP8/BF16), `llama-cpp` for GGUF files,
-  `bonsai` for the experimental ternary fork.
+  `bonsai` for the experimental ternary fork, `diffusers` for image and video models
+  (see [MEDIA.md](MEDIA.md); those run on their own pod).
 - **GGUF file** — only for GGUF runtimes, and it must be the exact filename from
   the repository.
 - **Served names** — the names the API answers to, for example `default, chat`.
@@ -41,6 +42,19 @@ The important fields:
 
 Save a new profile as `experimental` and `verified: false` until it has really
 run on a GPU.
+
+## llama.cpp options
+
+- **Speed-up (MTP)** — `--spec-type draft-mtp`. The model drafts a few tokens ahead and
+  verifies them in one pass; the output is the same, generation is faster, and it needs a
+  little more VRAM. It needs a GGUF that contains the MTP layer and the llama.cpp image of
+  0.1.7 or newer.
+- **Sampling** — `qwen-thinking` (temp 1.0, top-k 20, top-p 0.95) or `qwen-instruct`
+  (temp 0.7, top-k 20, top-p 0.8, presence 1.5, thinking off). Without a preset llama.cpp
+  uses its own defaults. A client that sends its own values overrides the preset.
+
+Both can be chosen when you start a pod; a profile can also set a default
+(`speculative`, `sampling`). Changing them does not require a new pod.
 
 ## vLLM options
 

@@ -19,5 +19,12 @@
     "backend": "bonsai",
     "supports_gguf": true,
     "status": "experimental"
+  },
+  "diffusers": {
+    "label": "Diffusers (image and video)",
+    "image_env": "RUNTIME_IMAGE_DIFFUSERS",
+    "backend": "diffusers",
+    "supports_gguf": false,
+    "status": "experimental"
   }
 }

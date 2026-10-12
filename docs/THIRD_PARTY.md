@@ -10,6 +10,9 @@ legal advice. Recheck before any release.
 | `Qwen/Qwen3.8-27B-FP8` | Apache-2.0 | no | repo and files exist |
 | `Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8` | Apache-2.0 | no | repo and files exist |
 | `HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive` | Apache-2.0 | no | requested `.gguf` exists |
+| `HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF` | Apache-2.0 | no | requested `.gguf` exists |
+| `Wan-AI/Wan2.2-TI2V-5B-Diffusers` | Apache-2.0 | no | not run yet |
+| `Qwen/Qwen-Image` | Apache-2.0 | no | not run yet |
 | `prism-ml/Ternary-Bonsai-2-27B-gguf` | Apache-2.0 | no | requested `.gguf`, LICENSE, NOTICE exist |
 
 "Checked" means the repository and filenames were there and the model card lists

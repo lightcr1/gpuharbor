@@ -10,6 +10,7 @@ Prerequisites:
     docker build -f runtime/Dockerfile.vllm      -t gpuharbor-runtime:vllm-local      runtime
     docker build -f runtime/Dockerfile.llama-cpp -t gpuharbor-runtime:llama-local     runtime
     docker build -f runtime/Dockerfile.bonsai    -t gpuharbor-runtime:bonsai-local    runtime
+    docker build -f runtime/Dockerfile.diffusers -t gpuharbor-runtime:diffusers-local runtime
 
 Then:
     ./scripts/publish-runtime-images --owner lightcr1 --tag 0.1.0
@@ -24,7 +25,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-RUNNERS = {"vllm": "vllm-local", "llama-cpp": "llama-local", "bonsai": "bonsai-local"}
+RUNNERS = {"vllm": "vllm-local", "llama-cpp": "llama-local", "bonsai": "bonsai-local", "diffusers": "diffusers-local"}
 
 
 def output(command: list[str]) -> str:

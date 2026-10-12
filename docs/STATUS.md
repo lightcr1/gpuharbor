@@ -27,21 +27,23 @@ Last checked: 2026-09-29.
 
 ## Runtime images
 
-These are on GHCR, tagged `0.1.4` for linux/amd64. They are referenced by digest
+These are on GHCR for linux/amd64: vLLM and Bonsai are tagged `0.1.4`, llama.cpp and
+diffusers `0.1.7`. They are referenced by digest
 in `.env.example`, so RunPod pulls them directly.
 
 | Runtime | Image |
 |---|---|
 | vLLM | `ghcr.io/lightcr1/gpuharbor-runtime-vllm@sha256:47046f391746a94e442b238ad5b57d84d69c4854670858bed459e3cbc98254e4` |
-| llama.cpp | `ghcr.io/lightcr1/gpuharbor-runtime-llama-cpp@sha256:83816656a93f6d6e959ce9c0e17352eb3c4d1fa665114eed6946453ce7b9e31e` |
+| llama.cpp | `ghcr.io/lightcr1/gpuharbor-runtime-llama-cpp@sha256:a27699ef722de14c24110833a23f210585ad60e51aa9f188836d659058039426` |
 | Bonsai | `ghcr.io/lightcr1/gpuharbor-runtime-bonsai@sha256:d1ad005bc0f3a213be68b199665de35c3ce7c0c66a8af7c9fcc858fc94725662` |
+| diffusers | `ghcr.io/lightcr1/gpuharbor-runtime-diffusers@sha256:16f2d45b9b2244bd30fb10375adede23434d4bac9178384486ac842b1e9ae5f1` |
 
 GHCR packages are private when first pushed. RunPod pulls without credentials, so
 they were set to public in the web UI. Verify with:
 
 ```bash
 docker logout ghcr.io
-docker pull ghcr.io/lightcr1/gpuharbor-runtime-llama-cpp:0.1.4
+docker pull ghcr.io/lightcr1/gpuharbor-runtime-llama-cpp:0.1.7
 ```
 
 To publish new images, build them on a machine with enough disk and run
