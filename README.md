@@ -32,6 +32,8 @@ Not affiliated with RunPod.
 - Add Open WebUI, OpenHands, both, or neither. Both are connected to your models
   automatically: Open WebUI finds the running model by itself, and OpenHands gets a
   ready-made profile for every model.
+- Run image and video models (Wan 2.2, Qwen-Image) on their own pod, next to the chat
+  pod. See [docs/MEDIA.md](docs/MEDIA.md).
 - Use the models in the PI coding agent with one command: `./scripts/connect-pi`.
 - HTTPS by default, with a one-command check (`./scripts/doctor`) when something
   does not work.

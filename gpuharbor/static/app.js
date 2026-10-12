@@ -14,7 +14,8 @@ en:{
  "btn.save":"Save","btn.cancel":"Cancel","btn.delete_profile":"Delete profile","btn.reset":"Reset to default",
  "lookup.button":"Look up on Hugging Face","lookup.busy":"Looking up …","lookup.found":"Found: ","lookup.failed":"Lookup failed: ","lookup.gguf":"GGUF files: ",
  "output.title":"Output","output.simple":"Simple","output.pretty":"Pretty","output.raw":"Raw","output.ready":"Ready. Billable actions are locked by default.","output.wait":"Please wait …",
- "status.title":"Status","status.loading":"Loading …","status.refresh":"Refresh","status.none":"No managed pod","status.error":"Error: ",
+ "status.title":"Status","status.loading":"Loading …","status.refresh":"Refresh","status.none":"No managed pod","status.error":"Error: ","field.speculative":"Speed-up (MTP)","field.sampling":"Sampling","opt.profile_default":"Profile default","opt.off":"Off","opt.mtp":"MTP on","opt.server_default":"Server default","opt.qwen_thinking":"Qwen thinking","opt.qwen_instruct":"Qwen instruct (no thinking)","hint.speculative":"Same output, faster generation, a little more VRAM. llama.cpp only.","hint.sampling":"Qwen's recommended values. A client that sends its own values overrides them.",
+ "slot.chat":"Chat pod","slot.media":"Image and video pod","slot.group_chat":"Chat models","slot.group_media":"Image and video models","slot.media_hint":"Runs on its own pod, next to the chat pod.","connect.media":"Image/video model",
  "ready.unknown":"Model status unknown","ready.none":"No pod — model status n/a","ready.loaded":"Model loaded","ready.loading":"Model loading …","ready.label":"Model status",
  "catalog.title":"Model catalog","catalog.hint":"Shipped profiles survive upgrades; your profiles and overrides are stored separately.",
  "catalog.new":"New model","catalog.edit":"Edit selected","catalog.export":"Export","catalog.import":"Import",
@@ -73,7 +74,8 @@ de:{
  "btn.save":"Speichern","btn.cancel":"Abbrechen","btn.delete_profile":"Profil löschen","btn.reset":"Auf Standard zurücksetzen",
  "lookup.button":"Bei Hugging Face nachsehen","lookup.busy":"Suche läuft …","lookup.found":"Gefunden: ","lookup.failed":"Suche fehlgeschlagen: ","lookup.gguf":"GGUF-Dateien: ",
  "output.title":"Ausgabe","output.simple":"Einfach","output.pretty":"Schön","output.raw":"Roh","output.ready":"Bereit. Kostenpflichtige Aktionen sind standardmäßig gesperrt.","output.wait":"Bitte warten …",
- "status.title":"Status","status.loading":"Wird geladen …","status.refresh":"Aktualisieren","status.none":"Kein Pod verwaltet","status.error":"Fehler: ",
+ "status.title":"Status","status.loading":"Wird geladen …","status.refresh":"Aktualisieren","status.none":"Kein Pod verwaltet","status.error":"Fehler: ","field.speculative":"Beschleunigung (MTP)","field.sampling":"Sampling","opt.profile_default":"Profil-Standard","opt.off":"Aus","opt.mtp":"MTP an","opt.server_default":"Server-Standard","opt.qwen_thinking":"Qwen Denkmodus","opt.qwen_instruct":"Qwen Instruct (ohne Denken)","hint.speculative":"Gleiche Ausgabe, schnellere Generierung, etwas mehr VRAM. Nur llama.cpp.","hint.sampling":"Von Qwen empfohlene Werte. Ein Client, der eigene Werte sendet, überschreibt sie.",
+ "slot.chat":"Chat-Pod","slot.media":"Bild- und Video-Pod","slot.group_chat":"Chat-Modelle","slot.group_media":"Bild- und Videomodelle","slot.media_hint":"Läuft auf einem eigenen Pod, neben dem Chat-Pod.","connect.media":"Bild-/Videomodell",
  "ready.unknown":"Modellstatus unbekannt","ready.none":"Kein Pod — Modellstatus n/a","ready.loaded":"Modell geladen","ready.loading":"Modell lädt …","ready.label":"Modellstatus",
  "catalog.title":"Modellkatalog","catalog.hint":"Mitgelieferte Profile überleben Updates; eigene Profile und Anpassungen liegen getrennt.",
  "catalog.new":"Neues Modell","catalog.edit":"Gewähltes bearbeiten","catalog.export":"Exportieren","catalog.import":"Importieren",
@@ -140,7 +142,7 @@ function applyLang(){
   if(typeof renderOnboarding==='function'&&Object.keys(models).length){renderOnboarding();renderConnectApps()}
 }
 
-let gpuSource='live',modelReady=false,connection=null,integrations={},tokenShown=false,models={},runtimes={},settingsData={},gpuOptions=[],regions=[],presets={},csrfToken='',podActive=false,lastRaw='',lastKey=null,updateInfo=null,theme=document.documentElement.dataset.theme||'blue';
+let gpuSource='live',modelReady=false,connection=null,integrations={},tokenShown=false,models={},runtimes={},settingsData={},gpuOptions=[],regions=[],presets={},csrfToken='',podActive=false,slotActive={chat:false,media:false},slotReady={chat:false,media:false},lastRaw='',lastKey=null,updateInfo=null,theme=document.documentElement.dataset.theme||'blue';
 let mode='simple';
 const $=id=>document.getElementById(id), output=$('output'), editor=$('editor'), settingsDialog=$('settings');
 
@@ -267,11 +269,14 @@ async function loadCatalog(){
   models=m;runtimes=r;settingsData=s;gpuOptions=g.gpus||[];gpuSource=g.source||'live';regions=reg.regions||[];presets=p;
   const old=$('model').value;
   $('model').replaceChildren();
+  const groups={chat:document.createElement('optgroup'),media:document.createElement('optgroup')};
+  groups.chat.label=t('slot.group_chat');groups.media.label=t('slot.group_media');
   for(const [id,mm] of Object.entries(models)){
     const o=document.createElement('option');o.value=id;
     o.textContent=mm.name+' · '+(runtimes[mm.runtime]?.label||mm.runtime)+(mm.verified?' ✓':'');
-    $('model').append(o);
+    groups[slotOf(mm)].append(o);
   }
+  for(const g of Object.values(groups))if(g.children.length)$('model').append(g);
   $('model').value=models[old]?old:(Object.keys(models).find(id=>models[id].active)||Object.keys(models)[0]||'');
   $('region').replaceChildren(new Option(t('start.auto_region'),''));
   for(const item of regions){const o=document.createElement('option');o.value=item.id;o.textContent=item.label;$('region').append(o)}
@@ -322,10 +327,18 @@ function regionChanged(){
   for(const dc of dcs)$('datacenter').append(new Option(dc,dc));
   $('datacenter').disabled=!dcs.length;
 }
+const slotOf=m=>(m&&(m.capabilities||[]).some(c=>c==='image'||c==='video'))?'media':'chat';
+const currentSlot=()=>slotOf(models[$('model').value]);
 function selectModel(){
   const m=models[$('model').value];
   if(!m)return;
-  $('model-description').textContent=m.description||'';
+  const media=slotOf(m)==='media';
+  for(const id of ['context','sequences','memory'])$(id).closest('.field').classList.toggle('hidden',media);
+  $('llama-options').classList.toggle('hidden',m.runtime!=='llama-cpp');
+  $('speculative').value='';$('sampling').value='';
+  podActive=slotActive[slotOf(m)];modelReady=slotReady[slotOf(m)];
+  renderOnboarding();
+  $('model-description').textContent=(m.description||'')+(media?' '+t('slot.media_hint'):'');
   $('badges').replaceChildren();
   [t('badge.'+m.status),m.license,t('badge.'+m.source),m.overridden?t('badge.override'):null,m.gated?t('badge.gated'):null,
    m.verified?t('badge.verified'):t('badge.unverified'),runtimes[m.runtime]?.label]
@@ -356,35 +369,43 @@ function launch(){
     gpu_type_id:$('gpu').value||null,
     datacenter_id:$('datacenter').value||null,
     region:$('region').value||null,
-    volume_gb:+$('volume').value
+    volume_gb:+$('volume').value,
+    speculative:$('speculative').value||null,
+    sampling:$('sampling').value||null
   };
 }
 const plan=()=>action('/api/pod/plan','POST',launch());
 const preflight=()=>action('/api/runpod/preflight','POST',launch());
 async function startPod(){if(!confirm(t('confirm.start')))return;await action('/api/pod/start','POST',launch())}
-const stopPod=()=>action('/api/pod/stop');
-async function deletePod(){if(confirm(t('confirm.delete')))await action('/api/pod','DELETE')}
+const stopPod=()=>action('/api/pod/stop?slot='+currentSlot());
+async function deletePod(){if(confirm(t('confirm.delete')))await action('/api/pod?slot='+currentSlot(),'DELETE')}
 function setLine(el,state,text){
   const dot=document.createElement('span');dot.className='dot'+(state?' '+state:'');
   el.replaceChildren(dot,document.createTextNode(text));
 }
+const SLOT_IDS={chat:['status','ready'],media:['status-media','ready-media']};
 async function loadStatus(){
-  try{
-    const s=await api('/api/status');
-    podActive=!!s.pod;
-    const label=s.pod?((s.pod.status||'UNKNOWN')+(s.model_id?' · '+s.model_id:'')):t('status.none');
-    setLine($('status'),s.pod?'ok':'',label);
-    return s;
-  }catch(err){setLine($('status'),'bad',t('status.error')+err.message)}
+  await Promise.all(Object.entries(SLOT_IDS).map(async([slot,[statusId]])=>{
+    try{
+      const s=await api('/api/status?slot='+slot);
+      slotActive[slot]=!!s.pod;
+      const label=s.pod?((s.pod.status||'UNKNOWN')+(s.model_id?' · '+s.model_id:'')):t('status.none');
+      setLine($(statusId),s.pod?'ok':'',label);
+    }catch(err){slotActive[slot]=false;setLine($(statusId),'bad',t('status.error')+err.message)}
+  }));
+  podActive=slotActive[currentSlot()];
 }
 async function loadReady(){
-  if(!podActive){modelReady=false;setLine($('ready'),'',t('ready.none'));renderOnboarding();return}
-  try{
-    const d=await api('/api/model/ready');
-    modelReady=!!d.ready;
-    renderOnboarding();
-    setLine($('ready'),d.ready?'ok':'wait',(d.ready?t('ready.loaded'):t('ready.loading'))+(d.detail?' — '+d.detail:''));
-  }catch(err){setLine($('ready'),'bad',t('ready.unknown')+': '+err.message)}
+  await Promise.all(Object.entries(SLOT_IDS).map(async([slot,[,readyId]])=>{
+    if(!slotActive[slot]){slotReady[slot]=false;setLine($(readyId),'',t('ready.none'));return}
+    try{
+      const d=await api('/api/model/ready?slot='+slot);
+      slotReady[slot]=!!d.ready;
+      setLine($(readyId),d.ready?'ok':'wait',(d.ready?t('ready.loaded'):t('ready.loading'))+(d.detail?' — '+d.detail:''));
+    }catch(err){slotReady[slot]=false;setLine($(readyId),'bad',t('ready.unknown')+': '+err.message)}
+  }));
+  modelReady=slotReady[currentSlot()];
+  renderOnboarding();
 }
 async function refreshStatus(){await loadStatus();await loadReady();loadConnection();renderOnboarding()}
 function onboardingDismissed(){try{return localStorage.getItem('gh-onb-dismissed')==='1'}catch(e){return false}}
@@ -437,6 +458,8 @@ async function loadConnection(){
   const selected=(models[$('model').value]||{}).served_names||[];
   $('conn-model').textContent=(connection.served_names||[])[0]||selected[0]||'—';
   $('conn-token').textContent=tokenShown?connection.token:'••••••••';
+  const mediaOn=!!(connection.media&&connection.media.running);
+  $('conn-media').textContent=mediaOn?connection.media.served_names[0]:'—';
 }
 function revealToken(){
   tokenShown=!tokenShown;

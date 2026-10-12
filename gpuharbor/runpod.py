@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import quote
 
 import httpx
@@ -26,6 +26,9 @@ class LaunchOptions(BaseModel):
     datacenter_id: str | None = None
     region: str | None = None
     volume_gb: int | None = Field(default=None, ge=10, le=1000)
+    # "none" / "default" switch a profile default off for this start.
+    speculative: Literal["none", "mtp"] | None = None
+    sampling: Literal["default", "qwen-thinking", "qwen-instruct"] | None = None
 
 
 class ResolvedLaunch(BaseModel):
@@ -38,6 +41,8 @@ class ResolvedLaunch(BaseModel):
     gpu_type_ids: list[str]
     datacenter_ids: list[str]
     volume_gb: int
+    speculative: str | None = None
+    sampling: str | None = None
 
     @model_validator(mode="after")
     def ensure_candidates(self) -> "ResolvedLaunch":
@@ -58,6 +63,14 @@ def resolve_launch(
         raise ValueError("Selected datacenter is not configured")
     if options.datacenter_id and options.region:
         raise ValueError("Choose either a region or a specific datacenter, not both")
+    speculative = model.speculative if options.speculative is None else (
+        None if options.speculative == "none" else options.speculative
+    )
+    sampling = model.sampling if options.sampling is None else (
+        None if options.sampling == "default" else options.sampling
+    )
+    if (speculative or sampling) and model.runtime != "llama-cpp":
+        raise ValueError("Speculative decoding and sampling presets are only available on llama-cpp models")
     return ResolvedLaunch(
         profile_id=options.model_id,
         profile=model,
@@ -68,6 +81,8 @@ def resolve_launch(
         gpu_type_ids=[options.gpu_type_id] if options.gpu_type_id else model.gpu_type_ids,
         datacenter_ids=[options.datacenter_id] if options.datacenter_id else default_datacenters,
         volume_gb=options.volume_gb or model.volume_gb,
+        speculative=speculative,
+        sampling=sampling,
     )
 
 
@@ -95,6 +110,13 @@ def runtime_env(launch: ResolvedLaunch, gateway_token: str, hf_token: str | None
     }
     if launch.profile.gguf_file:
         env["GGUF_FILENAME"] = launch.profile.gguf_file
+    if launch.speculative:
+        env["SPECULATIVE"] = launch.speculative
+    if launch.sampling:
+        env["SAMPLING_PRESET"] = launch.sampling
+    if launch.profile.media_pipeline:
+        env["MEDIA_PIPELINE"] = launch.profile.media_pipeline
+        env["MEDIA_CAPABILITIES"] = ",".join(launch.profile.capabilities)
     if hf_token:
         env["HF_TOKEN"] = hf_token
     return env
@@ -141,7 +163,7 @@ class RunpodClient:
             else None
         )
         return {
-            "name": self.settings.runpod_pod_name,
+            "name": self.settings.pod_name(launch.profile.slot),
             "image": self.settings.runtime_image(launch.profile.runtime),
             "cloud": "SECURE",
             "gpu": {"id": gpu, "count": 1},
@@ -207,7 +229,7 @@ class RunpodClient:
     async def create_pod(self, launch: ResolvedLaunch) -> dict[str, Any]:
         existing = [
             pod for pod in await self.list_pods()
-            if pod.get("name") == self.settings.runpod_pod_name
+            if pod.get("name") == self.settings.pod_name(launch.profile.slot)
             and pod_status(pod) != "TERMINATED"
         ]
         if existing:

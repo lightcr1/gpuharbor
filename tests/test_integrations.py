@@ -6,7 +6,7 @@ from pathlib import Path
 
 import httpx
 
-from gpuharbor.integrations import PROFILE_PREFIX, desired_profiles, openhands_llm, profile_name, sync_openhands
+from gpuharbor.integrations import PROFILE_PREFIX, desired_profiles, openhands_llm, output_limit, profile_name, sync_openhands
 from gpuharbor.registry import Registry
 
 ROOT = Path(__file__).parents[1]
@@ -60,7 +60,8 @@ def test_llm_settings_match_the_profile(tmp_path):
     assert coder["native_tool_calling"] is True  # this profile enables auto tool choice
     gguf = openhands_llm(catalog["ternary-bonsai-2-27b-ptq1"], "tok")
     assert gguf["native_tool_calling"] is False  # llama.cpp: prompt-based tool calls
-    assert 1024 <= gguf["max_output_tokens"] <= 8192
+    assert 1024 <= gguf["max_output_tokens"] <= 32768
+    assert output_limit(131072) == 32768 and output_limit(32768) == 16384 and output_limit(1000) == 1024
 
 
 async def test_first_sync_creates_a_profile_per_model_and_activates_one(tmp_path):

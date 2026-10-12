@@ -4,6 +4,37 @@ All notable changes will be documented here once releases begin.
 
 ## Unreleased
 
+## 0.1.7 - 2026-10-12
+
+### Added
+
+- **Image and video models.** New `diffusers` runtime with a small media server:
+  `POST /v1/images/generations`, and video jobs under `/v1/videos`. Profiles for Wan 2.2
+  TI2V 5B (video) and Qwen-Image (image), both experimental and not yet run on a GPU. See
+  `docs/MEDIA.md`.
+- **Two pods.** Chat models and image/video models run on separate pods, so you can have
+  one or both. The controller keeps a state file, a lock and an idle timer per pod; stop,
+  delete, status and readiness take a `slot` (`chat` or `media`). `/v1/images/*` and
+  `/v1/videos/*` go to the media pod, everything else to the chat pod.
+- Open WebUI image generation points at the image pod. OpenHands and PI skip media profiles.
+- Profiles for HauhauCS Qwen3.8 27B Aggressive (Q6 and Q8, 128k context on 48 GB).
+- **MTP and sampling presets for llama.cpp.** Two new start options (and profile defaults):
+  *Speed-up (MTP)* adds `--spec-type draft-mtp` (same output, faster generation), and
+  *Sampling* applies Qwen's recommended values (`qwen-thinking`, `qwen-instruct`), because
+  llama.cpp's own defaults differ from what vLLM takes from the model repository. Both are
+  read from the environment on every start, so they can be changed on a stopped pod without
+  recreating it and do not change the profile revision. They need the llama.cpp runtime
+  image of this release.
+
+### Fixed
+
+- Dashboard scripts and styles are now revalidated on every load (`Cache-Control: no-cache`
+  with ETag). Before, a browser could keep running the old `app.js` against the new page
+  after an upgrade, which showed raw translation keys.
+- PI and OpenHands could ask for at most 8192 output tokens. A thinking model used all of
+  them before the first tool call and the answer was cut off. The limit is now half the
+  context, up to 32768 tokens. PI reads it when it starts, so run `/reload` after updating.
+
 ## 0.1.6 - 2026-09-30
 
 ### Added

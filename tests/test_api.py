@@ -400,3 +400,10 @@ def test_v1_errors_use_the_openai_shape(app_client):
     assert "Start a pod" in body["error"]["message"] and body["detail"] == body["error"]["message"]
     # the dashboard API keeps the plain FastAPI shape
     assert client.get("/api/status").json() == {"detail": "Authentication required"}
+
+
+def test_static_files_are_revalidated_so_upgrades_are_not_stale(app_client):
+    client, _ = app_client
+    response = client.get("/static/app.js")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-cache"

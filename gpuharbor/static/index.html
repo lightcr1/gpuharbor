@@ -58,6 +58,10 @@
   <div class="field"><label for="memory" data-i18n="field.memory">GPU utilisation (0–1)</label><input id="memory" type="number" min="0.5" max="0.99" step="0.01"><span class="hint" data-i18n="hint.memory">Share of VRAM the runtime may use.</span></div>
   <div class="field"><label for="volume" data-i18n="field.volume">Volume (GB)</label><input id="volume" type="number" min="10" max="1000"><span class="hint" data-i18n="hint.volume">Space for the model cache.</span></div>
 </div>
+<div class="row fields" id="llama-options">
+  <div class="field"><label for="speculative" data-i18n="field.speculative">Speed-up (MTP)</label><select id="speculative"><option value="" data-i18n="opt.profile_default">Profile default</option><option value="none" data-i18n="opt.off">Off</option><option value="mtp" data-i18n="opt.mtp">MTP on</option></select><span class="hint" data-i18n="hint.speculative">Same output, faster generation, a little more VRAM. llama.cpp only.</span></div>
+  <div class="field"><label for="sampling" data-i18n="field.sampling">Sampling</label><select id="sampling"><option value="" data-i18n="opt.profile_default">Profile default</option><option value="default" data-i18n="opt.server_default">Server default</option><option value="qwen-thinking" data-i18n="opt.qwen_thinking">Qwen thinking</option><option value="qwen-instruct" data-i18n="opt.qwen_instruct">Qwen instruct (no thinking)</option></select><span class="hint" data-i18n="hint.sampling">Qwen's recommended values. A client that sends its own values overrides them.</span></div>
+</div>
 <div class="row">
   <div class="field"><label for="gpu" data-i18n="field.gpu">GPU</label><select id="gpu"></select><span class="hint" data-i18n="hint.gpu">Only GPUs allowed by this profile.</span><span id="gpu-cost" class="hint cost"></span></div>
 </div>
@@ -86,8 +90,12 @@
 </main><aside>
 
 <section class="card"><h2 data-i18n="status.title">Status</h2>
+<h3 class="subhead" data-i18n="slot.chat">Chat pod</h3>
 <div id="status"><span class="dot"></span><span data-i18n="status.loading">Loading …</span></div>
 <div id="ready" class="small status-line"><span class="dot"></span><span data-i18n="ready.unknown">Model status unknown</span></div>
+<h3 class="subhead" data-i18n="slot.media">Image and video pod</h3>
+<div id="status-media"><span class="dot"></span><span data-i18n="status.loading">Loading …</span></div>
+<div id="ready-media" class="small status-line"><span class="dot"></span><span data-i18n="ready.unknown">Model status unknown</span></div>
 <button class="secondary" data-click="refreshStatus" data-i18n="status.refresh">Refresh</button></section>
 
 <section class="card"><h2 data-i18n="connect.title">Connect an app</h2>
@@ -95,6 +103,7 @@
 <dl class="kv">
   <dt data-i18n="connect.url">Base URL</dt><dd><code id="conn-url"></code><button type="button" class="secondary small-btn" data-copy="conn-url" data-i18n="connect.copy">Copy</button></dd>
   <dt data-i18n="connect.model">Model name</dt><dd><code id="conn-model">—</code><button type="button" class="secondary small-btn" data-copy="conn-model" data-i18n="connect.copy">Copy</button></dd>
+  <dt data-i18n="connect.media">Image/video model</dt><dd><code id="conn-media">—</code><button type="button" class="secondary small-btn" data-copy="conn-media" data-i18n="connect.copy">Copy</button></dd>
   <dt data-i18n="connect.token">API key</dt><dd><code id="conn-token">••••••••</code><button type="button" class="secondary small-btn" data-click="revealToken" data-i18n="connect.reveal">Show</button><button type="button" class="secondary small-btn" data-copy="conn-token" data-i18n="connect.copy">Copy</button></dd>
 </dl>
 <p id="conn-apps" class="hint"></p>

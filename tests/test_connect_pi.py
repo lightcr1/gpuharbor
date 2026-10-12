@@ -28,7 +28,7 @@ def test_running_model_endpoint(app_client):
     assert info["tool_calls"] is True
     [entry] = info["pi_models"]
     assert entry["id"] == "default" and entry["name"] == "Qwen3.8 27B FP8"
-    assert entry["contextWindow"] == 65536 and entry["maxTokens"] == 8192
+    assert entry["contextWindow"] == 65536 and entry["maxTokens"] == 32768
     assert entry["compat"]["maxTokensField"] == "max_tokens"
     text = json.dumps(info)
     assert "pod-1" not in text and TOKEN not in text and "c" * 40 not in text

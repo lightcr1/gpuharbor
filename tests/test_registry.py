@@ -180,3 +180,16 @@ def test_repository_and_served_names_reject_argument_injection():
 def test_non_vllm_profile_rejects_vllm_flags():
     with pytest.raises(ValueError, match="only be used with"):
         model(runtime="llama-cpp", gguf_file="model.gguf", trust_remote_code=True)
+
+
+def test_speculative_and_sampling_do_not_change_the_profile_revision():
+    base = model()
+    tuned = model(runtime="llama-cpp", speculative="mtp", sampling="qwen-thinking")
+    plain = model(runtime="llama-cpp")
+    assert Registry.revision(tuned) == Registry.revision(plain)
+    assert Registry.revision(base) != Registry.revision(plain)
+
+
+def test_speculative_needs_the_llama_cpp_runtime():
+    with pytest.raises(ValueError):
+        model(runtime="vllm", speculative="mtp")

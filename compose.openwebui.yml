@@ -13,6 +13,13 @@ services:
       OPENAI_API_BASE_URL: http://controller:8080/v1
       OPENAI_API_KEY: ${MODEL_ACCESS_TOKEN:?Set MODEL_ACCESS_TOKEN}
       ENABLE_OLLAMA_API: "false"
+      # Image generation uses the image pod when one runs (served name "image").
+      ENABLE_IMAGE_GENERATION: "true"
+      IMAGE_GENERATION_ENGINE: openai
+      IMAGES_OPENAI_API_BASE_URL: http://controller:8080/v1
+      IMAGES_OPENAI_API_KEY: ${MODEL_ACCESS_TOKEN:?Set MODEL_ACCESS_TOKEN}
+      IMAGE_GENERATION_MODEL: image
+      IMAGE_SIZE: 1328x1328
       WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?Set WEBUI_SECRET_KEY}
     volumes:
       - open-webui-data:/app/backend/data

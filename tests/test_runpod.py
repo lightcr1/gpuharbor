@@ -207,3 +207,40 @@ async def test_lost_create_response_is_not_automatically_retried():
     finally:
         await client.close()
     assert post_count == 1
+
+
+def llama_profile(**overrides):
+    values = {
+        "name": "L", "model_id": "org/model", "runtime": "llama-cpp", "served_names": ["chat"],
+        "gpu_type_ids": ["NVIDIA A40"], "gguf_file": "m.gguf",
+    }
+    values.update(overrides)
+    return ModelDefinition(**values)
+
+
+def llama_runtime():
+    return RuntimeDefinition(label="llama", image_env="RUNTIME_IMAGE_LLAMA_CPP", backend="llama", supports_gguf=True)
+
+
+def test_start_options_override_the_profile_defaults():
+    profile = llama_profile(speculative="mtp", sampling="qwen-thinking")
+    inherit = resolve_launch(LaunchOptions(model_id="m"), profile, llama_runtime(), ["EU-SE-1"])
+    assert runtime_env(inherit, "g" * 40, None)["SPECULATIVE"] == "mtp"
+    off = resolve_launch(
+        LaunchOptions(model_id="m", speculative="none", sampling="default"), profile, llama_runtime(), ["EU-SE-1"]
+    )
+    env = runtime_env(off, "g" * 40, None)
+    assert "SPECULATIVE" not in env and "SAMPLING_PRESET" not in env
+    chosen = resolve_launch(
+        LaunchOptions(model_id="m", sampling="qwen-instruct"), llama_profile(), llama_runtime(), ["EU-SE-1"]
+    )
+    assert runtime_env(chosen, "g" * 40, None)["SAMPLING_PRESET"] == "qwen-instruct"
+
+
+def test_speculative_start_option_is_refused_on_other_runtimes():
+    vllm = ModelDefinition(
+        name="V", model_id="org/model", runtime="vllm", served_names=["chat"], gpu_type_ids=["NVIDIA A40"]
+    )
+    runtime = RuntimeDefinition(label="v", image_env="RUNTIME_IMAGE_VLLM", backend="vllm")
+    with pytest.raises(ValueError):
+        resolve_launch(LaunchOptions(model_id="m", speculative="mtp"), vllm, runtime, ["EU-SE-1"])

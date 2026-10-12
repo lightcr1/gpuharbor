@@ -23,7 +23,7 @@ CATALOG_SCHEMA_VERSION = 1
 class RuntimeDefinition(BaseModel):
     label: str = Field(min_length=1, max_length=100)
     image_env: str
-    backend: Literal["vllm", "llama", "bonsai"]
+    backend: Literal["vllm", "llama", "bonsai", "diffusers"]
     supports_gguf: bool = False
     status: Literal["stable", "experimental"] = "experimental"
 
@@ -41,7 +41,7 @@ class ModelDefinition(BaseModel):
     model_id: str = Field(min_length=3, max_length=250)
     runtime: str
     served_names: list[str] = Field(min_length=1, max_length=8)
-    capabilities: list[Literal["chat", "code", "tools", "vision"]] = Field(default_factory=list)
+    capabilities: list[Literal["chat", "code", "tools", "vision", "image", "video"]] = Field(default_factory=list)
     context_length: int = Field(default=32768, ge=1024, le=262144)
     max_sequences: int = Field(default=2, ge=1, le=32)
     gpu_memory_utilization: float = Field(default=0.9, ge=0.5, le=0.99)
@@ -56,6 +56,16 @@ class ModelDefinition(BaseModel):
     reasoning_parser: Literal["qwen3"] | None = None
     tool_call_parser: Literal["qwen3_coder"] | None = None
     enable_auto_tool_choice: bool = False
+    # Only for image and video models: which fixed pipeline the diffusers runtime builds.
+    media_pipeline: Literal["wan22-ti2v", "qwen-image"] | None = None
+    # llama.cpp only. Defaults for a start; both can be changed per start without a new pod.
+    speculative: Literal["mtp"] | None = None
+    sampling: Literal["qwen-thinking", "qwen-instruct"] | None = None
+
+    @property
+    def slot(self) -> str:
+        """Chat models and media models run on separate pods."""
+        return "media" if {"image", "video"} & set(self.capabilities) else "chat"
 
     @field_validator("name", "description", "license")
     @classmethod
@@ -112,6 +122,19 @@ class ModelDefinition(BaseModel):
             raise ValueError("vLLM options can only be used with the vllm runtime")
         if self.enable_auto_tool_choice and self.tool_call_parser is None:
             raise ValueError("Automatic tool choice requires a tool-call parser")
+        if (self.speculative or self.sampling) and self.runtime != "llama-cpp":
+            raise ValueError("Speculative decoding and sampling presets are for the llama-cpp runtime")
+        if self.slot == "media":
+            if self.media_pipeline is None:
+                raise ValueError("Image and video models need a media pipeline")
+            if self.runtime != "diffusers":
+                raise ValueError("Image and video models run on the diffusers runtime")
+            if {"chat", "code", "tools", "vision"} & set(self.capabilities):
+                raise ValueError("A model is either a chat model or an image/video model")
+            if self.gguf_file:
+                raise ValueError("Image and video models do not use GGUF files")
+        elif self.media_pipeline is not None or self.runtime == "diffusers":
+            raise ValueError("The media pipeline and the diffusers runtime need an image or video capability")
         return self
 
 
@@ -156,7 +179,9 @@ class Registry:
     def revision(model: ModelDefinition) -> str:
         operational = model.model_dump(
             mode="json",
-            exclude={"name", "description", "license", "gated", "verified", "status"},
+            # speculative and sampling are applied from the environment on every start, so
+            # changing them must not make a stopped pod look like a different pod.
+            exclude={"name", "description", "license", "gated", "verified", "status", "speculative", "sampling"},
         )
         canonical = json.dumps(operational, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]

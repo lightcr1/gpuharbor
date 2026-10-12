@@ -39,6 +39,8 @@ def app_client(tmp_path, monkeypatch):
         "BUNDLED_MODELS_PATH": str(models),
         "RUNTIMES_PATH": str(runtimes),
         "STATE_PATH": str(tmp_path / "data" / "state.json"),
+        "MEDIA_STATE_PATH": str(tmp_path / "data" / "state-media.json"),
+        "RUNTIME_IMAGE_DIFFUSERS": "",
         "PREFERENCES_PATH": str(tmp_path / "data" / "preferences.json"),
     }
     for key, value in values.items():

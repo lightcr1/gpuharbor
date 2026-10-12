@@ -47,3 +47,30 @@ def test_llama_context_is_per_parallel_slot(monkeypatch):
     command = gateway.build_llama_command("/models/example.gguf")
     assert command[command.index("--ctx-size") + 1] == "16384"
     assert command[command.index("--parallel") + 1] == "2"
+
+
+def test_llama_speculative_and_sampling_options(monkeypatch):
+    gateway = load_gateway(monkeypatch)
+    monkeypatch.setenv("SERVED_MODEL_NAMES", "chat")
+    monkeypatch.setenv("MAX_MODEL_LEN", "1024")
+    plain = gateway.build_llama_command("/m.gguf")
+    assert "--spec-type" not in plain and "--temp" not in plain
+    monkeypatch.setenv("SPECULATIVE", "mtp")
+    monkeypatch.setenv("SAMPLING_PRESET", "qwen-thinking")
+    command = gateway.build_llama_command("/m.gguf")
+    assert command[command.index("--spec-type") + 1] == "draft-mtp"
+    assert command[command.index("--top-k") + 1] == "20"
+    monkeypatch.setenv("SAMPLING_PRESET", "qwen-instruct")
+    assert "--reasoning" in gateway.build_llama_command("/m.gguf")
+
+
+def test_llama_rejects_unknown_speculative_and_sampling(monkeypatch):
+    gateway = load_gateway(monkeypatch)
+    monkeypatch.setenv("SERVED_MODEL_NAMES", "chat")
+    monkeypatch.setenv("SPECULATIVE", "--evil")
+    with pytest.raises(ValueError):
+        gateway.build_llama_command("/m.gguf")
+    monkeypatch.delenv("SPECULATIVE")
+    monkeypatch.setenv("SAMPLING_PRESET", "--temp 99")
+    with pytest.raises(ValueError):
+        gateway.build_llama_command("/m.gguf")

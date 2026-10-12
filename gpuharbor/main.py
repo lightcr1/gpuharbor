@@ -38,11 +38,18 @@ registry = Registry(
     settings.user_catalog_path,
     settings.models_path,
 )
-store = StateStore(settings.state_path, settings.runpod_pod_id)
+# One pod per slot: chat models on one pod, image and video models on another.
+SLOTS = ("chat", "media")
+MEDIA_PATHS = {"images", "videos"}
+stores = {
+    "chat": StateStore(settings.state_path, settings.runpod_pod_id),
+    "media": StateStore(settings.media_state_path),
+}
+store = stores["chat"]
 preferences = PreferenceStore(settings.preferences_path, settings.gpuharbor_update_check)
 SESSION_SECONDS = 12 * 60 * 60
 sessions = SessionRegistry(SESSION_SECONDS)
-operation_lock = asyncio.Lock()
+operation_locks = {slot: asyncio.Lock() for slot in SLOTS}
 login_limiter = LoginLimiter(
     settings.gpuharbor_login_max_attempts,
     settings.gpuharbor_login_window_seconds,
@@ -54,7 +61,7 @@ async def lifespan(app: FastAPI):
     registry.models()
     app.state.runpod = RunpodClient(settings)
     app.state.proxy = httpx.AsyncClient(timeout=None)
-    app.state.last_inference = time.monotonic()
+    app.state.last_inference = {slot: time.monotonic() for slot in SLOTS}
     app.state.update_cache = {"at": 0.0, "data": None}
     app.state.idle_task = asyncio.create_task(idle_stop_loop(app))
     app.state.integrations = IntegrationSync()
@@ -92,26 +99,48 @@ def request_integration_sync(application: FastAPI) -> None:
     application.state.integrations.request()
 
 
+async def pod_is_busy(application: FastAPI, pod_id: str) -> bool:
+    """True while the pod reports an image or video job in progress (billing must not stop mid-render)."""
+    try:
+        response = await application.state.proxy.get(
+            f"{proxy_url(pod_id)}/health",
+            headers={"Authorization": f"Bearer {settings.runtime_gateway_token.get_secret_value()}"},
+            timeout=8,
+        )
+        return response.status_code == 200 and bool(response.json().get("busy"))
+    except (httpx.HTTPError, ValueError, AttributeError):
+        return False
+
+
+async def idle_stop_slot(application: FastAPI, slot: str) -> None:
+    idle_seconds = time.monotonic() - application.state.last_inference[slot]
+    lock = operation_locks[slot]
+    if not should_stop_for_idle(idle_seconds, settings.runpod_idle_stop_minutes) or lock.locked():
+        return
+    state = stores[slot].read()
+    if not state.pod_id:
+        return
+    try:
+        pod = await application.state.runpod.get_pod(state.pod_id)
+        if pod_status(pod) != "RUNNING":
+            return
+        if slot == "media" and await pod_is_busy(application, state.pod_id):
+            application.state.last_inference[slot] = time.monotonic()
+            return
+        async with lock:
+            await application.state.runpod.stop_pod(state.pod_id)
+            await application.state.runpod.wait_for_status(state.pod_id, {"EXITED"})
+    except RunpodError:
+        # Retry on the next interval; status and manual controls stay available.
+        return
+
+
 async def idle_stop_loop(application: FastAPI) -> None:
-    """Stop GPU billing after the configured period without inference traffic."""
+    """Stop GPU billing after the configured period without inference traffic, per pod."""
     while True:
         await asyncio.sleep(60)
-        idle_seconds = time.monotonic() - application.state.last_inference
-        if not should_stop_for_idle(idle_seconds, settings.runpod_idle_stop_minutes) or operation_lock.locked():
-            continue
-        state = store.read()
-        if not state.pod_id:
-            continue
-        try:
-            pod = await application.state.runpod.get_pod(state.pod_id)
-            if pod_status(pod) != "RUNNING":
-                continue
-            async with operation_lock:
-                await application.state.runpod.stop_pod(state.pod_id)
-                await application.state.runpod.wait_for_status(state.pod_id, {"EXITED"})
-        except RunpodError:
-            # Retry on the next interval; status and manual controls stay available.
-            continue
+        for slot in SLOTS:
+            await idle_stop_slot(application, slot)
 
 
 app = FastAPI(
@@ -298,13 +327,39 @@ async def controller_settings() -> dict:
     }
 
 
+def slot_arg(slot: str = "chat") -> str:
+    if slot not in SLOTS:
+        raise HTTPException(status_code=422, detail="slot must be chat or media")
+    return slot
+
+
+def active_model_ids() -> set[str]:
+    """Profiles that currently have a pod, on either slot."""
+    states = [stores[slot].read() for slot in SLOTS]
+    return {state.model_id for state in states if state.pod_id and state.model_id}
+
+
 @app.get("/api/connection", dependencies=[Depends(require_control)])
 async def connection() -> dict:
     """What an OpenAI-compatible client needs: base path, model names and the inference token."""
     state = store.read()
     models_ = registry.models()
     served = models_[state.model_id].served_names if state.model_id in models_ else []
-    return {"base_path": "/v1", "served_names": served, "model_id": state.model_id, "token": settings.model_access_token.get_secret_value()}
+    media_state = stores["media"].read()
+    media = models_.get(media_state.model_id) if media_state.pod_id else None
+    return {
+        "base_path": "/v1",
+        "served_names": served,
+        "model_id": state.model_id,
+        "token": settings.model_access_token.get_secret_value(),
+        # The image and video pod is separate; its endpoints are under the same base path.
+        "media": {
+            "running": media is not None,
+            "model_id": media_state.model_id if media else "",
+            "served_names": media.served_names if media else [],
+            "capabilities": media.capabilities if media else [],
+        },
+    }
 
 
 @app.get("/api/running-model", dependencies=[Depends(require_model_token)])
@@ -448,9 +503,9 @@ async def regions(request: Request) -> dict:
 
 
 @app.get("/api/model/ready", dependencies=[Depends(require_control)])
-async def model_ready(request: Request) -> dict:
+async def model_ready(request: Request, slot: str = Depends(slot_arg)) -> dict:
     """Report whether the runtime gateway in the pod answers `/health`."""
-    state = store.read()
+    state = stores[slot].read()
     if not state.pod_id:
         return {"ready": False, "detail": "No managed pod", "model_id": state.model_id}
     try:
@@ -474,11 +529,11 @@ async def model_ready(request: Request) -> dict:
 
 @app.get("/api/models", dependencies=[Depends(require_control)])
 async def models() -> dict:
-    active = store.read().model_id
+    active = active_model_ids()
     return {
         key: {
             **record.model.model_dump(),
-            "active": key == active,
+            "active": key in active,
             "runtime_ready": settings.runtime_image_ready(record.model.runtime),
             "source": record.source,
             "overridden": record.overridden,
@@ -495,8 +550,8 @@ async def export_models() -> dict:
 
 @app.post("/api/models-import", dependencies=[Depends(require_control)])
 async def import_models(body: CatalogImportRequest, request: Request) -> dict[str, bool]:
-    if store.read().pod_id:
-        raise HTTPException(status_code=409, detail="Delete the active pod before importing model settings")
+    if any(stores[slot].read().pod_id for slot in SLOTS):
+        raise HTTPException(status_code=409, detail="Delete the active pods before importing model settings")
     try:
         registry.import_user_catalog(body.catalog, replace=body.replace)
     except ValueError as error:
@@ -507,8 +562,7 @@ async def import_models(body: CatalogImportRequest, request: Request) -> dict[st
 
 @app.put("/api/models/{model_id}", dependencies=[Depends(require_control)])
 async def save_model(model_id: str, body: ModelDefinition, request: Request) -> dict[str, bool]:
-    state = store.read()
-    if state.pod_id and state.model_id == model_id:
+    if model_id in active_model_ids():
         raise HTTPException(status_code=409, detail="Stop and delete the active pod before editing its model")
     try:
         registry.save_model(model_id, body)
@@ -520,8 +574,7 @@ async def save_model(model_id: str, body: ModelDefinition, request: Request) -> 
 
 @app.delete("/api/models/{model_id}", dependencies=[Depends(require_control)])
 async def delete_model(model_id: str, request: Request) -> dict[str, bool]:
-    state = store.read()
-    if state.model_id == model_id:
+    if model_id in {stores[slot].read().model_id for slot in SLOTS}:
         raise HTTPException(status_code=409, detail="The active model cannot be deleted")
     try:
         registry.delete_user_model(model_id)
@@ -533,8 +586,7 @@ async def delete_model(model_id: str, request: Request) -> dict[str, bool]:
 
 @app.post("/api/models/{model_id}/reset", dependencies=[Depends(require_control)])
 async def reset_model(model_id: str, request: Request) -> dict[str, bool]:
-    state = store.read()
-    if state.pod_id and state.model_id == model_id:
+    if model_id in active_model_ids():
         raise HTTPException(status_code=409, detail="Delete the active pod before resetting its model")
     try:
         registry.reset_builtin(model_id)
@@ -608,8 +660,8 @@ async def preflight(options: LaunchOptions, request: Request) -> dict:
 
 
 @app.get("/api/status", dependencies=[Depends(require_control)])
-async def status(request: Request) -> dict:
-    state = store.read()
+async def status(request: Request, slot: str = Depends(slot_arg)) -> dict:
+    state = stores[slot].read()
     if not state.pod_id:
         return {"pod": None, "model_id": state.model_id}
     try:
@@ -628,11 +680,13 @@ async def start(options: LaunchOptions, request: Request) -> dict:
     errors = settings.live_errors(launch.profile.runtime)
     if errors:
         raise HTTPException(status_code=412, detail=errors)
-    if operation_lock.locked():
+    slot = launch.profile.slot
+    lock = operation_locks[slot]
+    if lock.locked():
         raise HTTPException(status_code=409, detail="Another pod operation is running")
-    async with operation_lock:
-        request.app.state.last_inference = time.monotonic()
-        state = store.read()
+    async with lock:
+        request.app.state.last_inference[slot] = time.monotonic()
+        state = stores[slot].read()
         if state.pod_id and state.model_id != options.model_id:
             raise HTTPException(status_code=409, detail="Delete the current pod before switching model/runtime")
         if state.pod_id:
@@ -676,7 +730,7 @@ async def start(options: LaunchOptions, request: Request) -> dict:
                     datacenter_id=pod.pop("_gpuharbor_datacenter_id"),
                     volume_gb=launch.volume_gb,
                 )
-                store.write(state)
+                stores[slot].write(state)
             else:
                 pod = await request.app.state.runpod.get_pod(state.pod_id)
                 if pod_status(pod) != "RUNNING":
@@ -686,15 +740,15 @@ async def start(options: LaunchOptions, request: Request) -> dict:
         except RunpodError as error:
             raise HTTPException(status_code=502, detail=str(error)) from error
         request_integration_sync(request.app)
-        return {"pod_id": state.pod_id, "model_id": state.model_id, "status": pod_status(pod)}
+        return {"pod_id": state.pod_id, "model_id": state.model_id, "slot": slot, "status": pod_status(pod)}
 
 
 @app.post("/api/pod/stop", dependencies=[Depends(require_control)])
-async def stop(request: Request) -> dict:
-    if operation_lock.locked():
+async def stop(request: Request, slot: str = Depends(slot_arg)) -> dict:
+    if operation_locks[slot].locked():
         raise HTTPException(status_code=409, detail="Another pod operation is running")
-    async with operation_lock:
-        state = store.read()
+    async with operation_locks[slot]:
+        state = stores[slot].read()
         if not state.pod_id:
             raise HTTPException(status_code=404, detail="No managed pod")
         try:
@@ -706,18 +760,18 @@ async def stop(request: Request) -> dict:
 
 
 @app.delete("/api/pod", dependencies=[Depends(require_control)])
-async def delete_pod(request: Request) -> dict:
-    if operation_lock.locked():
+async def delete_pod(request: Request, slot: str = Depends(slot_arg)) -> dict:
+    if operation_locks[slot].locked():
         raise HTTPException(status_code=409, detail="Another pod operation is running")
-    async with operation_lock:
-        state = store.read()
+    async with operation_locks[slot]:
+        state = stores[slot].read()
         if not state.pod_id:
             raise HTTPException(status_code=404, detail="No managed pod")
         try:
             await request.app.state.runpod.delete_pod(state.pod_id)
         except RunpodError as error:
             raise HTTPException(status_code=502, detail=str(error)) from error
-        store.write(ControllerState())
+        stores[slot].write(ControllerState())
         return {"pod_id": state.pod_id, "status": "TERMINATED"}
 
 
@@ -736,10 +790,13 @@ async def proxy(path: str, request: Request, _: None = Depends(require_model_tok
     body = await request.body()
     if len(body) > maximum_bytes:
         raise HTTPException(status_code=413, detail="Request body is too large")
-    request.app.state.last_inference = time.monotonic()
-    state = store.read()
+    # Image and video requests go to the media pod, everything else to the chat pod.
+    slot = "media" if path.split("/", 1)[0] in MEDIA_PATHS else "chat"
+    request.app.state.last_inference[slot] = time.monotonic()
+    state = stores[slot].read()
     if not state.pod_id:
-        raise HTTPException(status_code=503, detail="No model is running. Start a pod in the GPUHarbor dashboard first.")
+        what = "image or video model" if slot == "media" else "model"
+        raise HTTPException(status_code=503, detail=f"No {what} is running. Start a pod in the GPUHarbor dashboard first.")
     query = f"?{request.url.query}" if request.url.query else ""
     upstream_request = request.app.state.proxy.build_request(
         request.method,

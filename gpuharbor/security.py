@@ -68,6 +68,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             or request.url.path.startswith("/docs")
         ):
             response.headers["Cache-Control"] = "no-store"
+        elif request.url.path.startswith("/static/"):
+            # Revalidate on every load (ETag), so an upgraded dashboard never runs a stale script.
+            response.headers["Cache-Control"] = "no-cache"
         if request.url.scheme == "https":
             response.headers["Strict-Transport-Security"] = "max-age=31536000"
         return response
